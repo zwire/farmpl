@@ -1,0 +1,24 @@
+---
+alwaysApply: true
+---
+# FarmPL API プロジェクト構造ガイド
+
+このプロジェクトはPythonベースのAPIプロジェクトです。
+
+## 主要ファイル
+- [api/main.py](mdc:api/main.py) - メインエントリーポイント
+- [api/pyproject.toml](mdc:api/pyproject.toml) - プロジェクト設定と依存関係
+- [api/README.md](mdc:api/README.md) - プロジェクトドキュメント
+
+## ディレクトリ構造
+- `api/` - メインのAPIコード
+- `api/lib/` - ライブラリコード
+- `api/tests/` - テストファイル
+- `api/docs/` - ドキュメント
+
+## 技術スタック
+- Python 3.13+
+- Pydantic - データバリデーション
+- OR-Tools - 最適化ライブラリ
+- Ruff - リンターとフォーマッター
+- Pytest - テストフレームワーク
