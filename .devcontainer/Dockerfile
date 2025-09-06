@@ -53,6 +53,7 @@ RUN apt update && apt install -y \
     python3 \
     python3-pip \
     python3-venv \
+    pipx \
     && rm -rf /var/lib/apt/lists/*
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
@@ -61,6 +62,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Set up non-root user
 USER node
+RUN pipx ensurepath
 
 # Install global packages
 ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global

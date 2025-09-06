@@ -15,15 +15,12 @@ class Event(BaseModel):
     crop_id: str
     name: str
     category: str | None = None  # 播種/定植/散水/収穫 等
-    type: str | None = Field(None, description="one-shot | repeat | sustain")
-    window: set[int] | None = None  # for one-shot
-    start_window: set[int] | None = None  # for sustain
-    duration_days: int | None = None  # for sustain
-    start_cond: set[int] | None = None  # for repeat
-    end_cond: set[int] | None = None  # for repeat
-    frequency_days: int | None = None  # for repeat
+    start_cond: set[int] | None = None
+    end_cond: set[int] | None = None
+    frequency_days: int | None = None
     people_required: int | None = None
-    labor_per_area_per_day: float | None = None
+    labor_total_per_area: float | None = Field(None, description="通算労働需要 (h/a)")
+    labor_daily_cap: float | None = Field(None, description="日次労働上限 (h/日)")
     required_roles: set[str] | None = None
     required_resources: set[str] | None = None
 
@@ -65,7 +62,8 @@ class FixedArea(BaseModel):
 
 
 class Preferences(BaseModel):
-    # weights are non-negative; tech.md: stage-wise/hybrid discussed, keep as simple weights for now
+    # Weights are non-negative; see tech.md for stage-wise/hybrid notes.
+    # Keep as simple weights for now.
     w_profit: float = 1.0
     w_labor: float = 1.0
     w_idle: float = 1.0
@@ -75,7 +73,8 @@ class Preferences(BaseModel):
 
 
 class Horizon(BaseModel):
-    # Period represented as discrete days (tech: “期間は時間窓 (h)”; we use day index, extendable)
+    # Period is represented as discrete days; see tech.md.
+    # We use day index, extendable.
     num_days: int
 
 

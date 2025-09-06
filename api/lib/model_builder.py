@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+
+from ortools.sat.python import cp_model
 
 from .interfaces import Constraint, Objective
 from .schemas import PlanRequest
-from .variables import Variables, create_variables
+from .variables import Variables, create_empty_variables
 
 
 @dataclass
@@ -13,23 +15,33 @@ class BuildContext:
 
     request: PlanRequest
     variables: Variables
-    # In a full implementation, `model` would be an OR-Tools model instance.
-    model: object | None = None
-    objective_terms: list[object] = field(default_factory=list)
+    model: cp_model.CpModel
+    # scale: 1 unit = 0.1a (integerize area)
+    scale_area: int = 10
+    objective_expr: cp_model.LinearExpr | None = None
+    objective_sense: str | None = None  # "max" or "min"
 
 
 def build_model(
     request: PlanRequest, constraints: list[Constraint], objectives: list[Objective]
 ) -> BuildContext:
-    variables = create_variables()
-    ctx = BuildContext(request=request, variables=variables, model=None)
+    model = cp_model.CpModel()
+    variables = create_empty_variables()
+    ctx = BuildContext(request=request, variables=variables, model=model)
 
     for c in constraints:
         if getattr(c, "enabled", True):
             c.apply(ctx)
 
-    for obj in objectives:
+    # Only first objective is applied per solve
+    if objectives:
+        obj = objectives[0]
         if getattr(obj, "enabled", True):
             obj.register(ctx)
+            if ctx.objective_expr is not None:
+                if ctx.objective_sense == "max":
+                    model.Maximize(ctx.objective_expr)
+                elif ctx.objective_sense == "min":
+                    model.Minimize(ctx.objective_expr)
 
     return ctx

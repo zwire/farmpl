@@ -13,18 +13,14 @@
 - 日集合（計画期間の各日）: $T = {1, ..., |T|}$
 - 役割集合: $Q$
 
-補助集合（イベント種別）:
-- 単発イベント集合: $E_{one} \subseteq E$
-- 繰り返しイベント集合: $E_{rep} \subseteq E$
-- 持続型イベント集合: $E_{sus} \subseteq E$
-
 ## 2. パラメータ（Parameters）
 - 作物単価（円/a）: $price_c (c \in C)$
 - 土地面積（a）: $area_l (l \in L)$
 - イベント対象作物: $crop_e \in C (e \in E)$
 - イベントカテゴリ（播種・定植・散水・収穫等）: $cat_e (e \in E)$（実装では列挙/ID）
 - イベント所要人数（人）: $people\_req_e (e \in E)$
-- イベント日次労働需要（h/a/日）: $labor\_per\_area_e (e \in E)$
+- イベント通算労働需要（h/a）: $labor\_total\_per\_area_e (e \in E)$
+- イベント日次労働上限（h/日）: $labor\_daily\_cap_e (e \in E)$
 - 必須役割リスト: $roles\_req_e \subseteq Q (e \in E)$（空集合可）
 - 共有リソース必要リスト: $resources\_req_e \subseteq R (e \in E)$（空集合可）
 - 作物面積上下限制約（任意）: $area\_min_c, area\_max_c (c \in C)$（未設定時は $0, +\infty$）
@@ -35,21 +31,17 @@
   - $resource\_blocked_{r,t} \in {0,1}$
 - 作業者上限作業時間（h/日）: $worker\_cap_w (w \in W)$
 - イベント実施可能期間/条件:
-  - 単発: $window_e \subseteq T$
   - 繰り返し: $start\_cond_e \subseteq T, end\_cond_e \subseteq T, freq_e \in Z_{\gt0}$
-  - 持続: $start\_window_e \subseteq T, dur_e \in Z_{\gt0}$
 - 収穫能力（h/日 または a/日）: $harvest\_cap_t (t \in T)$（能力制約の基準値）
 - 多様性・嗜好の重み（ユーザー設定）: $w_{profit}, w_{labor}, w_{idle}, w_{dispersion}, w_{peak}, w_{diversity}$（正の重み）
 
 補助パラメータ：
-- 面積→労働時間換算: $labor_e(a) = labor\_per\_area_e * a$
+- 面積→通算労働時間換算: $total\_labor\_e(a) = labor\_total\_per\_area\_e * a$
 - 大M定数: $M$（十分大きい値、CP-SAT ではインジケータ制約で代替推奨）
 
 ## 3. 決定変数（Decision Variables）
 - 面積配分: $x_{l,c,t} \ge 0$（日 $t$ に土地 $l$ で作物 $c$ として占有する面積 $a$）
   - 備考: 作付けの時空間連続性を簡略化したい場合は $t$ 非依存の $x_{l,c}$ にし、イベントにより期間制約を課す。
-- 単発イベント実施: $y_{e,t} \in {0,1}$（日 $t$ にイベント $e$ を実施）
-- 持続イベント開始: $s_{e,t} \in {0,1}$（日 $t$ にイベント $e$ を開始）
 - 繰り返しイベント実施: $r_{e,t} \in {0,1}$（日 $t$ にイベント $e$ の周期実施）
 - 作業者割当時間: $h_{w,e,t} \ge 0$（作業者 $w$ が日 $t$ にイベント $e$ へ従事する時間 $h$）
 - 共有リソース使用時間: $u_{r,e,t} \ge 0$（リソース $r$ が日 $t$ にイベント $e$ へ供給する時間 $h$）
@@ -77,25 +69,22 @@ CP-SAT 実装ノート:
   $$area\_min_c \le \sum_{l,t} x_{l,c,t} \le area\_max_c \quad (\forall c)$$
 
 ### 4.3 イベント実施の可行性ウィンドウ
-- 単発:
-  $$y_{e,t} = 0 \quad (t \notin window_e)$$
-- 繰り返し: 開始・終了条件期間でのみ実施可、かつ周期性を誘導。
-  - 例: $r_{e,t} = 0$ if $t$ outside $[min(start\_cond_e), max(end\_cond_e)]$。
-  - 周期性はソフト制約化か、$r_{e,t} = r_{e,t-freq_e}$ 等の差分/パターン制約で近似。
-- 持続: 開始可能期間のみ $s_{e,t}$ 許可、開始後 $dur_e$ 日間は稼働。
-  - 稼働中インジケータ: $active_{e,t} \in {0,1}$ を導入し、
-    $$active_{e,t} = \sum_{\tau=t-dur_e+1}^{t} s_{e,\tau} \quad (\forall e \in E_{sus}, t)$$
-    境界外は 0 とみなす。
+- 開始・終了条件期間でのみ実施可、かつ周期性/ラグ条件を表現。
+- 窓外抑制: $r_{e,t} = 0$ if $t$ outside $[min(start\_cond_e), max(end\_cond_e)]$。
+- 周期性は $r_{e,t} = r_{e,t-freq_e}$ 等の差分/パターン制約で近似。
+- ラグ例: あるイベント $e_2$ は $e_1$ の後、$[L_{min}, L_{max}]$ 日の範囲でのみ許可する場合、$r_{e_2,t} \le \sum_{\tau=t-L_{max}}^{t-L_{min}} r_{e_1,\tau}$（境界は計画期間内に切詰め）。
 
 ### 4.4 労働需要と作業者容量
-- イベント日次労働需要の充足（面積連動）:
-  - イベント $e$ が作物$c=crop_e$に紐づくとして、日$t$の当該作業面積を $A_{e,t} = \sum_{l} x_{l,c,t}$ と置く。
-  - 必要総工数: $need_{e,t} = labor\_per\_area_e * A_{e,t}$。
-  - 単発/繰返/持続の稼働インジケータ $act_{e,t}$（$y_{e,t}$ または $r_{e,t}$ または $active_{e,t}$）により、
-    $$\sum_{w} h_{w,e,t} \ge need_{e,t} \cdot act_{e,t}$$
+- イベント通算労働需要と日次上限制約（面積連動）:
+  - イベント $e$ が作物$c=crop_e$に紐づくとして、当該作業面積を $A_e = \sum_{l,t} x_{l,c,t}$ と置く。
+  - 必要総工数（通算）: $total\_need\_e = labor\_total\_per\_area\_e * A\_e$。
+  - 通算充足:
+    $$\sum_{t}\sum_{w} h_{w,e,t} \ge total\_need\_e$$
+  - 日次上限（実施日のみ有効）:
+    $$\sum_{w} h_{w,e,t} \le labor\_daily\_cap\_e \cdot r_{e,t} \quad (\forall t)$$
 - 所要人数の下限（1人あたり閾値 $Hmin$ を導入する場合）:
-  $$\sum_{w} [h_{w,e,t} \ge \epsilon] \ge people\_req_e \cdot act_{e,t}$$
-  CP-SAT では、バイナリ $assign_{w,e,t}$ と $h_{w,e,t} \le M \cdot assign_{w,e,t}$、$\sum_w assign_{w,e,t} \ge people\_req_e \cdot act_{e,t}$ で実装。
+  $$\sum_{w} [h_{w,e,t} \ge \epsilon] \ge people\_req_e \cdot r_{e,t}$$
+  CP-SAT では、バイナリ $assign_{w,e,t}$ と $h_{w,e,t} \le M \cdot assign_{w,e,t}$、$\sum_w assign_{w,e,t} \ge people\_req_e \cdot r_{e,t}$ で実装。
 - 作業者の一日容量:
   $$\sum_{e} h_{w,e,t} \le worker\_cap_w \quad (\forall w,t)$$
 - 作業不可日のゼロ制約:
@@ -108,8 +97,8 @@ CP-SAT 実装ノート:
 - リソース使用時間充足と容量上限（容量 $cap_r$ を仮定）:
   $$\sum_{e} u_{r,e,t} \le cap_r \quad (\forall r,t)$$
 - リソース必要イベントへの供給:
-  $resources\_req_e$ に含まれる場合、$u_{r,e,t}$ が $need_{e,t}$ を支援するよう、
-  $$\sum_{r \in resources\_req_e} u_{r,e,t} \ge \alpha \cdot need_{e,t} \cdot act_{e,t}$$
+  $resources\_req_e$ に含まれる場合、実施日における作業時間に比例して供給されるよう、
+  $$\sum_{r \in resources\_req_e} u_{r,e,t} \ge \alpha \cdot \sum_{w} h_{w,e,t} \quad (\forall t)$$
   係数 $\alpha$ は時間換算比率。禁止日は $u_{r,e,t}=0$。
 
 ### 4.6 作物と圃場の分散・集約リンク

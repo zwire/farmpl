@@ -2,20 +2,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from ortools.sat.python import cp_model
+
 
 @dataclass
 class Variables:
-    """Handles symbolic variable identifiers used by the model.
+    """Container for OR-Tools variables (simplified, no time index).
 
-    This is just a skeleton; actual OR-Tools var objects will be managed
-    by the builder in `model_builder.py`.
+    Keys are tuples like (land_id, crop_id).
     """
 
-    # Examples of variable registries (keys are indices like (land, crop, day))
-    x_area_by_l_c_t: dict[tuple[str, str, int], str]
-    active_event_by_e_t: dict[tuple[str, int], str]
+    x_area_by_l_c: dict[tuple[str, str], cp_model.IntVar]
+    z_use_by_l_c: dict[tuple[str, str], cp_model.BoolVar]
 
 
-def create_variables() -> Variables:
-    # Provide empty registries in the skeleton stage
-    return Variables(x_area_by_l_c_t={}, active_event_by_e_t={})
+def create_empty_variables() -> Variables:
+    return Variables(x_area_by_l_c={}, z_use_by_l_c={})
