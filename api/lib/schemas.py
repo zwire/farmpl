@@ -18,6 +18,10 @@ class Event(BaseModel):
     start_cond: set[int] | None = None
     end_cond: set[int] | None = None
     frequency_days: int | None = None
+    # Optional dependency: start only Lmin..Lmax days after predecessor
+    preceding_event_id: str | None = None
+    lag_min_days: int | None = None
+    lag_max_days: int | None = None
     people_required: int | None = None
     labor_total_per_area: float | None = Field(None, description="通算労働需要 (h/a)")
     labor_daily_cap: float | None = Field(None, description="日次労働上限 (h/日)")

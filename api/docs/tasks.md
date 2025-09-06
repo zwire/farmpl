@@ -10,8 +10,9 @@
 - [x] 最小サンプルデータでの動作
 
 ## 1. 変数・スケール・モデル方針
-- [ ] 面積スケール（unit=0.1a）を定数化し、全体で統一
-- [ ] 時間軸（T）拡張へ備えた変数設計（現状は x[l,c]、将来 x[l,c,t]）の整理メモ
+- [x] 面積スケール（unit=0.1a）を定数化し、全体で統一
+- [x] 時間軸（T）拡張へ備えた変数設計（現状は x[l,c]、将来 x[l,c,t]）の整理メモ
+  - [x] 完全版: x[l,c,t] と idle[l,t] へ移行
 
 ## 2. 制約（Constraints）実装とテスト
 各制約は ON/OFF 可能な独立コンポーネントとして実装し、以下を1セットで行う：
@@ -20,29 +21,29 @@
 - 単体テスト（`tests/` に test_*.py 追加）
 - サンプルデータ拡張（`main.py` または専用fixture）
 
-2.1 土地面積制約（既存の確認強化）
-- [x] Sum_c x[l,c] <= area_l（実装済み）
-- [x] テスト: ちょうど上限まで使うケース（実装済み）
+2.1 土地面積制約（日次版）
+- [x] Sum_c x[l,c,t] <= area_l（実装済み）
+- [x] テスト: ちょうど上限まで使うケース
 
-2.2 面積と採用二値のリンク（既存の確認強化）
-- [x] x[l,c] <= area_l * z[l,c]（実装済み）
-- [x] テスト: z=0 で x>=1 を課すと infeasible（実装済み）
+2.2 面積と採用二値のリンク（日次版）
+- [x] x[l,c,t] <= area_l * z[l,c]（実装済み）
+- [x] テスト: z=0 で x>=1 を課すと infeasible
 
 2.3 事前割付（fixed_area[l,c] の下限）
-- [ ] 実装: Sum_t x[l,c,(t)] >= fixed_area[l,c]（時間なし版では x[l,c] >= fixed_area）
-- [ ] テスト: fixed を満たす解が得られること／満たさない条件で infeasible
+- [x] 実装: Sum_t x[l,c,t] >= fixed_area[l,c]
+- [x] テスト: 満たす/不可能ケース
 - [ ] サンプル更新: 一部 land-crop に fixed を付与
 
 2.4 作物面積の上下限（area_min_c, area_max_c）
-- [ ] 実装: area_min_c <= Sum_l x[l,c] <= area_max_c
-- [ ] テスト: min/max を満たす組合せで可否を確認
+- [x] 実装: area_min_c <= Sum_{l,t} x[l,c,t] <= area_max_c
+- [x] テスト: min/max を満たす組合せで可否を確認
 - [ ] サンプル更新: 片方に最小、片方に最大を設定
 
 2.5 労働需要と作業者容量（通算+日次上限）
-- [ ] 実装: 通算充足 Σ_t Σ_w h[w,e,t] >= total_need_e（将来t導入を見越した骨格）
-- [ ] 実装: 日次上限 Σ_w h[w,e,t] <= labor_daily_cap_e · r[e,t]
+- [x] 実装: 通算充足 Σ_t Σ_w h[w,e,t] >= total_need_e
+- [x] 実装: 日次上限 Σ_w h[w,e,t] <= labor_daily_cap_e · r[e,t]
 - [ ] 実装: 所要人数下限と assign 連動（r[e,t]でインジケータ化）
-- [ ] テスト: 容量超過で infeasible、余裕で feasible
+- [x] テスト: 容量超過で infeasible、余裕で feasible（基本）
 - [ ] サンプル更新: workers に capacity、events に labor_total_per_area と labor_daily_cap を設定
 
 2.6 必須役割の充足（assign と role のリンク）
@@ -50,25 +51,30 @@
 - [ ] テスト: 役割不在で infeasible、役割あると feasible
 - [ ] サンプル更新: workers に roles を設定
 
-2.7 リソース容量と必要イベント供給（簡略）
-- [ ] 実装: Sum_e u[r,e,(t)] <= cap_r、実施日には Σ_r u[r,e,t] が作業量に比例
-- [ ] テスト: cap 超過で infeasible
+2.7 リソース容量と必要イベント供給
+- [x] 実装: Sum_e u[r,e,t] <= cap_r、実施日には Σ_r u[r,e,t] >= Σ_w h[w,e,t]
+- [x] テスト: 基本ケース
 - [ ] サンプル更新: resource を1つ追加
 
-2.8 土地・作業者・リソースの利用禁止期間（時間軸なしの簡易版）
-- [ ] 実装: 該当要素の使用を0に固定（現状は日別なしのため将来フラグのみ）
+2.8 土地・作業者・リソースの利用禁止期間（日次）
+- [x] 実装: land→x=0、worker→h=0、resource→u=0
 - [ ] テスト: 禁止設定が反映される
 - [ ] サンプル更新: いずれかに blocked 設定
 
-2.9 収穫能力とピーク超過（簡略）
-- [ ] 実装: Sum_c harv[c,(t)] <= harvest_cap[(t)] + over_t（まずは総量制約の骨格）
-- [ ] テスト: cap を超えないこと
+2.9 収穫能力とピーク超過
+- [x] 実装: Σ_c harv[c,t] <= harvest_cap[t] + over[t]、harv[c,t] <= Σ_l x[l,c,t]
+- [x] テスト: cap を超えないこと
 - [ ] サンプル更新: harvest_cap を与える
 
-2.10 アイドル（遊休）
-- [ ] 実装: Sum_c x[l,c,(t)] + idle[l,(t)] = area_l（時間なし版では補助変数で総量整合のみ）
-- [ ] テスト: idle が非負で帳尻が合う
+2.10 アイドル（遊休）日次版
+- [x] 実装: Sum_c x[l,c,t] + idle[l,t] = area_l
+- [x] テスト: idle が非負で帳尻が合う
 - [ ] サンプル更新: 出力に idle を可視化
+
+2.11 イベント依存（頻度・ラグ）
+- [x] 実装: frequency_days の間隔制約
+- [x] 実装: preceding_event_id のラグ制約（Lmin/Lmax）
+- [x] テスト: 基本ケース
 
 ## 3. 目的関数（Objectives）
 3.1 収益最大化（既存）

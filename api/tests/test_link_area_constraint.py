@@ -21,9 +21,11 @@ def test_link_area_enforces_zero_when_z_zero() -> None:
     )
 
     # Force z=0 and still try to push objective by adding constraint x >= 1
-    key = ("L1", "C1")
-    z = ctx.variables.z_use_by_l_c[key]
-    x = ctx.variables.x_area_by_l_c[key]
+    key_z = ("L1", "C1")
+    z = ctx.variables.z_use_by_l_c[key_z]
+    # Any day t
+    key_x = ("L1", "C1", 1)
+    x = ctx.variables.x_area_by_l_c_t[key_x]
     ctx.model.Add(z == 0)
     ctx.model.Add(x >= 1)
 
@@ -44,14 +46,15 @@ def test_link_area_allows_area_when_z_one() -> None:
     ctx = build_model(
         req, [LandCapacityConstraint(), LinkAreaUseConstraint()], [ProfitObjective()]
     )
-    key = ("L1", "C1")
-    z = ctx.variables.z_use_by_l_c[key]
-    x = ctx.variables.x_area_by_l_c[key]
+    key_z = ("L1", "C1")
+    z = ctx.variables.z_use_by_l_c[key_z]
+    key_x = ("L1", "C1", 1)
+    x = ctx.variables.x_area_by_l_c_t[key_x]
     ctx.model.Add(z == 1)
     # cap is 10 units; require at least 5
     ctx.model.Add(x >= 5)
 
     res = solve(ctx)
     assert res.status in ("FEASIBLE", "OPTIMAL")
-    assert res.x_area_by_l_c_values is not None
-    assert res.x_area_by_l_c_values[key] >= 5
+    assert res.x_area_by_l_c_t_values is not None
+    assert res.x_area_by_l_c_t_values[key_x] >= 5

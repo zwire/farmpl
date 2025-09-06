@@ -7,14 +7,34 @@ from ortools.sat.python import cp_model
 
 @dataclass
 class Variables:
-    """Container for OR-Tools variables (simplified, no time index).
+    """Container for OR-Tools variables.
 
-    Keys are tuples like (land_id, crop_id).
+    Spatial area variables use keys (land_id, crop_id).
+    Partially time-indexed variables use keys that include day t.
     """
 
-    x_area_by_l_c: dict[tuple[str, str], cp_model.IntVar]
+    # Time-indexed area variables
+    x_area_by_l_c_t: dict[tuple[str, str, int], cp_model.IntVar]
     z_use_by_l_c: dict[tuple[str, str], cp_model.BoolVar]
+
+    # Partial time-indexed variables
+    r_event_by_e_t: dict[tuple[str, int], cp_model.BoolVar]
+    h_time_by_w_e_t: dict[tuple[str, str, int], cp_model.IntVar]
+    u_time_by_r_e_t: dict[tuple[str, str, int], cp_model.IntVar]
+    harv_by_c_t: dict[tuple[str, int], cp_model.IntVar]
+    over_by_t: dict[int, cp_model.IntVar]
+    # Time-indexed idle per land
+    idle_by_l_t: dict[tuple[str, int], cp_model.IntVar]
 
 
 def create_empty_variables() -> Variables:
-    return Variables(x_area_by_l_c={}, z_use_by_l_c={})
+    return Variables(
+        x_area_by_l_c_t={},
+        z_use_by_l_c={},
+        r_event_by_e_t={},
+        h_time_by_w_e_t={},
+        u_time_by_r_e_t={},
+        harv_by_c_t={},
+        over_by_t={},
+        idle_by_l_t={},
+    )

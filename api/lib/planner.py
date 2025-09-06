@@ -1,6 +1,16 @@
 from __future__ import annotations
 
-from .constraints import LandCapacityConstraint, LinkAreaUseConstraint
+from .constraints import (
+    AreaBoundsConstraint,
+    EventsWindowConstraint,
+    FixedAreaConstraint,
+    HarvestCapacityConstraint,
+    IdleConstraint,
+    LaborConstraint,
+    LandCapacityConstraint,
+    LinkAreaUseConstraint,
+    ResourcesConstraint,
+)
 from .interfaces import Constraint, Objective
 from .model_builder import build_model
 from .objectives import DispersionObjective, ProfitObjective, build_profit_expr
@@ -13,10 +23,17 @@ def plan(
     constraints: list[Constraint] | None = None,
     objectives: list[Objective] | None = None,
 ) -> PlanResponse:
-    # Default two constraints
+    # Default constraints (partial time-axis introduced)
     base_constraints: list[Constraint] = [
         LandCapacityConstraint(),
         LinkAreaUseConstraint(),
+        EventsWindowConstraint(),
+        LaborConstraint(),
+        ResourcesConstraint(),
+        HarvestCapacityConstraint(),
+        IdleConstraint(),
+        FixedAreaConstraint(),
+        AreaBoundsConstraint(),
     ]
     if constraints:
         base_constraints.extend(constraints)

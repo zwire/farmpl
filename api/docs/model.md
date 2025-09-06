@@ -40,16 +40,16 @@
 - 大M定数: $M$（十分大きい値、CP-SAT ではインジケータ制約で代替推奨）
 
 ## 3. 決定変数（Decision Variables）
-- 面積配分: $x_{l,c,t} \ge 0$（日 $t$ に土地 $l$ で作物 $c$ として占有する面積 $a$）
-  - 備考: 作付けの時空間連続性を簡略化したい場合は $t$ 非依存の $x_{l,c}$ にし、イベントにより期間制約を課す。
-- 繰り返しイベント実施: $r_{e,t} \in {0,1}$（日 $t$ にイベント $e$ の周期実施）
-- 作業者割当時間: $h_{w,e,t} \ge 0$（作業者 $w$ が日 $t$ にイベント $e$ へ従事する時間 $h$）
-- 共有リソース使用時間: $u_{r,e,t} \ge 0$（リソース $r$ が日 $t$ にイベント $e$ へ供給する時間 $h$）
-- 収穫作業量（面積ベースの指標）: $harv_{c,t} \ge 0$（日 $t$ に作物 $c$ の収穫対象面積）
-- ピーク超過量: $over_t \ge 0$（日 $t$ の収穫需要の能力超過分）
-- 分散度計測の補助（同一作物の圃場分散）:
-  - 二値: $z_{lc} \in {0,1}$（圃場 $l$ で作物 $c$ を採用）
-  - 集約度/分散度指標用の補助連続変数（後述の目的式で使用）
+- 面積配分（日次）: $x_{l,c,t} \ge 0$
+- 繰り返しイベント実施: $r_{e,t} \in {0,1}$
+- 作業者割当時間: $h_{w,e,t} \ge 0$
+- 共有リソース使用時間: $u_{r,e,t} \ge 0$
+- 収穫作業量（面積ベース）: $harv_{c,t} \ge 0$
+- ピーク超過量: $over_t \ge 0$
+- 土地のアイドル（日次）: $idle_{l,t} \ge 0$
+- 分散度（同一作物の圃場分散）補助:
+  - 二値: $z_{l,c} \in {0,1}$
+  - 補助連続変数（必要に応じて）
 
 CP-SAT 実装ノート:
 - $x_{l,c,t}$ を連続にすると CP-SAT ではドメインに実数は直接使えないため、面積を離散単位（例えば 0.1a 刻み）にしたバイナリ多重化、または混合整数線形（MIP）ソルバ（OR-Tools の GLOP/SCIP）を併用する。
@@ -59,7 +59,7 @@ CP-SAT 実装ノート:
 ### 4.1 土地面積制約
 - 各日・各圃場の総使用面積は上限以下:
   $$\sum_{c \in C} x_{l,c,t} \le area_l \quad (\forall l,t)$$
-- 事前割付の順守（あるいは下限として扱う）:
+- 事前割付の順守（下限として扱う）:
   $$\sum_{t \in T} x_{l,c,t} \ge fixed\_area_{lc} \quad (\forall l,c)$$
 - 土地利用禁止日のゼロ制約:
   $$x_{l,c,t} = 0 \quad \text{if } land\_blocked_{l,t}=1$$
@@ -69,29 +69,18 @@ CP-SAT 実装ノート:
   $$area\_min_c \le \sum_{l,t} x_{l,c,t} \le area\_max_c \quad (\forall c)$$
 
 ### 4.3 イベント実施の可行性ウィンドウ
-- 開始・終了条件期間でのみ実施可、かつ周期性/ラグ条件を表現。
 - 窓外抑制: $r_{e,t} = 0$ if $t$ outside $[min(start\_cond_e), max(end\_cond_e)]$。
-- 周期性は $r_{e,t} = r_{e,t-freq_e}$ 等の差分/パターン制約で近似。
-- ラグ例: あるイベント $e_2$ は $e_1$ の後、$[L_{min}, L_{max}]$ 日の範囲でのみ許可する場合、$r_{e_2,t} \le \sum_{\tau=t-L_{max}}^{t-L_{min}} r_{e_1,\tau}$（境界は計画期間内に切詰め）。
+- 周期性（freq）・ラグは未実装（将来対応）。
 
 ### 4.4 労働需要と作業者容量
 - イベント通算労働需要と日次上限制約（面積連動）:
-  - イベント $e$ が作物$c=crop_e$に紐づくとして、当該作業面積を $A_e = \sum_{l,t} x_{l,c,t}$ と置く。
-  - 必要総工数（通算）: $total\_need\_e = labor\_total\_per\_area\_e * A\_e$。
-  - 通算充足:
-    $$\sum_{t}\sum_{w} h_{w,e,t} \ge total\_need\_e$$
-  - 日次上限（実施日のみ有効）:
-    $$\sum_{w} h_{w,e,t} \le labor\_daily\_cap\_e \cdot r_{e,t} \quad (\forall t)$$
-- 所要人数の下限（1人あたり閾値 $Hmin$ を導入する場合）:
-  $$\sum_{w} [h_{w,e,t} \ge \epsilon] \ge people\_req_e \cdot r_{e,t}$$
-  CP-SAT では、バイナリ $assign_{w,e,t}$ と $h_{w,e,t} \le M \cdot assign_{w,e,t}$、$\sum_w assign_{w,e,t} \ge people\_req_e \cdot r_{e,t}$ で実装。
-- 作業者の一日容量:
-  $$\sum_{e} h_{w,e,t} \le worker\_cap_w \quad (\forall w,t)$$
-- 作業不可日のゼロ制約:
-  $$h_{w,e,t} = 0 \quad \text{if } worker\_blocked_{w,t}=1$$
-- 必須役割満たす割当（各 $e$ の $roles\_req_e$）:
-  役割 $q$ ごとに、$assign_{w,e,t}$ と作業者の役割属性 $role\_has_{w,q}$ を使い、
-  $$\sum_{w} role\_has_{w,q} \cdot assign_{w,e,t} \ge 1 \quad (\forall q \in roles\_req\_e, t)$$
+  - $A_e = \sum_{l,t} x_{l,c,t}\; (c=crop_e)$。
+  - $total\_need\_e = labor\_total\_per\_area\_e \cdot A_e$。
+  - 通算充足: $\sum_{t}\sum_{w} h_{w,e,t} \ge total\_need\_e$。
+  - 日次上限: $\sum_{w} h_{w,e,t} \le labor\_daily\_cap\_e \cdot r_{e,t}\;(\forall t)$。
+- 作業者の一日容量: $\sum_{e} h_{w,e,t} \le worker\_cap_w\;(\forall w,t)$。
+- 作業不可日: $h_{w,e,t} = 0$ if $worker\_blocked_{w,t}=1$。
+- 役割・人数の厳密化は未実装（将来対応）。
 
 ### 4.5 共有リソース容量
 - リソース使用時間充足と容量上限（容量 $cap_r$ を仮定）:
@@ -107,13 +96,12 @@ CP-SAT 実装ノート:
   $$z_{l,c} \in \{0,1\}$$
 
 ### 4.7 収穫能力とピーク超過
-- 収穫作業量は対応面積以内:
+- 収穫作業量は対応面積以内（日次）:
   $$harv_{c,t} \le \sum_{l} x_{l,c,t}$$
-- 収穫能力（全作物合計）が上限を超えないように、超過分 $over_t$ を導入:
-  $$\sum_{c} harv_{c,t} \le harvest\_cap_t + over_t \quad (\forall t)$$
+- 収穫能力: $\sum_{c} harv_{c,t} \le harvest\_cap_t + over_t \quad (\forall t)$
 
 ### 4.8 土地の遊休（アイドル）日
-- 土地$l$のアイドル日指標 $idle_{l,t} \ge 0$ を導入:
+- 日次アイドル $idle_{l,t} \ge 0$:
   $$\sum_{c} x_{l,c,t} + idle_{l,t} = area_l \quad (\forall l,t \text{ with } land\_blocked_{l,t}=0)$$
 
 ## 5. 目的関数（Objectives）
@@ -149,9 +137,8 @@ $$\max \; w_{profit}\,Profit - w_{labor}\,Labor - w_{idle}\,Idle - w_{dispersion
 - 期間 $T$ は日付を整数日に写像。禁止期間は該当 $t$ を 1 とする行列で入力。
 - 事前割付 $fixed\_area_{l,c}$ は厳密制約か、ソフト化してペナルティ項に移す選択可。
 
-## 8. 拡張・簡略化オプション
-- 簡略化: $x_{l,c,t}$ を $x_{l,c}$ にし、イベントは可動フラグのみ扱う（解の時間解像度を下げる）。
-- 拡張: 生育ステージやリードタイム、ローテーション制約、病害回避の輪作制約等を $t$ 方向の論理で追加。
+## 8. 拡張オプション
+- 生育ステージやリードタイム、ローテーション制約、病害回避の輪作制約等を $t$ 方向の論理で追加。
 
 ## 9. 実装スケッチ（擬似コード）
 ```python
@@ -159,18 +146,20 @@ from ortools.sat.python import cp_model
 
 model = cp_model.CpModel()
 
-# 例: 変数（刻み幅 unit を導入）
-unit = 1  # 面積の最小刻み（例: 0.1a -> unit=1 は別スケールで）
+# 例: 面積変数（時間依存の x[l,c,t]）
 x = {}  # (l,c,t) -> IntVar
 for l in L:
     for c in C:
         for t in T:
             x[l,c,t] = model.NewIntVar(0, int(area_l[l]), f"x_{l}_{c}_{t}")
 
-# 例: 土地面積制約
+# 例: 土地面積制約（日次）
 for l in L:
     for t in T:
         model.Add(sum(x[l,c,t] for c in C) <= int(area_l[l]))
+
+# 日次変数 r[e,t], h[w,e,t], u[r,e,t], harv[c,t], over[t], idle[l,t] は
+# 個別の制約モジュール内で生成・連結される。
 
 # ... 残りの制約・目的関数を上記定義に沿って追加 ...
 ```

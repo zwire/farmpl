@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from ortools.sat.python import cp_model
 
+from .constants import AREA_SCALE_UNITS_PER_A
 from .interfaces import Constraint, Objective
 from .schemas import PlanRequest
 from .variables import Variables, create_empty_variables
@@ -17,7 +18,7 @@ class BuildContext:
     variables: Variables
     model: cp_model.CpModel
     # scale: 1 unit = 0.1a (integerize area)
-    scale_area: int = 10
+    scale_area: int = AREA_SCALE_UNITS_PER_A
     objective_expr: cp_model.LinearExpr | None = None
     objective_sense: str | None = None  # "max" or "min"
 
