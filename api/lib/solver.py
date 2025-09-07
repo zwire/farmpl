@@ -13,7 +13,6 @@ class SolveContext:
     # In full impl, this may include solver status, objective value, etc.
     status: str = "UNKNOWN"
     objective_value: float | None = None
-    x_area_by_l_c_values: dict[tuple[str, str], int] | None = None
     x_area_by_l_c_t_values: dict[tuple[str, str, int], int] | None = None
     z_use_by_l_c_values: dict[tuple[str, str], int] | None = None
 
@@ -42,13 +41,5 @@ def solve(ctx: BuildContext) -> SolveContext:
         for key, var in ctx.variables.z_use_by_l_c.items():
             za[key] = int(solver.Value(var))
         sc.x_area_by_l_c_t_values = xa_lct
-        # Provide backward-compatible average x[l,c]
-        if xa_lct:
-            H = ctx.request.horizon.num_days
-            agg: dict[tuple[str, str], int] = {}
-            for (l, c, t), units in xa_lct.items():
-                agg[(l, c)] = agg.get((l, c), 0) + units
-            # average per day
-            sc.x_area_by_l_c_values = {k: v // H for k, v in agg.items()}
         sc.z_use_by_l_c_values = za
     return sc

@@ -36,10 +36,13 @@ def test_land_capacity_limits_total_area() -> None:
     res = solve(ctx)
 
     assert res.status in ("FEASIBLE", "OPTIMAL")
-    assert res.x_area_by_l_c_values is not None
+    assert res.x_area_by_l_c_t_values is not None
 
+    # Take any day (e.g., day 1) to check per-day capacity
     total_units = sum(
-        units for (l, _c), units in res.x_area_by_l_c_values.items() if l == "L1"
+        units
+        for (l, _c, t), units in res.x_area_by_l_c_t_values.items()
+        if l == "L1" and t == 1
     )
     # Capacity 1.0a * scale(10) = 10 units
     assert total_units == 10

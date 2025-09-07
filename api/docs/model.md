@@ -23,6 +23,8 @@
 - イベント日次労働上限（h/日）: $labor\_daily\_cap_e (e \in E)$
 - 必須役割リスト: $roles\_req_e \subseteq Q (e \in E)$（空集合可）
 - 共有リソース必要リスト: $resources\_req_e \subseteq R (e \in E)$（空集合可）
+ - 土地占有フラグ: $uses\_land_e \in \{0,1\}$
+ - 占有効果: $effect\_e \in \{start, hold, end, none\}$（実装では列挙）
 - 作物面積上下限制約（任意）: $area\_min_c, area\_max_c (c \in C)$（未設定時は $0, +\infty$）
 - 土地の事前割付（任意）: $fixed\_area_{lc} \ge 0 (l \in L, c \in C)$（未設定は $0$）
 - 土地・作業者・共有リソースの利用禁止期間（任意）:
@@ -42,6 +44,7 @@
 ## 3. 決定変数（Decision Variables）
 - 面積配分（日次）: $x_{l,c,t} \ge 0$
 - 繰り返しイベント実施: $r_{e,t} \in {0,1}$
+ - 作付け占有状態（補助）: $occ_{c,t} \in {0,1}$（占有中=1）
 - 作業者割当時間: $h_{w,e,t} \ge 0$
 - 共有リソース使用時間: $u_{r,e,t} \ge 0$
 - 収穫作業量（面積ベース）: $harv_{c,t} \ge 0$
@@ -64,15 +67,22 @@ CP-SAT 実装ノート:
 - 土地利用禁止日のゼロ制約:
   $$x_{l,c,t} = 0 \quad \text{if } land\_blocked_{l,t}=1$$
 
-### 4.2 作物面積の上下限（期間合計または最終時点）
-- 合計作付け面積の上下限（期間合計ベースの例）:
-  $$area\_min_c \le \sum_{l,t} x_{l,c,t} \le area\_max_c \quad (\forall c)$$
+### 4.2 作物面積の上下限（日次）
+- 各日・全圃場合計に対する上下限:
+  $$area\_min_c \le \sum_{l} x_{l,c,t} \le area\_max_c \quad (\forall c, t)$$
 
 ### 4.3 イベント実施の可行性ウィンドウ
 - 窓外抑制: $r_{e,t} = 0$ if $t$ outside $[min(start\_cond_e), max(end\_cond_e)]$。
 - 周期性（freq）・ラグは未実装（将来対応）。
 
-### 4.4 労働需要と作業者容量
+### 4.4 作付け占有状態（occ）の導出と面積恒常性
+- 占有状態の更新（例: 累積差分の近似）:
+  $$occ_{c,t} \ge occ_{c,t-1} + \sum_{e:crop(e)=c,\;effect_e=start} r_{e,t} - \sum_{e:crop(e)=c,\;effect_e=end} r_{e,t}$$
+  $$occ_{c,t} \in \{0,1\}$$
+- 面積恒常性（占有中）:
+  $$x_{l,c,t} = x_{l,c,t-1} \quad (\forall l,c,\; occ_{c,t}=1,\; t\notin blocked(l),\; t-1\notin blocked(l))$$
+
+### 4.5 労働需要と作業者容量
 - イベント通算労働需要と日次上限制約（面積連動）:
   - $A_e = \sum_{l,t} x_{l,c,t}\; (c=crop_e)$。
   - $total\_need\_e = labor\_total\_per\_area\_e \cdot A_e$。
@@ -82,7 +92,7 @@ CP-SAT 実装ノート:
 - 作業不可日: $h_{w,e,t} = 0$ if $worker\_blocked_{w,t}=1$。
 - 役割・人数の厳密化は未実装（将来対応）。
 
-### 4.5 共有リソース容量
+### 4.6 共有リソース容量
 - リソース使用時間充足と容量上限（容量 $cap_r$ を仮定）:
   $$\sum_{e} u_{r,e,t} \le cap_r \quad (\forall r,t)$$
 - リソース必要イベントへの供給:
@@ -90,17 +100,22 @@ CP-SAT 実装ノート:
   $$\sum_{r \in resources\_req_e} u_{r,e,t} \ge \alpha \cdot \sum_{w} h_{w,e,t} \quad (\forall t)$$
   係数 $\alpha$ は時間換算比率。禁止日は $u_{r,e,t}=0$。
 
-### 4.6 作物と圃場の分散・集約リンク
+### 4.7 作物と圃場の分散・集約リンク
 - 二値 $z_{l,c}$ と面積のリンク:
   $$x_{l,c,t} \le area_l \cdot z_{l,c} \quad (\forall l,c,t)$$
   $$z_{l,c} \in \{0,1\}$$
 
-### 4.7 収穫能力とピーク超過
+### 4.8 面積の時間連続性（フラつき防止）
+- 占有中（$occ_{c,t}=1$）に限り非ブロック日は一定:
+  $$x_{l,c,t} = x_{l,c,t-1} \quad (\forall l,c,\; occ_{c,t}=1,\; t\notin blocked(l),\; t-1\notin blocked(l))$$
+- 将来的には、その作付けの土地利用が完了するまで一定であるように変更
+
+### 4.9 収穫能力とピーク超過
 - 収穫作業量は対応面積以内（日次）:
   $$harv_{c,t} \le \sum_{l} x_{l,c,t}$$
 - 収穫能力: $\sum_{c} harv_{c,t} \le harvest\_cap_t + over_t \quad (\forall t)$
 
-### 4.8 土地の遊休（アイドル）日
+### 4.10 土地の遊休（アイドル）日
 - 日次アイドル $idle_{l,t} \ge 0$:
   $$\sum_{c} x_{l,c,t} + idle_{l,t} = area_l \quad (\forall l,t \text{ with } land\_blocked_{l,t}=0)$$
 
@@ -135,7 +150,8 @@ $$\max \; w_{profit}\,Profit - w_{labor}\,Labor - w_{idle}\,Idle - w_{dispersion
 ## 7. データ仕様の対応（I/O）
 - 単位は内部で統一（例: 面積[a]→ユニット、時間[h]、金額[千円]）。
 - 期間 $T$ は日付を整数日に写像。禁止期間は該当 $t$ を 1 とする行列で入力。
-- 事前割付 $fixed\_area_{l,c}$ は厳密制約か、ソフト化してペナルティ項に移す選択可。
+- 事前割付 $fixed\_area_{l,c}$ は $\sum_t x_{l,c,t} \ge fixed\_area_{l,c}$ として扱う。
+- 出力は日別割り当て（land→day→crop→area）。
 
 ## 8. 拡張オプション
 - 生育ステージやリードタイム、ローテーション制約、病害回避の輪作制約等を $t$ 方向の論理で追加。

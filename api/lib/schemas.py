@@ -27,6 +27,12 @@ class Event(BaseModel):
     labor_daily_cap: float | None = Field(None, description="日次労働上限 (h/日)")
     required_roles: set[str] | None = None
     required_resources: set[str] | None = None
+    uses_land: bool = Field(False, description="このイベントが土地を占有する作業か")
+    occupancy_effect: str | None = Field(
+        None,
+        description="start|hold|end|none: 作付け占有状態に対する効果",
+        examples=["start", "hold", "end", "none"],
+    )
 
 
 class Land(BaseModel):
@@ -102,9 +108,9 @@ class PlanDiagnostics(BaseModel):
 
 
 class PlanAssignment(BaseModel):
-    # Minimal surface for now; extend later with detailed per-day schedules
-    crop_area_by_land: dict[str, dict[str, float]] = Field(
-        default_factory=dict, description="land_id -> crop_id -> area"
+    # Time-indexed assignment: land -> day -> crop -> area
+    crop_area_by_land_day: dict[str, dict[int, dict[str, float]]] = Field(
+        default_factory=dict, description="land_id -> day -> crop_id -> area"
     )
 
 

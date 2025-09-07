@@ -22,22 +22,22 @@
 - サンプルデータ拡張（`main.py` または専用fixture）
 
 2.1 土地面積制約（日次版）
-- [x] Sum_c x[l,c,t] <= area_l（実装済み）
+- [x] Sum_c x[l,c,t] <= area_l
 - [x] テスト: ちょうど上限まで使うケース
 
 2.2 面積と採用二値のリンク（日次版）
-- [x] x[l,c,t] <= area_l * z[l,c]（実装済み）
+- [x] x[l,c,t] <= area_l * z[l,c]
 - [x] テスト: z=0 で x>=1 を課すと infeasible
 
 2.3 事前割付（fixed_area[l,c] の下限）
-- [x] 実装: Sum_t x[l,c,t] >= fixed_area[l,c]
+- [x] 実装: Sum_t x[l,c,t] >= fixed_area[l,c]（非ブロック日はベースと日別等値）
 - [x] テスト: 満たす/不可能ケース
-- [ ] サンプル更新: 一部 land-crop に fixed を付与
+- [x] サンプル更新: main.py に fixed を付与
 
 2.4 作物面積の上下限（area_min_c, area_max_c）
-- [x] 実装: area_min_c <= Sum_{l,t} x[l,c,t] <= area_max_c
+- [x] 実装: （日次版）area_min_c <= Sum_l x[l,c,t] <= area_max_c（∀t）
 - [x] テスト: min/max を満たす組合せで可否を確認
-- [ ] サンプル更新: 片方に最小、片方に最大を設定
+- [x] サンプル更新: main.py に min/max を設定
 
 2.5 労働需要と作業者容量（通算+日次上限）
 - [x] 実装: 通算充足 Σ_t Σ_w h[w,e,t] >= total_need_e
@@ -76,6 +76,12 @@
 - [x] 実装: preceding_event_id のラグ制約（Lmin/Lmax）
 - [x] テスト: 基本ケース
 
+2.12 面積のフラつき防止を作付け完了と連携
+- [ ] 実装: `model` の占有状態、面積恒常性を利用して x[l,c,t] を一定化（active 区間）
+- [ ] 実装: active 区間外では 0 へ遷移可（ブロック日や次作への切替）
+- [ ] テスト: active 区間で一定、区間境界でのみ変化
+- [ ] サンプル更新: イベント（播種→収穫）を設定し挙動確認
+
 ## 3. 目的関数（Objectives）
 3.1 収益最大化（既存）
 - [x] 実装・評価済み
@@ -105,8 +111,8 @@
 - [ ] `main.py` サンプル拡張: workers/resources/fixed/area bounds を設定して再実行例
 
 ## 5. ドキュメント整備
-- [x] `docs/model.md` との乖離チェックと差分反映（イベント労働仕様を更新済み）
+- [x] `docs/model.md` との乖離チェックと差分反映（時間依存x・日次境界・フラつき防止）
 - [ ] `docs/tech.md` の「時間窓(h)」設計メモの反映（将来計画）
-- [ ] `README.md` に実行方法（uv sync / uv run pytest / python main.py）追記
+- [x] `README.md` に実行方法（uv sync / uv run pytest / python main.py）追記
 
 

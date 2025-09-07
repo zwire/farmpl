@@ -13,6 +13,8 @@ class Variables:
     Partially time-indexed variables use keys that include day t.
     """
 
+    # Base area variables (constant across days)
+    x_area_by_l_c: dict[tuple[str, str], cp_model.IntVar]
     # Time-indexed area variables
     x_area_by_l_c_t: dict[tuple[str, str, int], cp_model.IntVar]
     z_use_by_l_c: dict[tuple[str, str], cp_model.BoolVar]
@@ -29,6 +31,7 @@ class Variables:
 
 def create_empty_variables() -> Variables:
     return Variables(
+        x_area_by_l_c={},
         x_area_by_l_c_t={},
         z_use_by_l_c={},
         r_event_by_e_t={},

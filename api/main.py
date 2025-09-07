@@ -48,8 +48,8 @@ def main() -> None:
             start_cond={3, 4, 5, 6, 7},
             end_cond={3, 4, 5, 6, 7},
             preceding_event_id="E_seed",
-            lag_min_days=2,
-            lag_max_days=4,
+            lag_min_days=4,
+            lag_max_days=6,
         ),
     ]
 
@@ -60,16 +60,15 @@ def main() -> None:
         lands=lands,
         workers=[Worker(id="W1", name="Alice", capacity_per_day=8.0)],
         resources=[Resource(id="R1", name="Harvester", capacity_per_day=8.0)],
-        fixed_areas=[FixedArea(land_id="L1", crop_id="C1", area=0.5)],
-        crop_area_bounds=[CropAreaBound(crop_id="C1", min_area=0.3, max_area=1.2)],
+        fixed_areas=[FixedArea(land_id="L1", crop_id="C1", area=0.3)],
+        crop_area_bounds=[CropAreaBound(crop_id="C1", min_area=0.3, max_area=0.5)],
     )
     result: PlanResponse = plan(req)
-    print(
-        {
-            "feasible": result.diagnostics.feasible,
-            "assignment": result.assignment.crop_area_by_land,
-        }
-    )
+    print({"feasible": result.diagnostics.feasible})
+    # Print per-day assignment for each land
+    for land_id, by_day in (result.assignment.crop_area_by_land_day or {}).items():
+        for t in sorted(by_day.keys()):
+            print({"land": land_id, "day": t, "area": by_day[t]})
 
 
 if __name__ == "__main__":

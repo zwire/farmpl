@@ -5,6 +5,7 @@ from .constraints import (
     EventsWindowConstraint,
     FixedAreaConstraint,
     HarvestCapacityConstraint,
+    HoldAreaConstConstraint,
     IdleConstraint,
     LaborConstraint,
     LandCapacityConstraint,
@@ -32,6 +33,7 @@ def plan(
         ResourcesConstraint(),
         HarvestCapacityConstraint(),
         IdleConstraint(),
+        HoldAreaConstConstraint(),
         FixedAreaConstraint(),
         AreaBoundsConstraint(),
     ]
@@ -50,7 +52,8 @@ def plan(
             violated_constraints=[],
         )
         return PlanResponse(
-            diagnostics=diagnostics, assignment=PlanAssignment(crop_area_by_land={})
+            diagnostics=diagnostics,
+            assignment=PlanAssignment(crop_area_by_land={}),
         )
 
     best_profit = int(result1.objective_value or 0)
@@ -69,15 +72,17 @@ def plan(
         violated_constraints=[],
     )
 
-    # Build assignment from stage2 values
-    crop_area_by_land: dict[str, dict[str, float]] = {}
-    if feasible2 and result2.x_area_by_l_c_values is not None:
+    # Build time-indexed assignment from stage2 values
+    crop_area_by_land_day: dict[str, dict[int, dict[str, float]]] = {}
+    if feasible2 and result2.x_area_by_l_c_t_values is not None:
         scale = stage2.scale_area
-        for (land_id, crop_id), units in result2.x_area_by_l_c_values.items():
+        for (land_id, crop_id, t), units in result2.x_area_by_l_c_t_values.items():
             if units <= 0:
                 continue
             area = units / scale
-            crop_area_by_land.setdefault(land_id, {})[crop_id] = area
+            crop_area_by_land_day.setdefault(land_id, {}).setdefault(t, {})[crop_id] = (
+                area
+            )
 
-    assignment = PlanAssignment(crop_area_by_land=crop_area_by_land)
+    assignment = PlanAssignment(crop_area_by_land_day=crop_area_by_land_day)
     return PlanResponse(diagnostics=diagnostics, assignment=assignment)
