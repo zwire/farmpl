@@ -42,9 +42,9 @@
 2.5 労働需要と作業者容量（通算+日次上限）
 - [x] 実装: 通算充足 Σ_t Σ_w h[w,e,t] >= total_need_e
 - [x] 実装: 日次上限 Σ_w h[w,e,t] <= labor_daily_cap_e · r[e,t]
-- [ ] 実装: 所要人数下限と assign 連動（r[e,t]でインジケータ化）
+- [x] 実装: 所要人数下限と assign 連動（r[e,t]でインジケータ化）
 - [x] テスト: 容量超過で infeasible、余裕で feasible（基本）
-- [ ] サンプル更新: workers に capacity、events に labor_total_per_area と labor_daily_cap を設定
+- [x] サンプル更新: workers に capacity、events に labor_total_per_area と labor_daily_cap を設定
 
 2.6 必須役割の充足（assign と role のリンク）
 - [ ] 実装: 役割 q ごとに Sum_w role_has[w,q] * assign[w,e,(t)] >= 1

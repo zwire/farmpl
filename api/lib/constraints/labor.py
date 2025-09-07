@@ -63,14 +63,26 @@ class LaborConstraint(Constraint):
                             0, cap, f"h_{w.id}_{ev.id}_{t}"
                         )
                     h = ctx.variables.h_time_by_w_e_t[key]
+                    # Create assign[w,e,t] for headcount linkage
+                    assign_key = (w.id, ev.id, t)
+                    if assign_key not in ctx.variables.assign_by_w_e_t:
+                        ctx.variables.assign_by_w_e_t[assign_key] = model.NewBoolVar(
+                            f"assign_{w.id}_{ev.id}_{t}"
+                        )
+                    assign = ctx.variables.assign_by_w_e_t[assign_key]
                     # Worker blocked day => 0
                     if w.blocked_days and t in w.blocked_days:
                         model.Add(h == 0)
+                        model.Add(assign == 0)
                     else:
                         # Only allow work if event is active: h <= cap_w * r
                         cap_w = int(round(w.capacity_per_day))
                         if cap_w > 0:
                             model.Add(h <= cap_w * r)
+                            # Link hours to assignment: h <= cap_w * assign
+                            model.Add(h <= cap_w * assign)
+                    # Assignment only when event is taken that day
+                    model.Add(assign <= r)
                     daily_sum_terms.append(h)
 
                 daily_sum = sum(daily_sum_terms) if daily_sum_terms else 0
@@ -78,6 +90,23 @@ class LaborConstraint(Constraint):
                 # Daily cap per event when r=1
                 if ev.labor_daily_cap is not None:
                     model.Add(daily_sum <= int(round(ev.labor_daily_cap)) * r)
+
+            # People requirement per active day: sum(assign) >= people_required
+            if ev.people_required is not None and ev.people_required > 0:
+                for t in range(1, H + 1):
+                    r = ctx.variables.r_event_by_e_t.get((ev.id, t))
+                    if r is None:
+                        # Should not happen because r was created above; be safe.
+                        r = ctx.model.NewBoolVar(f"r_{ev.id}_{t}")
+                        ctx.variables.r_event_by_e_t[(ev.id, t)] = r
+                    assigns = [
+                        ctx.variables.assign_by_w_e_t[(w.id, ev.id, t)]
+                        for w in ctx.request.workers
+                    ]
+                    if assigns:
+                        model.Add(
+                            sum(assigns) >= int(ev.people_required)
+                        ).OnlyEnforceIf(r)
 
             # Total need over horizon
             horizon_sum_terms: list[cp_model.LinearExpr] = []

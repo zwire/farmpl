@@ -17,11 +17,12 @@ class Variables:
     x_area_by_l_c: dict[tuple[str, str], cp_model.IntVar]
     # Time-indexed area variables
     x_area_by_l_c_t: dict[tuple[str, str, int], cp_model.IntVar]
-    z_use_by_l_c: dict[tuple[str, str], cp_model.BoolVar]
+    z_use_by_l_c: dict[tuple[str, str], cp_model.BoolVarT]
 
     # Partial time-indexed variables
-    r_event_by_e_t: dict[tuple[str, int], cp_model.BoolVar]
+    r_event_by_e_t: dict[tuple[str, int], cp_model.BoolVarT]
     h_time_by_w_e_t: dict[tuple[str, str, int], cp_model.IntVar]
+    assign_by_w_e_t: dict[tuple[str, str, int], cp_model.BoolVarT]
     u_time_by_r_e_t: dict[tuple[str, str, int], cp_model.IntVar]
     harv_by_c_t: dict[tuple[str, int], cp_model.IntVar]
     over_by_t: dict[int, cp_model.IntVar]
@@ -36,6 +37,7 @@ def create_empty_variables() -> Variables:
         z_use_by_l_c={},
         r_event_by_e_t={},
         h_time_by_w_e_t={},
+        assign_by_w_e_t={},
         u_time_by_r_e_t={},
         harv_by_c_t={},
         over_by_t={},

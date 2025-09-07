@@ -30,6 +30,8 @@ def main() -> None:
             id="E_seed",
             crop_id="C1",
             name="Seeding",
+            labor_total_per_area=2.0,
+            labor_daily_cap=4.0,
             start_cond={1, 2, 3},
             end_cond={1, 2, 3},
         ),
@@ -37,6 +39,8 @@ def main() -> None:
             id="E_irrig",
             crop_id="C1",
             name="Irrigate",
+            labor_total_per_area=1.0,
+            labor_daily_cap=4.0,
             start_cond={1, 2, 3, 4, 5, 6, 7},
             end_cond={1, 2, 3, 4, 5, 6, 7},
             frequency_days=3,
@@ -45,6 +49,8 @@ def main() -> None:
             id="E_harv",
             crop_id="C1",
             name="Harvest",
+            labor_total_per_area=3.0,
+            labor_daily_cap=6.0,
             start_cond={3, 4, 5, 6, 7},
             end_cond={3, 4, 5, 6, 7},
             preceding_event_id="E_seed",
@@ -61,7 +67,7 @@ def main() -> None:
         workers=[Worker(id="W1", name="Alice", capacity_per_day=8.0)],
         resources=[Resource(id="R1", name="Harvester", capacity_per_day=8.0)],
         fixed_areas=[FixedArea(land_id="L1", crop_id="C1", area=0.3)],
-        crop_area_bounds=[CropAreaBound(crop_id="C1", min_area=0.3, max_area=0.5)],
+        crop_area_bounds=[CropAreaBound(crop_id="C1", min_area=0.2, max_area=0.4)],
     )
     result: PlanResponse = plan(req)
     print({"feasible": result.diagnostics.feasible})
