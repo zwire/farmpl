@@ -15,6 +15,9 @@ class SolveContext:
     objective_value: float | None = None
     x_area_by_l_c_t_values: dict[tuple[str, str, int], int] | None = None
     z_use_by_l_c_values: dict[tuple[str, str], int] | None = None
+    r_event_by_e_t_values: dict[tuple[str, int], int] | None = None
+    h_time_by_w_e_t_values: dict[tuple[str, str, int], int] | None = None
+    assign_by_w_e_t_values: dict[tuple[str, str, int], int] | None = None
 
 
 def solve(ctx: BuildContext) -> SolveContext:
@@ -36,10 +39,22 @@ def solve(ctx: BuildContext) -> SolveContext:
         # Extract variable values
         xa_lct: dict[tuple[str, str, int], int] = {}
         za: dict[tuple[str, str], int] = {}
+        rvals: dict[tuple[str, int], int] = {}
+        hvals: dict[tuple[str, str, int], int] = {}
+        avals: dict[tuple[str, str, int], int] = {}
         for key, var in ctx.variables.x_area_by_l_c_t.items():
             xa_lct[key] = int(solver.Value(var))
         for key, var in ctx.variables.z_use_by_l_c.items():
             za[key] = int(solver.Value(var))
+        for key, var in ctx.variables.r_event_by_e_t.items():
+            rvals[key] = int(solver.Value(var))
+        for key, var in ctx.variables.h_time_by_w_e_t.items():
+            hvals[key] = int(solver.Value(var))
+        for key, var in ctx.variables.assign_by_w_e_t.items():
+            avals[key] = int(solver.Value(var))
         sc.x_area_by_l_c_t_values = xa_lct
         sc.z_use_by_l_c_values = za
+        sc.r_event_by_e_t_values = rvals
+        sc.h_time_by_w_e_t_values = hvals
+        sc.assign_by_w_e_t_values = avals
     return sc

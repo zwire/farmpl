@@ -114,6 +114,20 @@ class PlanAssignment(BaseModel):
     )
 
 
+class WorkerRef(BaseModel):
+    id: str
+    name: str
+    roles: list[str] = Field(default_factory=list)
+
+
+class EventAssignment(BaseModel):
+    day: int
+    event_id: str
+    assigned_workers: list[WorkerRef] = Field(default_factory=list)
+
+
 class PlanResponse(BaseModel):
     diagnostics: PlanDiagnostics
     assignment: PlanAssignment
+    # Optional: event-level assignments (day x event -> workers)
+    event_assignments: list[EventAssignment] | None = None

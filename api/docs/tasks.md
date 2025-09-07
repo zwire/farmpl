@@ -47,9 +47,9 @@
 - [x] サンプル更新: workers に capacity、events に labor_total_per_area と labor_daily_cap を設定
 
 2.6 必須役割の充足（assign と role のリンク）
-- [ ] 実装: 役割 q ごとに Sum_w role_has[w,q] * assign[w,e,(t)] >= 1
-- [ ] テスト: 役割不在で infeasible、役割あると feasible
-- [ ] サンプル更新: workers に roles を設定
+- [x] 実装: 役割 q ごとに Sum_w role_has[w,q] * assign[w,e,(t)] >= 1
+- [x] テスト: 役割不在で infeasible、役割あると feasible
+- [x] サンプル更新: workers に roles を設定
 
 2.7 リソース容量と必要イベント供給
 - [x] 実装: Sum_e u[r,e,t] <= cap_r、実施日には Σ_r u[r,e,t] >= Σ_w h[w,e,t]

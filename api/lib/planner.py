@@ -11,11 +11,19 @@ from .constraints import (
     LandCapacityConstraint,
     LinkAreaUseConstraint,
     ResourcesConstraint,
+    RolesConstraint,
 )
 from .interfaces import Constraint, Objective
 from .model_builder import build_model
 from .objectives import DispersionObjective, ProfitObjective, build_profit_expr
-from .schemas import PlanAssignment, PlanDiagnostics, PlanRequest, PlanResponse
+from .schemas import (
+    EventAssignment,
+    PlanAssignment,
+    PlanDiagnostics,
+    PlanRequest,
+    PlanResponse,
+    WorkerRef,
+)
 from .solver import solve
 
 
@@ -36,6 +44,7 @@ def plan(
         HoldAreaConstConstraint(),
         FixedAreaConstraint(),
         AreaBoundsConstraint(),
+        RolesConstraint(),
     ]
     if constraints:
         base_constraints.extend(constraints)
@@ -54,6 +63,7 @@ def plan(
         return PlanResponse(
             diagnostics=diagnostics,
             assignment=PlanAssignment(crop_area_by_land={}),
+            event_assignments=[],
         )
 
     best_profit = int(result1.objective_value or 0)
@@ -85,4 +95,37 @@ def plan(
             )
 
     assignment = PlanAssignment(crop_area_by_land_day=crop_area_by_land_day)
-    return PlanResponse(diagnostics=diagnostics, assignment=assignment)
+
+    # If RolesConstraint is present, try to include event assignments
+    event_assignments: list[EventAssignment] = []
+    if any(isinstance(c, RolesConstraint) for c in base_constraints):
+        sc = result2
+        if (
+            sc.r_event_by_e_t_values is not None
+            and sc.assign_by_w_e_t_values is not None
+        ):
+            # Build worker lookup for names/roles
+            worker_info = {
+                w.id: WorkerRef(id=w.id, name=w.name, roles=sorted(w.roles or set()))
+                for w in request.workers
+            }
+            # Collect by (t,e)
+            pairs = sorted(sc.r_event_by_e_t_values.keys(), key=lambda k: (k[1], k[0]))
+            for e_id, t in pairs:
+                if sc.r_event_by_e_t_values[(e_id, t)] <= 0:
+                    continue
+                assigned: list[WorkerRef] = []
+                for (w_id, ev_id, tt), av in sc.assign_by_w_e_t_values.items():
+                    if ev_id == e_id and tt == t and av > 0:
+                        wr = worker_info.get(w_id)
+                        if wr is not None:
+                            assigned.append(wr)
+                event_assignments.append(
+                    EventAssignment(day=t, event_id=e_id, assigned_workers=assigned)
+                )
+
+    return PlanResponse(
+        diagnostics=diagnostics,
+        assignment=assignment,
+        event_assignments=event_assignments,
+    )

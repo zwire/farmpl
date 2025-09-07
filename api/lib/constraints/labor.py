@@ -35,16 +35,21 @@ class LaborConstraint(Constraint):
         # For each event, build h and link to needs and daily caps
         for ev in ctx.request.events:
             crop_id = ev.crop_id
-            # Convert labor_total_per_area (h/a) to hours per unit (0.1a)
-            labor_per_unit = int(
-                round((ev.labor_total_per_area or 0.0) / AREA_SCALE_UNITS_PER_A)
-            )
+            # Exact rational hours-per-unit using integer linearization.
+            # If L = labor_total_per_area (h/a) and S = AREA_SCALE_UNITS_PER_A,
+            # then per-unit hours = L / S = p/q. Enforce q * Σ h[w,e,t] >= p * Σ x.
+            from fractions import Fraction
 
-            # total_need_e = labor_per_unit * sum_x_units
+            L = ev.labor_total_per_area or 0.0
+            labor_per_unit_frac = Fraction(str(L)) / AREA_SCALE_UNITS_PER_A
+            p = labor_per_unit_frac.numerator
+            q = labor_per_unit_frac.denominator
+
+            # total need numerator side = p * sum_x_units
             sum_x_units = area_sum_by_crop.get(crop_id)
             if sum_x_units is None:
                 continue
-            total_need_expr = labor_per_unit * sum_x_units
+            total_need_num_expr = p * sum_x_units
 
             for t in range(1, H + 1):
                 # r[e,t]
@@ -87,7 +92,7 @@ class LaborConstraint(Constraint):
 
                 daily_sum = sum(daily_sum_terms) if daily_sum_terms else 0
 
-                # Daily cap per event when r=1
+                # Daily cap per event when r=1 (hours scale)
                 if ev.labor_daily_cap is not None:
                     model.Add(daily_sum <= int(round(ev.labor_daily_cap)) * r)
 
@@ -108,7 +113,7 @@ class LaborConstraint(Constraint):
                             sum(assigns) >= int(ev.people_required)
                         ).OnlyEnforceIf(r)
 
-            # Total need over horizon
+            # Total need over horizon (integer linearization with q * Σh >= p * Σx)
             horizon_sum_terms: list[cp_model.LinearExpr] = []
             for t in range(1, H + 1):
                 for w in ctx.request.workers:
@@ -116,7 +121,7 @@ class LaborConstraint(Constraint):
                         ctx.variables.h_time_by_w_e_t[(w.id, ev.id, t)]
                     )
             if horizon_sum_terms:
-                model.Add(sum(horizon_sum_terms) >= total_need_expr)
+                model.Add(q * sum(horizon_sum_terms) >= total_need_num_expr)
 
         # Worker per-day capacity across events
         for w in ctx.request.workers:

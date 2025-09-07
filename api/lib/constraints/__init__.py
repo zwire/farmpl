@@ -8,6 +8,7 @@ from .labor import LaborConstraint
 from .land_capacity import LandCapacityConstraint
 from .link_area_use import LinkAreaUseConstraint
 from .resources import ResourcesConstraint
+from .roles import RolesConstraint
 
 __all__ = [
     "LandCapacityConstraint",
@@ -20,4 +21,5 @@ __all__ = [
     "FixedAreaConstraint",
     "HoldAreaConstConstraint",
     "AreaBoundsConstraint",
+    "RolesConstraint",
 ]
