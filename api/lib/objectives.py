@@ -2,33 +2,32 @@ from __future__ import annotations
 
 from ortools.sat.python import cp_model
 
+from .constants import AREA_SCALE_UNITS_PER_A
 from .interfaces import Objective
 from .model_builder import BuildContext
 
 
 def build_profit_expr(ctx: BuildContext) -> cp_model.LinearExpr:
-    # Profit = sum_{c,t} price[c] * harv[c,t] (scaled by scale_area)
+    # Profit = sum_{l,c} price_per_area[c] * x[l,c] (area in 'a')
+    # We operate on integer area units (0.1a), so use price per unit.
     terms: list[cp_model.LinearExpr] = []
-    price_by_crop = {c.id: int(c.price_per_area or 0) for c in ctx.request.crops}
-    H = ctx.request.horizon.num_days
+    scale = AREA_SCALE_UNITS_PER_A
     for crop in ctx.request.crops:
-        price = price_by_crop[crop.id]
-        if price == 0:
+        price = crop.price_per_area or 0.0
+        price_per_unit = int(round(price / scale))
+        if price_per_unit == 0:
+            # If too small, skip; alternatively could upscale globally
             continue
-        for t in range(1, H + 1):
-            key = (crop.id, t)
-            harv = ctx.variables.harv_by_c_t.get(key)
-            if harv is None:
-                harv = ctx.model.NewIntVar(0, 10**9, f"harv_{crop.id}_{t}")
-                ctx.variables.harv_by_c_t[key] = harv
-            terms.append(price * harv * ctx.scale_area)
-    if terms:
-        return sum(terms)
-    return cp_model.LinearExpr.Sum([])
+        for land in ctx.request.lands:
+            key = (land.id, crop.id)
+            x_base = ctx.variables.x_area_by_l_c.get(key)
+            if x_base is not None:
+                terms.append(price_per_unit * x_base)
+    return sum(terms) if terms else 0
 
 
 class ProfitObjective(Objective):
-    """Maximize sum_l,c price[c] * x[l,c]."""
+    """Maximize sum_{l,c} price_per_area[c] * x[l,c] (area-based)."""
 
     def register(self, ctx: BuildContext) -> None:
         ctx.objective_expr = build_profit_expr(ctx)

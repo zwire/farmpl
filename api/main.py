@@ -58,6 +58,7 @@ def main() -> None:
             labor_daily_cap=3.0,
             people_required=1,
             required_roles={"admin", "harvester"},
+            required_resources={"R1"},
             start_cond={3, 4, 5, 6, 7},
             end_cond={3, 4, 5, 6, 7},
             preceding_event_id="E_seed",
@@ -88,7 +89,7 @@ def main() -> None:
         for t in sorted(by_day.keys()):
             print({"land": land_id, "day": t, "area": by_day[t]})
 
-    # Print event assignments
+    # Print event assignments (with resources and areas)
     if result.event_assignments:
         print("Event assignments:")
         for ea in sorted(result.event_assignments, key=lambda x: (x.day, x.event_id)):
@@ -100,6 +101,15 @@ def main() -> None:
                         {"id": w.id, "name": w.name, "roles": w.roles}
                         for w in ea.assigned_workers
                     ],
+                    "resources": [
+                        {
+                            "id": r.id,
+                            "name": r.name,
+                            "used_time_hours": r.used_time_hours,
+                        }
+                        for r in ea.resource_usage
+                    ],
+                    "crop_area_on_day": ea.crop_area_on_day,
                 }
             )
 

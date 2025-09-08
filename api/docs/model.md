@@ -34,7 +34,6 @@
 - 作業者上限作業時間（h/日）: $worker\_cap_w (w \in W)$
 - イベント実施可能期間/条件:
   - 繰り返し: $start\_cond_e \subseteq T, end\_cond_e \subseteq T, freq_e \in Z_{\gt0}$
-- 収穫能力（h/日 または a/日）: $harvest\_cap_t (t \in T)$（能力制約の基準値）
 - 多様性・嗜好の重み（ユーザー設定）: $w_{profit}, w_{labor}, w_{idle}, w_{dispersion}, w_{peak}, w_{diversity}$（正の重み）
 
 補助パラメータ：
@@ -47,7 +46,6 @@
  - 作付け占有状態（補助）: $occ_{c,t} \in {0,1}$（占有中=1）
 - 作業者割当時間: $h_{w,e,t} \ge 0$
 - 共有リソース使用時間: $u_{r,e,t} \ge 0$
-- 収穫作業量（面積ベース）: $harv_{c,t} \ge 0$
 - ピーク超過量: $over_t \ge 0$
 - 土地のアイドル（日次）: $idle_{l,t} \ge 0$
 - 分散度（同一作物の圃場分散）補助:
@@ -110,20 +108,15 @@ CP-SAT 実装ノート:
   $$x_{l,c,t} = x_{l,c,t-1} \quad (\forall l,c,\; occ_{c,t}=1,\; t\notin blocked(l),\; t-1\notin blocked(l))$$
 - 将来的には、その作付けの土地利用が完了するまで一定であるように変更
 
-### 4.9 収穫能力とピーク超過
-- 収穫作業量は対応面積以内（日次）:
-  $$harv_{c,t} \le \sum_{l} x_{l,c,t}$$
-- 収穫能力: $\sum_{c} harv_{c,t} \le harvest\_cap_t + over_t \quad (\forall t)$
-
-### 4.10 土地の遊休（アイドル）日
+### 4.9 土地の遊休（アイドル）日
 - 日次アイドル $idle_{l,t} \ge 0$:
   $$\sum_{c} x_{l,c,t} + idle_{l,t} = area_l \quad (\forall l,t \text{ with } land\_blocked_{l,t}=0)$$
 
 ## 5. 目的関数（Objectives）
 多目的は加重和で単一目的に縮約する。
 
-- 収益最大化（収穫面積 × 作物単価）:
-  $$Profit = \sum_{c,t} price_c \cdot harv_{c,t}$$
+- 収益最大化（作付け面積 × 作物単価）:
+  $$Profit = \sum_{c} (price_c \cdot \sum_{l,t} x_{l,c,t})$$
 - 労働時間最小化:
   $$Labor = \sum_{w,e,t} h_{w,e,t}$$
 - 土地遊休の最小化:
@@ -131,20 +124,19 @@ CP-SAT 実装ノート:
 - 分散度（同一作物の圃場散在）最小化（集約志向）:
   - 例1: 圃場採用数ペナルティ $$Disp = \sum_{c} \sum_{l} z_{l,c}$$
   - 例2: HHI/エントロピーを近似（線形化のため区分近似や補助変数が必要）
-- 収穫ピーク超過の最小化:
-  $$PeakOver = \sum_{t} over_t$$
 - 多品目志向（多様性）または単一作物志向：
   - 多品目志向: 作付品目数を増やす（$\sum_c [\sum_{l,t} x_{l,c,t} > 0]$ を最大化、CP-SAT では二値 $use_c$ で線形化）。
   - 単一作物志向: 上記の逆（品目数ペナルティ）。
 
 統合目的（最大化形に変換する場合は符号調整）:
-$$\max \; w_{profit}\,Profit - w_{labor}\,Labor - w_{idle}\,Idle - w_{dispersion}\,Disp - w_{peak}\,PeakOver + w_{diversity}\,Diversity$$
+$$\max \; w_{profit}\,Profit - w_{labor}\,Labor - w_{idle}\,Idle - w_{dispersion}\,Disp + w_{diversity}\,Diversity$$
 
 ## 6. OR-Tools 実装メモ
 - 推奨ソルバ: CP-SAT（`cp_model.CpModel`）。面積など連続量は刻み幅を設けて整数化（例: 0.1a を 1 ユニット）し、`IntVar`/`BoolVar` で表現。連続が必要なら MIP（SCIP）で `NumVar` を使用。
 - インジケータ制約: `model.Add(var <= K).OnlyEnforceIf(boolVar)` を多用し、大$M$を避ける。
 - 周期・持続の表現: スライディングウィンドウで $active_{e,t}$ を表し、`Add(sum(s_e,tau) == active)` 等で連結。
-- 役割要件: $assign_{w,e,t}$ 二値と $h_{w,e,t} \le M*assign$、$sum(assign) \ge people\_req_e$ を併用。
+- 役割要件（排他）: 必須ロール以外は当該イベント日に割当不可（assign=0）。各必須ロールごとに $\sum assign \ge 1$、さらに $\sum assign \ge people\_req_e$。
+- 労働需要は小数でも厳密化（$L/S=p/q$ として $q\,\sum h \ge p\,\sum x$）。
 - 目的の正規化: 各項目をスケールして桁を揃える（例: 収益を千円単位、時間は時間単位等）。
 
 ## 7. データ仕様の対応（I/O）
@@ -174,8 +166,7 @@ for l in L:
     for t in T:
         model.Add(sum(x[l,c,t] for c in C) <= int(area_l[l]))
 
-# 日次変数 r[e,t], h[w,e,t], u[r,e,t], harv[c,t], over[t], idle[l,t] は
-# 個別の制約モジュール内で生成・連結される。
+# 日次変数 r[e,t], h[w,e,t], u[r,e,t], idle[l,t] は個別の制約モジュール内で生成・連結される。
 
 # ... 残りの制約・目的関数を上記定義に沿って追加 ...
 ```

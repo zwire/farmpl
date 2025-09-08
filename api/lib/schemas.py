@@ -97,7 +97,6 @@ class PlanRequest(BaseModel):
     resources: list[Resource]
     crop_area_bounds: list[CropAreaBound] | None = None
     fixed_areas: list[FixedArea] | None = None
-    harvest_capacity_per_day: dict[int, float] | None = None
     preferences: Preferences | None = None
 
 
@@ -120,10 +119,18 @@ class WorkerRef(BaseModel):
     roles: list[str] = Field(default_factory=list)
 
 
+class ResourceUsageRef(BaseModel):
+    id: str
+    name: str | None = None
+    used_time_hours: float
+
+
 class EventAssignment(BaseModel):
     day: int
     event_id: str
     assigned_workers: list[WorkerRef] = Field(default_factory=list)
+    resource_usage: list[ResourceUsageRef] = Field(default_factory=list)
+    crop_area_on_day: float | None = None
 
 
 class PlanResponse(BaseModel):

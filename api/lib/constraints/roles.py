@@ -41,7 +41,7 @@ class RolesConstraint(Constraint):
                     ctx.variables.r_event_by_e_t[(ev.id, t)] = r
 
                 # Build assigns per worker (create if missing and link to r)
-                assigns_all: list[tuple[str, cp_model.BoolVar]] = []
+                assigns_all: list[tuple[str, cp_model.BoolVarT]] = []
                 for w in ctx.request.workers:
                     key = (w.id, ev.id, t)
                     assign = ctx.variables.assign_by_w_e_t.get(key)

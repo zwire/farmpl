@@ -4,7 +4,6 @@ from .constraints import (
     AreaBoundsConstraint,
     EventsWindowConstraint,
     FixedAreaConstraint,
-    HarvestCapacityConstraint,
     HoldAreaConstConstraint,
     IdleConstraint,
     LaborConstraint,
@@ -22,6 +21,7 @@ from .schemas import (
     PlanDiagnostics,
     PlanRequest,
     PlanResponse,
+    ResourceUsageRef,
     WorkerRef,
 )
 from .solver import solve
@@ -39,7 +39,6 @@ def plan(
         EventsWindowConstraint(),
         LaborConstraint(),
         ResourcesConstraint(),
-        HarvestCapacityConstraint(),
         IdleConstraint(),
         HoldAreaConstConstraint(),
         FixedAreaConstraint(),
@@ -96,33 +95,69 @@ def plan(
 
     assignment = PlanAssignment(crop_area_by_land_day=crop_area_by_land_day)
 
-    # If RolesConstraint is present, try to include event assignments
+    # Build event assignments with workers, resources, and areas
     event_assignments: list[EventAssignment] = []
-    if any(isinstance(c, RolesConstraint) for c in base_constraints):
-        sc = result2
-        if (
-            sc.r_event_by_e_t_values is not None
-            and sc.assign_by_w_e_t_values is not None
-        ):
-            # Build worker lookup for names/roles
-            worker_info = {
-                w.id: WorkerRef(id=w.id, name=w.name, roles=sorted(w.roles or set()))
-                for w in request.workers
-            }
-            # Collect by (t,e)
-            pairs = sorted(sc.r_event_by_e_t_values.keys(), key=lambda k: (k[1], k[0]))
-            for e_id, t in pairs:
-                if sc.r_event_by_e_t_values[(e_id, t)] <= 0:
-                    continue
-                assigned: list[WorkerRef] = []
+    sc = result2
+    if sc.r_event_by_e_t_values is not None:
+        # Build worker lookup for names/roles
+        worker_info = {
+            w.id: WorkerRef(id=w.id, name=w.name, roles=sorted(w.roles or set()))
+            for w in request.workers
+        }
+        # Build resource lookup
+        res_info = {r.id: r.name for r in request.resources}
+
+        # Precompute crop area by (crop_id, t)
+        crop_area_by_t: dict[tuple[str, int], float] = {}
+        if sc.x_area_by_l_c_t_values is not None:
+            scale = stage2.scale_area
+            for (land_id, crop_id, t), units in sc.x_area_by_l_c_t_values.items():
+                crop_area_by_t[(crop_id, t)] = crop_area_by_t.get((crop_id, t), 0.0) + (
+                    units / scale
+                )
+
+        pairs = sorted(sc.r_event_by_e_t_values.keys(), key=lambda k: (k[1], k[0]))
+        for e_id, t in pairs:
+            if sc.r_event_by_e_t_values[(e_id, t)] <= 0:
+                continue
+            # Workers
+            assigned: list[WorkerRef] = []
+            if sc.assign_by_w_e_t_values is not None:
                 for (w_id, ev_id, tt), av in sc.assign_by_w_e_t_values.items():
                     if ev_id == e_id and tt == t and av > 0:
                         wr = worker_info.get(w_id)
                         if wr is not None:
                             assigned.append(wr)
-                event_assignments.append(
-                    EventAssignment(day=t, event_id=e_id, assigned_workers=assigned)
+            # Resources
+            resources_used: list[ResourceUsageRef] = []
+            if sc.u_time_by_r_e_t_values is not None:
+                per_res: dict[str, int] = {}
+                for (r_id, ev_id, tt), val in sc.u_time_by_r_e_t_values.items():
+                    if ev_id == e_id and tt == t and val > 0:
+                        per_res[r_id] = per_res.get(r_id, 0) + val
+                for r_id, units in per_res.items():
+                    resources_used.append(
+                        ResourceUsageRef(
+                            id=r_id,
+                            name=res_info.get(r_id),
+                            used_time_hours=float(units),
+                        )
+                    )
+            # Planted area
+            crop_area = None
+            ev_crop = next((e.crop_id for e in request.events if e.id == e_id), None)
+            if ev_crop is not None:
+                crop_area = crop_area_by_t.get((ev_crop, t))
+
+            event_assignments.append(
+                EventAssignment(
+                    day=t,
+                    event_id=e_id,
+                    assigned_workers=assigned,
+                    resource_usage=resources_used,
+                    crop_area_on_day=crop_area,
                 )
+            )
 
     return PlanResponse(
         diagnostics=diagnostics,

@@ -24,7 +24,6 @@ class Variables:
     h_time_by_w_e_t: dict[tuple[str, str, int], cp_model.IntVar]
     assign_by_w_e_t: dict[tuple[str, str, int], cp_model.BoolVarT]
     u_time_by_r_e_t: dict[tuple[str, str, int], cp_model.IntVar]
-    harv_by_c_t: dict[tuple[str, int], cp_model.IntVar]
     over_by_t: dict[int, cp_model.IntVar]
     # Time-indexed idle per land
     idle_by_l_t: dict[tuple[str, int], cp_model.IntVar]
@@ -39,7 +38,6 @@ def create_empty_variables() -> Variables:
         h_time_by_w_e_t={},
         assign_by_w_e_t={},
         u_time_by_r_e_t={},
-        harv_by_c_t={},
         over_by_t={},
         idle_by_l_t={},
     )

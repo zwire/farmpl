@@ -1,10 +1,6 @@
 from __future__ import annotations
 
-from lib.constraints import (
-    HarvestCapacityConstraint,
-    LandCapacityConstraint,
-    LinkAreaUseConstraint,
-)
+from lib.constraints import LandCapacityConstraint, LinkAreaUseConstraint
 from lib.model_builder import build_model
 from lib.objectives import ProfitObjective
 from lib.schemas import Crop, Horizon, Land, PlanRequest
@@ -29,7 +25,6 @@ def test_land_capacity_limits_total_area() -> None:
         [
             LandCapacityConstraint(),
             LinkAreaUseConstraint(),
-            HarvestCapacityConstraint(),
         ],
         [ProfitObjective()],
     )

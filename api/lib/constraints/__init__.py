@@ -1,7 +1,6 @@
 from .area_bounds import AreaBoundsConstraint
 from .events_window import EventsWindowConstraint
 from .fixed_area import FixedAreaConstraint
-from .harvest_capacity import HarvestCapacityConstraint
 from .hold_area_const import HoldAreaConstConstraint
 from .idle import IdleConstraint
 from .labor import LaborConstraint
@@ -16,7 +15,6 @@ __all__ = [
     "EventsWindowConstraint",
     "LaborConstraint",
     "ResourcesConstraint",
-    "HarvestCapacityConstraint",
     "IdleConstraint",
     "FixedAreaConstraint",
     "HoldAreaConstConstraint",
