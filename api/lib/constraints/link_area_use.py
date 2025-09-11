@@ -40,9 +40,17 @@ class LinkAreaUseConstraint(Constraint):
                         ctx.variables.x_area_by_l_c_t[key_t]
                         <= cap * ctx.variables.z_use_by_l_c[key]
                     )
-                    # Link base and per-day equality on non-blocked days
+                    # Upper bound by base envelope always
+                    base = ctx.variables.x_area_by_l_c[key]
+                    model.Add(ctx.variables.x_area_by_l_c_t[key_t] <= base)
+                    # Tie to base:
+                    # - If occupancy is modeled: equality only when occ=1 and not blocked
+                    # - If occupancy is not modeled: keep original non-blocked equality
+                    occ = ctx.variables.occ_by_c_t.get((crop.id, t))
                     if t not in blocked:
-                        model.Add(
-                            ctx.variables.x_area_by_l_c_t[key_t]
-                            == ctx.variables.x_area_by_l_c[key]
-                        )
+                        if occ is not None:
+                            model.Add(
+                                ctx.variables.x_area_by_l_c_t[key_t] == base
+                            ).OnlyEnforceIf(occ)
+                        else:
+                            model.Add(ctx.variables.x_area_by_l_c_t[key_t] == base)

@@ -25,6 +25,7 @@ def main() -> None:
             id="L1",
             name="Field-1",
             area=1.0,
+            blocked_days={1},
         ),
         Land(
             id="L2",

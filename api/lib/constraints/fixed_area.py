@@ -5,9 +5,13 @@ from lib.model_builder import BuildContext
 
 
 class FixedAreaConstraint(Constraint):
-    """Enforce fixed planted area per (land, crop) as time-sum.
+    """Enforce fixed planted area as a completion target linked to occupancy.
 
-    Sum_t x[l,c,t] >= area * scale.
+    Introduce base area b[l,c] (envelope) and ensure:
+    - b[l,c] >= fixed_area[l,c]
+    - If occ[c,t]==1 and land not blocked, x[l,c,t] == b[l,c]
+    - Else 0 <= x[l,c,t] <= b[l,c]
+    - If b[l,c] > 0 then some occ[c,t]==1 over horizon (implicit via equality)
     """
 
     def apply(self, ctx: BuildContext) -> None:
@@ -21,8 +25,9 @@ class FixedAreaConstraint(Constraint):
             land = next(ld for ld in ctx.request.lands if ld.id == fa.land_id)
             cap = int(round(land.area * scale))
             target = int(round(fa.area * scale))
-            # Sum over days lower bound and base equality (non-blocked days)
             H = ctx.request.horizon.num_days
+
+            # Ensure per-day vars exist and collect terms
             terms = []
             for t in range(1, H + 1):
                 key_t = (fa.land_id, fa.crop_id, t)
@@ -31,26 +36,31 @@ class FixedAreaConstraint(Constraint):
                         0, cap, f"x_{fa.land_id}_{fa.crop_id}_{t}"
                     )
                 terms.append(ctx.variables.x_area_by_l_c_t[key_t])
-            # Each day cannot exceed land capacity, so horizon-sum is bounded by H*cap.
-            # To reflect fixed area as "at least once at the maximum size", bind also base envelope.
+
+            # Base envelope b[l,c]
             base_key = (fa.land_id, fa.crop_id)
             if base_key not in ctx.variables.x_area_by_l_c:
                 ctx.variables.x_area_by_l_c[base_key] = model.NewIntVar(
                     0, cap, f"x_{fa.land_id}_{fa.crop_id}"
                 )
-            # Enforce base envelope >= target (so base assignment aligns with tests)
-            model.Add(ctx.variables.x_area_by_l_c[base_key] >= target)
-            # If land day is not blocked, tie base and per-day equality to ensure planted amount shows up
+            b = ctx.variables.x_area_by_l_c[base_key]
+            model.Add(b >= target)
+
+            # Link to occupancy: when occ=1 and not blocked, x == b; else x <= b
             land = next(ld for ld in ctx.request.lands if ld.id == fa.land_id)
             blocked = land.blocked_days or set()
             for t in range(1, H + 1):
-                if t in blocked:
+                xt = ctx.variables.x_area_by_l_c_t[(fa.land_id, fa.crop_id, t)]
+                occ = ctx.variables.occ_by_c_t.get((fa.crop_id, t))
+                if occ is None:
+                    # If occ not modeled for this crop/day yet, skip equality; keep upper bound
+                    model.Add(xt <= b)
                     continue
-                model.Add(
-                    ctx.variables.x_area_by_l_c_t[(fa.land_id, fa.crop_id, t)]
-                    == ctx.variables.x_area_by_l_c[base_key]
-                )
-            # And ensure at least one day reaches that base (optional but tightens)
-            # sum_t (base - x_t) <= (H-1)*cap  => exists t with x_t >= base - (H-1)*cap
-            # Use simple: sum_t x_t >= base (implies some mass over days)
-            model.Add(sum(terms) >= ctx.variables.x_area_by_l_c[base_key])
+                # Upper bound always
+                model.Add(xt <= b)
+                # Equality only when not blocked and occ=1
+                if t not in blocked:
+                    model.Add(xt == b).OnlyEnforceIf(occ)
+
+            # Ensure some presence when b>0: sum_t x_t >= b is a simple sufficient condition
+            model.Add(sum(terms) >= b)

@@ -22,15 +22,16 @@ class LaborConstraint(Constraint):
 
         # Build map for easy lookups
         H = ctx.request.horizon.num_days
-        area_sum_by_crop = {}
+        # Use base envelope per land for crop planted area (not time-sum)
+        base_area_sum_by_crop = {}
         for crop in ctx.request.crops:
-            # Sum of x units over lands and days for crop
             terms: list[cp_model.LinearExpr] = []
             for land in ctx.request.lands:
-                for t in range(1, H + 1):
-                    x = ctx.variables.x_area_by_l_c_t[(land.id, crop.id, t)]
-                    terms.append(x)
-            area_sum_by_crop[crop.id] = sum(terms) if terms else 0
+                base_key = (land.id, crop.id)
+                x_base = ctx.variables.x_area_by_l_c.get(base_key)
+                if x_base is not None:
+                    terms.append(x_base)
+            base_area_sum_by_crop[crop.id] = sum(terms) if terms else 0
 
         # For each event, build h and link to needs and daily caps
         for ev in ctx.request.events:
@@ -46,7 +47,7 @@ class LaborConstraint(Constraint):
             q = labor_per_unit_frac.denominator
 
             # total need numerator side = p * sum_x_units
-            sum_x_units = area_sum_by_crop.get(crop_id)
+            sum_x_units = base_area_sum_by_crop.get(crop_id)
             if sum_x_units is None:
                 continue
             total_need_num_expr = p * sum_x_units

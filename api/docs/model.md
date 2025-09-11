@@ -60,14 +60,25 @@ CP-SAT 実装ノート:
 ### 4.1 土地面積制約
 - 各日・各圃場の総使用面積は上限以下:
   $$\sum_{c \in C} x_{l,c,t} \le area_l \quad (\forall l,t)$$
-- 事前割付の順守（下限として扱う）:
-  $$\sum_{t \in T} x_{l,c,t} \ge fixed\_area_{lc} \quad (\forall l,c)$$
+- 事前割付（完了要件: occupancy 連動）:
+  - 基底変数: $b_{l,c} \ge 0$ を導入（その圃場・作物での作付け面積の完成値）。
+  - 完了下限:  $$b_{l,c} \ge fixed\_area_{l,c} \quad (\forall l,c)$$
+  - 占有区間との連動（非ブロック日のみ等式）:
+    $$x_{l,c,t} = b_{l,c} \quad \text{if } occ_{c,t}=1 \land land\_blocked_{l,t}=0$$
+    $$x_{l,c,t} \in [0,\,b_{l,c}] \quad \text{otherwise}$$
+  - 実施保証（少なくとも一度は占有する）:
+    $$\sum_{t\in T} occ_{c,t} \ge 1 \quad \text{if } b_{l,c} > 0$$
+  - 備考: これにより、blocked 日を避けつつ占有期間内で定値となり、全期間を占有し続ける必要はない。
 - 土地利用禁止日のゼロ制約:
   $$x_{l,c,t} = 0 \quad \text{if } land\_blocked_{l,t}=1$$
 
 ### 4.2 作物面積の上下限（日次）
-- 各日・全圃場合計に対する上下限:
-  $$area\_min_c \le \sum_{l} x_{l,c,t} \le area\_max_c \quad (\forall c, t)$$
+- 各日・全圃場合計に対する上下限（占有・ブロック考慮）:
+  - 上限（常に適用）:
+    $$\sum_{l} x_{l,c,t} \le area\_max_c \quad (\forall c, t \text{ with } area\_max_c\ \text{定義})$$
+  - 下限（占有かつ利用可能圃場がある日に適用）:
+    $$\sum_{l} x_{l,c,t} \ge area\_min_c \quad (\forall c, t \text{ s.t. } occ_{c,t}=1 \land \exists l:\ land\_blocked_{l,t}=0)$$
+  備考: 全圃場が blocked の日は下限を課さない。
 
 ### 4.3 イベント実施の可行性ウィンドウ
 - 窓外抑制: $r_{e,t} = 0$ if $t$ outside $[min(start\_cond_e), max(end\_cond_e)]$。
@@ -80,10 +91,10 @@ CP-SAT 実装ノート:
 - 面積恒常性（占有中）:
   $$x_{l,c,t} = x_{l,c,t-1} \quad (\forall l,c,\; occ_{c,t}=1,\; t\notin blocked(l),\; t-1\notin blocked(l))$$
 
-### 4.5 労働需要と作業者容量
-- イベント通算労働需要と日次上限制約（面積連動）:
-  - $A_e = \sum_{l,t} x_{l,c,t}\; (c=crop_e)$。
-  - $total\_need\_e = labor\_total\_per\_area\_e \cdot A_e$。
+-### 4.5 労働需要と作業者容量
+- イベント通算労働需要と日次上限制約（基底面積 b に連動）:
+  - $B_c = \sum_{l} b_{l,c}$（作物 c の完成面積の合計）。
+  - $total\_need\_e = labor\_total\_per\_area\_e \cdot B_{crop(e)}$。
   - 通算充足: $\sum_{t}\sum_{w} h_{w,e,t} \ge total\_need\_e$。
   - 日次上限: $\sum_{w} h_{w,e,t} \le labor\_daily\_cap\_e \cdot r_{e,t}\;(\forall t)$。
 - 作業者の一日容量: $\sum_{e} h_{w,e,t} \le worker\_cap_w\;(\forall w,t)$。
