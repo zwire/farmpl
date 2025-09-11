@@ -93,7 +93,18 @@ def plan(
                 area
             )
 
-    assignment = PlanAssignment(crop_area_by_land_day=crop_area_by_land_day)
+    # Build idle per land/day
+    idle_by_land_day: dict[str, dict[int, float]] = {}
+    if feasible2 and result2.idle_by_l_t_values is not None:
+        for (land_id, t), units in result2.idle_by_l_t_values.items():
+            if units <= 0:
+                continue
+            area = units / stage2.scale_area
+            idle_by_land_day.setdefault(land_id, {})[t] = area
+
+    assignment = PlanAssignment(
+        crop_area_by_land_day=crop_area_by_land_day, idle_by_land_day=idle_by_land_day
+    )
 
     # Build event assignments with workers, resources, and areas
     event_assignments: list[EventAssignment] = []

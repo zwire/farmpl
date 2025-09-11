@@ -110,6 +110,12 @@ def main() -> None:
     for land_id, by_day in (result.assignment.crop_area_by_land_day or {}).items():
         for t in sorted(by_day.keys()):
             print({"land": land_id, "day": t, "area": by_day[t]})
+    # Print idle per land/day
+    if result.assignment.idle_by_land_day:
+        print("Idle:")
+        for land_id, by_day in result.assignment.idle_by_land_day.items():
+            for t in sorted(by_day.keys()):
+                print({"land": land_id, "day": t, "idle": by_day[t]})
 
     # Print event assignments (with resources and areas)
     if result.event_assignments:
