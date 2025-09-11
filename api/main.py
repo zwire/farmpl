@@ -45,6 +45,7 @@ def main() -> None:
             required_roles={"admin"},
             start_cond={1, 2, 3},
             end_cond={1, 2, 3},
+            occupancy_effect="start",
         ),
         Event(
             id="E_irrig",
@@ -73,6 +74,7 @@ def main() -> None:
             preceding_event_id="E_seed",
             lag_min_days=4,
             lag_max_days=6,
+            occupancy_effect="end",
         ),
     ]
 
@@ -89,7 +91,12 @@ def main() -> None:
                 roles={"admin"},
                 blocked_days={3},  # day3 blocked
             ),
-            Worker(id="W2", name="Bob", capacity_per_day=8.0, roles={"harvester"}),
+            Worker(
+                id="W2",
+                name="Bob",
+                capacity_per_day=8.0,
+                roles={"harvester"},
+            ),
         ],
         resources=[
             Resource(

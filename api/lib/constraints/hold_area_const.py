@@ -5,10 +5,11 @@ from lib.model_builder import BuildContext
 
 
 class HoldAreaConstConstraint(Constraint):
-    """Keep x[l,c,t] constant over time segments (except across blocked days).
+    """Keep x[l,c,t] constant while crop occupancy is active.
 
-    For each land l and crop c, enforce x[l,c,t] == x[l,c,t-1] when both days
-    are not blocked for land l. This avoids daily jitter of planted area.
+    For each land l and crop c, if occ[c,t]==1 and both t,t-1 are not blocked
+    for the land, enforce x[l,c,t] == x[l,c,t-1]. This ties area constancy to
+    modeled occupancy segments rather than all non-blocked days.
     """
 
     def apply(self, ctx: BuildContext) -> None:
@@ -24,8 +25,12 @@ class HoldAreaConstConstraint(Constraint):
                         continue
                     key_t = (land.id, crop.id, t)
                     key_prev = (land.id, crop.id, t - 1)
-                    # variables exist due to capacity/link constraints
-                    model.Add(
-                        ctx.variables.x_area_by_l_c_t[key_t]
-                        == ctx.variables.x_area_by_l_c_t[key_prev]
-                    )
+                    # Enforce constancy only when occupancy is active
+                    occ_t = ctx.variables.occ_by_c_t.get((crop.id, t))
+                    occ_prev = ctx.variables.occ_by_c_t.get((crop.id, t - 1))
+                    if occ_t is not None and occ_prev is not None:
+                        # If either side is active, keep constant (approx)
+                        model.Add(
+                            ctx.variables.x_area_by_l_c_t[key_t]
+                            == ctx.variables.x_area_by_l_c_t[key_prev]
+                        ).OnlyEnforceIf([occ_t])

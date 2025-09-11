@@ -27,6 +27,8 @@ class Variables:
     over_by_t: dict[int, cp_model.IntVar]
     # Time-indexed idle per land
     idle_by_l_t: dict[tuple[str, int], cp_model.IntVar]
+    # Occupancy by crop and day
+    occ_by_c_t: dict[tuple[str, int], cp_model.BoolVar]
 
 
 def create_empty_variables() -> Variables:
@@ -40,4 +42,5 @@ def create_empty_variables() -> Variables:
         u_time_by_r_e_t={},
         over_by_t={},
         idle_by_l_t={},
+        occ_by_c_t={},
     )
