@@ -21,8 +21,17 @@ def main() -> None:
         Crop(id="C2", name="Lettuce", category="vegetable", price_per_area=700),
     ]
     lands = [
-        Land(id="L1", name="Field-1", area=1.0),  # 1.0 a
-        Land(id="L2", name="Field-2", area=0.5),  # 0.5 a
+        Land(
+            id="L1",
+            name="Field-1",
+            area=1.0,
+        ),
+        Land(
+            id="L2",
+            name="Field-2",
+            area=0.5,  # 0.5 a
+            blocked_days={5},  # day5 blocked
+        ),
     ]
     # Add minimal events with frequency and lag
     events = [
@@ -73,10 +82,23 @@ def main() -> None:
         events=events,
         lands=lands,
         workers=[
-            Worker(id="W1", name="Alice", capacity_per_day=8.0, roles={"admin"}),
+            Worker(
+                id="W1",
+                name="Alice",
+                capacity_per_day=8.0,
+                roles={"admin"},
+                blocked_days={3},  # day3 blocked
+            ),
             Worker(id="W2", name="Bob", capacity_per_day=8.0, roles={"harvester"}),
         ],
-        resources=[Resource(id="R1", name="Harvester", capacity_per_day=8.0)],
+        resources=[
+            Resource(
+                id="R1",
+                name="Harvester",
+                capacity_per_day=8.0,
+                blocked_days={5},  # day5 blocked
+            )
+        ],
         fixed_areas=[FixedArea(land_id="L1", crop_id="C1", area=0.3)],
         crop_area_bounds=[CropAreaBound(crop_id="C1", min_area=0.2, max_area=0.4)],
     )
