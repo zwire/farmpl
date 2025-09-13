@@ -43,6 +43,7 @@ def plan(
     extra_stages: list[str] | None = None,
     stage_order: list[str] | None = None,
     lock_tolerance_pct: float | None = None,
+    lock_tolerance_by: dict[str, float] | None = None,
 ) -> PlanResponse:
     # Default constraints (partial time-axis introduced)
     base_constraints: list[Constraint] = [
@@ -84,6 +85,7 @@ def plan(
                     stage_defs.append((k, sense_map.get(k, "min")))
 
     locks: list[tuple[str, str, int]] = []
+    stage_summaries: list[dict] = []
     last_ctx = None
     last_res = None
     reason = None
@@ -104,12 +106,15 @@ def plan(
                 expr = build_diversity_expr(ctx)
             else:
                 continue
-            # Apply tolerance: allow small degradation from prior optimum.
+            # Apply tolerance (per-stage override > global > 0)
+            stage_tol = tol
+            if lock_tolerance_by and lname in lock_tolerance_by:
+                stage_tol = float(lock_tolerance_by[lname] or 0.0)
             if lsense == "max":
-                bound = int(math.floor(val * (1.0 - tol)))
+                bound = int(math.floor(val * (1.0 - stage_tol)))
                 ctx.model.Add(expr >= bound)
             else:
-                bound = int(math.ceil(val * (1.0 + tol)))
+                bound = int(math.ceil(val * (1.0 + stage_tol)))
                 ctx.model.Add(expr <= bound)
 
         # Register current objective
@@ -138,14 +143,22 @@ def plan(
         if res.status not in ("FEASIBLE", "OPTIMAL"):
             reason = f"stage '{name}' status={res.status}"
             break
-        # lock value
-        locks.append((name, sense, int(res.objective_value or 0)))
+        # lock value and record summary
+        val = int(res.objective_value or 0)
+        locks.append((name, sense, val))
+        stage_summaries.append({"name": name, "sense": sense, "value": val})
 
     feasible = bool(last_res and last_res.status in ("FEASIBLE", "OPTIMAL"))
     diagnostics = PlanDiagnostics(
         feasible=feasible,
         reason=None if feasible else reason,
         violated_constraints=[],
+        stages=stage_summaries,
+        stage_order=[name for name, _ in stage_defs],
+        lock_tolerance_pct=float(lock_tolerance_pct or 0.0),
+        lock_tolerance_by={k: float(v) for k, v in (lock_tolerance_by or {}).items()}
+        if lock_tolerance_by
+        else None,
     )
 
     # Build time-indexed assignment from the last stage values

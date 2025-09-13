@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from lib.constraints import (
     AreaBoundsConstraint,
@@ -15,7 +16,7 @@ from lib.constraints import (
     RolesConstraint,
 )
 from lib.model_builder import BuildContext, build_model
-from lib.objectives import build_profit_expr, build_idle_expr, build_diversity_expr
+from lib.objectives import build_diversity_expr, build_idle_expr, build_profit_expr
 from lib.planner import plan
 from lib.schemas import PlanRequest
 from lib.solver import SolveContext, solve
@@ -27,12 +28,14 @@ def run_planner(
     *,
     stage_order: list[str] | None = None,
     lock_tolerance_pct: float | None = None,
+    lock_tolerance_by: dict[str, float] | None = None,
 ):
     return plan(
         req,
         extra_stages=extra_stages,
         stage_order=stage_order,
         lock_tolerance_pct=lock_tolerance_pct,
+        lock_tolerance_by=lock_tolerance_by,
     )
 
 
@@ -74,20 +77,29 @@ def _build_dispersion_expr(ctx: BuildContext):
 
 
 def _build_labor_expr(ctx: BuildContext):
-    return sum(ctx.variables.h_time_by_w_e_t.values()) if ctx.variables.h_time_by_w_e_t else 0
+    return (
+        sum(ctx.variables.h_time_by_w_e_t.values())
+        if ctx.variables.h_time_by_w_e_t
+        else 0
+    )
 
 
 Stage = tuple[str, str, Callable[[BuildContext], Any]]  # (name, sense, expr_builder)
 
 
-def _run_lexicographic(req: PlanRequest, stages: list[Stage]) -> dict[str, Any]:
+def _run_lexicographic(
+    req: PlanRequest,
+    stages: list[Stage],
+    tol_pct: float = 0.0,
+    tol_by: dict[str, float] | None = None,
+) -> dict[str, Any]:
     cons = _base_constraints()
     locks: list[tuple[str, str, int]] = []  # (name, sense, value)
     results: dict[str, Any] = {}
-    for (name, sense, expr_builder) in stages:
+    for name, sense, expr_builder in stages:
         ctx = build_model(req, cons, [])
         # apply previous locks
-        for (lname, lsense, val) in locks:
+        for lname, lsense, val in locks:
             if lname == "profit":
                 expr = build_profit_expr(ctx)
             elif lname == "dispersion":
@@ -96,10 +108,15 @@ def _run_lexicographic(req: PlanRequest, stages: list[Stage]) -> dict[str, Any]:
                 expr = _build_labor_expr(ctx)
             else:
                 continue
+            stage_tol = tol_pct
+            if tol_by and lname in tol_by:
+                stage_tol = float(tol_by[lname] or 0.0)
             if lsense == "max":
-                ctx.model.Add(expr >= val)
+                bound = int((1.0 - stage_tol) * int(val))
+                ctx.model.Add(expr >= bound)
             else:
-                ctx.model.Add(expr <= val)
+                bound = int((1.0 + stage_tol) * int(val))
+                ctx.model.Add(expr <= bound)
 
         obj_expr = expr_builder(ctx)
         if sense == "max":
@@ -122,45 +139,91 @@ def _run_lexicographic(req: PlanRequest, stages: list[Stage]) -> dict[str, Any]:
     return results
 
 
-def compare_objectives(req: PlanRequest) -> dict[str, Any]:
-    two_stage = _run_lexicographic(
+def compare_objectives(
+    req: PlanRequest,
+    *,
+    stage_order: list[str] | None = None,
+    lock_tolerance_pct: float | None = None,
+    lock_tolerance_by: dict[str, float] | None = None,
+) -> dict[str, Any]:
+    tol = float(lock_tolerance_pct or 0.0)
+    results: dict[str, Any] = {}
+
+    # Default two-stage
+    results["two_stage"] = _run_lexicographic(
         req,
         [
             ("profit", "max", build_profit_expr),
             ("dispersion", "min", _build_dispersion_expr),
         ],
+        tol_pct=0.0,
     )
 
-    three_stage_labor = _run_lexicographic(
+    # If caller specifies a custom order, run exactly that once
+    if stage_order:
+        order_map = {
+            "profit": ("profit", "max", build_profit_expr),
+            "dispersion": ("dispersion", "min", _build_dispersion_expr),
+            "labor": ("labor", "min", _build_labor_expr),
+            "idle": ("idle", "min", build_idle_expr),
+            "diversity": ("diversity", "max", build_diversity_expr),
+        }
+        stages: list[Stage] = [order_map[s] for s in stage_order if s in order_map]
+        tol_by = (
+            {k: v / 100.0 for k, v in (lock_tolerance_by or {}).items()}
+            if lock_tolerance_by
+            else None
+        )
+        results["custom"] = _run_lexicographic(
+            req, stages, tol_pct=tol / 100.0, tol_by=tol_by
+        )
+        return results
+
+    # Otherwise, run a few illustrative 3-stage scenarios
+    results["three_stage_labor"] = _run_lexicographic(
         req,
         [
             ("profit", "max", build_profit_expr),
             ("dispersion", "min", _build_dispersion_expr),
             ("labor", "min", _build_labor_expr),
         ],
+        tol_pct=0.0,
     )
-
-    three_stage_idle = _run_lexicographic(
+    results["three_stage_idle_strict"] = _run_lexicographic(
         req,
         [
             ("profit", "max", build_profit_expr),
             ("dispersion", "min", _build_dispersion_expr),
             ("idle", "min", build_idle_expr),
         ],
+        tol_pct=0.0,
     )
-
-    three_stage_div = _run_lexicographic(
+    results["three_stage_idle_tol10"] = _run_lexicographic(
+        req,
+        [
+            ("profit", "max", build_profit_expr),
+            ("dispersion", "min", _build_dispersion_expr),
+            ("idle", "min", build_idle_expr),
+        ],
+        tol_pct=0.10,
+    )
+    results["diversity_before_dispersion"] = _run_lexicographic(
+        req,
+        [
+            ("profit", "max", build_profit_expr),
+            ("diversity", "max", build_diversity_expr),
+            ("dispersion", "min", _build_dispersion_expr),
+        ],
+        tol_pct=0.0,
+    )
+    results["diversity_after_dispersion"] = _run_lexicographic(
         req,
         [
             ("profit", "max", build_profit_expr),
             ("dispersion", "min", _build_dispersion_expr),
             ("diversity", "max", build_diversity_expr),
         ],
+        tol_pct=0.0,
     )
 
-    return {
-        "two_stage": two_stage,
-        "three_stage_labor": three_stage_labor,
-        "three_stage_idle": three_stage_idle,
-        "three_stage_diversity": three_stage_div,
-    }
+    return results

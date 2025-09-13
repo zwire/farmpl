@@ -18,6 +18,7 @@ def build_sample_request() -> PlanRequest:
     crops = [
         Crop(id="C1", name="Tomato", category="vegetable", price_per_area=1000),
         Crop(id="C2", name="Lettuce", category="vegetable", price_per_area=700),
+        Crop(id="C3", name="Herb", category="herb", price_per_area=400),
     ]
     lands = [
         Land(id="L1", name="Field-1", area=1.0, blocked_days={1}),
@@ -88,4 +89,3 @@ def build_sample_request() -> PlanRequest:
         fixed_areas=[FixedArea(land_id="L1", crop_id="C1", area=0.3)],
         crop_area_bounds=[CropAreaBound(crop_id="C1", min_area=0.2, max_area=0.4)],
     )
-

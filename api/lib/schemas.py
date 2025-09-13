@@ -104,6 +104,11 @@ class PlanDiagnostics(BaseModel):
     feasible: bool
     reason: str | None = None
     violated_constraints: list[str] | None = None
+    # Optional: lexicographic stages summary
+    stages: list[dict] = Field(default_factory=list)
+    stage_order: list[str] | None = None
+    lock_tolerance_pct: float | None = None
+    lock_tolerance_by: dict[str, float] | None = None
 
 
 class PlanAssignment(BaseModel):
