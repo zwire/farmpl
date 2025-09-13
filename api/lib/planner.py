@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 from .constraints import (
     AreaBoundsConstraint,
     EventsWindowConstraint,
@@ -14,7 +16,13 @@ from .constraints import (
 )
 from .interfaces import Constraint, Objective
 from .model_builder import build_model
-from .objectives import DispersionObjective, ProfitObjective, build_profit_expr
+from .objectives import (
+    build_dispersion_expr,
+    build_diversity_expr,
+    build_idle_expr,
+    build_labor_hours_expr,
+    build_profit_expr,
+)
 from .schemas import (
     EventAssignment,
     PlanAssignment,
@@ -31,6 +39,10 @@ def plan(
     request: PlanRequest,
     constraints: list[Constraint] | None = None,
     objectives: list[Objective] | None = None,
+    *,
+    extra_stages: list[str] | None = None,
+    stage_order: list[str] | None = None,
+    lock_tolerance_pct: float | None = None,
 ) -> PlanResponse:
     # Default constraints (partial time-axis introduced)
     base_constraints: list[Constraint] = [
@@ -48,44 +60,104 @@ def plan(
     if constraints:
         base_constraints.extend(constraints)
 
-    # Stage 1: maximize profit
-    stage1 = build_model(request, base_constraints, [ProfitObjective()])
-    result1 = solve(stage1)
+    # Lexicographic stages
+    sense_map = {
+        "profit": "max",
+        "dispersion": "min",
+        "labor": "min",
+        "idle": "min",
+        "diversity": "max",
+    }
+    if stage_order:
+        stage_defs: list[tuple[str, str]] = [
+            (name, sense_map.get(name, "min"))
+            for name in stage_order
+            if name in sense_map
+        ]
+        if not stage_defs:
+            stage_defs = [("profit", "max"), ("dispersion", "min")]
+    else:
+        stage_defs = [("profit", "max"), ("dispersion", "min")]
+        if extra_stages:
+            for k in extra_stages:
+                if k not in ("profit", "dispersion"):
+                    stage_defs.append((k, sense_map.get(k, "min")))
 
-    feasible1 = result1.status in ("FEASIBLE", "OPTIMAL")
-    if not feasible1:
-        diagnostics = PlanDiagnostics(
-            feasible=False,
-            reason=f"stage1 status={result1.status}",
-            violated_constraints=[],
-        )
-        return PlanResponse(
-            diagnostics=diagnostics,
-            assignment=PlanAssignment(crop_area_by_land={}),
-            event_assignments=[],
-        )
+    locks: list[tuple[str, str, int]] = []
+    last_ctx = None
+    last_res = None
+    reason = None
+    tol = float(lock_tolerance_pct or 0.0)
+    for name, sense in stage_defs:
+        ctx = build_model(request, base_constraints, [])
+        # Apply previous locks
+        for lname, lsense, val in locks:
+            if lname == "profit":
+                expr = build_profit_expr(ctx)
+            elif lname == "dispersion":
+                expr = build_dispersion_expr(ctx)
+            elif lname == "labor":
+                expr = build_labor_hours_expr(ctx)
+            elif lname == "idle":
+                expr = build_idle_expr(ctx)
+            elif lname == "diversity":
+                expr = build_diversity_expr(ctx)
+            else:
+                continue
+            # Apply tolerance: allow small degradation from prior optimum.
+            if lsense == "max":
+                bound = int(math.floor(val * (1.0 - tol)))
+                ctx.model.Add(expr >= bound)
+            else:
+                bound = int(math.ceil(val * (1.0 + tol)))
+                ctx.model.Add(expr <= bound)
 
-    best_profit = int(result1.objective_value or 0)
+        # Register current objective
+        if name == "profit":
+            obj_expr = build_profit_expr(ctx)
+            ctx.model.Maximize(obj_expr)
+        elif name == "dispersion":
+            obj_expr = build_dispersion_expr(ctx)
+            ctx.model.Minimize(obj_expr)
+        elif name == "labor":
+            obj_expr = build_labor_hours_expr(ctx)
+            ctx.model.Minimize(obj_expr)
+        elif name == "idle":
+            obj_expr = build_idle_expr(ctx)
+            ctx.model.Minimize(obj_expr)
+        elif name == "diversity":
+            obj_expr = build_diversity_expr(ctx)
+            ctx.model.Maximize(obj_expr)
+        else:
+            # Unknown extra stage; skip
+            continue
 
-    # Stage 2: minimize dispersion with profit locked
-    stage2 = build_model(request, base_constraints, [DispersionObjective()])
-    # Add profit lock constraint
-    profit_expr = build_profit_expr(stage2)
-    stage2.model.Add(profit_expr >= best_profit)
-    result2 = solve(stage2)
+        res = solve(ctx)
+        last_ctx = ctx
+        last_res = res
+        if res.status not in ("FEASIBLE", "OPTIMAL"):
+            reason = f"stage '{name}' status={res.status}"
+            break
+        # lock value
+        locks.append((name, sense, int(res.objective_value or 0)))
 
-    feasible2 = result2.status in ("FEASIBLE", "OPTIMAL")
+    feasible = bool(last_res and last_res.status in ("FEASIBLE", "OPTIMAL"))
     diagnostics = PlanDiagnostics(
-        feasible=feasible2,
-        reason=None if feasible2 else f"stage2 status={result2.status}",
+        feasible=feasible,
+        reason=None if feasible else reason,
         violated_constraints=[],
     )
 
-    # Build time-indexed assignment from stage2 values
+    # Build time-indexed assignment from the last stage values
     crop_area_by_land_day: dict[str, dict[int, dict[str, float]]] = {}
-    if feasible2 and result2.x_area_by_l_c_t_values is not None:
-        scale = stage2.scale_area
-        for (land_id, crop_id, t), units in result2.x_area_by_l_c_t_values.items():
+    if (
+        feasible
+        and last_res
+        and last_res.x_area_by_l_c_t_values is not None
+        and last_ctx
+    ):
+        scale = last_ctx.scale_area
+        for (land_id, crop_id, t), units in last_res.x_area_by_l_c_t_values.items():
             if units <= 0:
                 continue
             area = units / scale
@@ -95,11 +167,11 @@ def plan(
 
     # Build idle per land/day
     idle_by_land_day: dict[str, dict[int, float]] = {}
-    if feasible2 and result2.idle_by_l_t_values is not None:
-        for (land_id, t), units in result2.idle_by_l_t_values.items():
+    if feasible and last_res and last_res.idle_by_l_t_values is not None and last_ctx:
+        for (land_id, t), units in last_res.idle_by_l_t_values.items():
             if units <= 0:
                 continue
-            area = units / stage2.scale_area
+            area = units / last_ctx.scale_area
             idle_by_land_day.setdefault(land_id, {})[t] = area
 
     assignment = PlanAssignment(
@@ -108,8 +180,8 @@ def plan(
 
     # Build event assignments with workers, resources, and areas
     event_assignments: list[EventAssignment] = []
-    sc = result2
-    if sc.r_event_by_e_t_values is not None:
+    sc = last_res
+    if sc is not None and sc.r_event_by_e_t_values is not None and last_ctx is not None:
         # Build worker lookup for names/roles
         worker_info = {
             w.id: WorkerRef(id=w.id, name=w.name, roles=sorted(w.roles or set()))
@@ -121,7 +193,7 @@ def plan(
         # Precompute crop area by (crop_id, t)
         crop_area_by_t: dict[tuple[str, int], float] = {}
         if sc.x_area_by_l_c_t_values is not None:
-            scale = stage2.scale_area
+            scale = last_ctx.scale_area
             for (land_id, crop_id, t), units in sc.x_area_by_l_c_t_values.items():
                 crop_area_by_t[(crop_id, t)] = crop_area_by_t.get((crop_id, t), 0.0) + (
                     units / scale
