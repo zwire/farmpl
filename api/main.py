@@ -10,6 +10,19 @@ from demo.sample import build_sample_request
 from lib.schemas import PlanResponse
 
 
+def _print_objectives_and_summary(result: PlanResponse) -> None:
+    if result.objectives:
+        rows = ([k, f"{v:.3f}"] for k, v in result.objectives.items())
+        print_table(["objective", "value"], rows)
+    if result.summary:
+        rows = ([k, f"{v:.3f}"] for k, v in result.summary.items())
+        print_table(["metric", "value"], rows)
+    if result.constraint_hints:
+        print(color("Hints:", kind="warn"))
+        for h in result.constraint_hints:
+            print(" -", h)
+
+
 def _print_plan(result: PlanResponse) -> None:
     diag = result.diagnostics
     print(color(f"feasible: {diag.feasible}", kind="ok" if diag.feasible else "err"))
@@ -62,6 +75,8 @@ def _print_plan(result: PlanResponse) -> None:
                 ]
             )
         print_table(["day", "event", "workers", "resources", "crop_area"], ev_rows)
+
+    _print_objectives_and_summary(result)
 
 
 def main() -> None:
@@ -193,6 +208,25 @@ def main() -> None:
                         )
                 else:
                     print(data)
+
+            # Also print PlanResponse-style objectives/summary for the selected scenario
+            if stage_order:
+                tol_frac = float(getattr(args, "lock_tol", 0.0) or 0.0) / 100.0
+                tol_by_frac = None
+                if tol_by_map2:
+                    tol_by_frac = {k: v / 100.0 for k, v in tol_by_map2.items()}
+                pr = run_planner(
+                    req,
+                    stage_order=stage_order,
+                    lock_tolerance_pct=tol_frac,
+                    lock_tolerance_by=tol_by_frac,
+                )
+                print(color("\nObjectives & Summary (custom)", kind="title"))
+                _print_objectives_and_summary(pr)
+            else:
+                pr = run_planner(req)
+                print(color("\nObjectives & Summary (two_stage)", kind="title"))
+                _print_objectives_and_summary(pr)
         return
 
     parser.print_help()

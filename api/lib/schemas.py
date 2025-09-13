@@ -146,3 +146,9 @@ class PlanResponse(BaseModel):
     assignment: PlanAssignment
     # Optional: event-level assignments (day x event -> workers)
     event_assignments: list[EventAssignment] | None = None
+    # Objective values summary (evaluated on final plan when feasible)
+    objectives: dict[str, float] = Field(default_factory=dict)
+    # Lightweight numeric summaries to help quick inspection
+    summary: dict[str, float] = Field(default_factory=dict)
+    # Simple, human-readable hints when infeasible
+    constraint_hints: list[str] = Field(default_factory=list)

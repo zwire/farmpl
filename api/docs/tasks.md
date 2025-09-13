@@ -106,10 +106,10 @@
  - [x] 追加段のオプション（労働等）を選択的に有効化
 
 ## 4. API・I/O・診断
-- [ ] `PlanResponse` に目的値・制約評価の要約を追加
-- [ ] Diagnostics 拡張: infeasible 時に候補ネックを出す（簡易）
+- [x] `PlanResponse` に目的値・制約評価の要約を追加
+- [x] Diagnostics 拡張: infeasible 時に候補ネックを出す（簡易）
 
 ## 5. ドキュメント整備
 - [x] `docs/model.md` との乖離チェックと差分反映（時間依存x・日次境界・フラつき防止）
-- [ ] `docs/tech.md` の「時間窓(h)」設計メモの反映（将来計画）
+- [x] `docs/tech.md` の「時間窓(h)」設計メモの反映（将来計画）
 - [x] `README.md` に実行方法（uv sync / uv run pytest / python main.py）追記

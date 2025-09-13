@@ -255,8 +255,92 @@ def plan(
                 )
             )
 
+    # Build objective summaries and simple hints
+    objectives: dict[str, float] = {}
+    summary: dict[str, float] = {}
+    hints: list[str] = []
+
+    if feasible and last_res is not None and last_ctx is not None:
+        # Profit from per-day areas (max over t per land/crop)
+        price_map = {c.id: float(c.price_per_area or 0.0) for c in request.crops}
+        scale = last_ctx.scale_area
+        max_by_lc: dict[tuple[str, str], int] = {}
+        for (l, c, t), units in (last_res.x_area_by_l_c_t_values or {}).items():
+            key = (l, c)
+            if units > max_by_lc.get(key, 0):
+                max_by_lc[key] = units
+        profit_val = 0.0
+        for (l, c), units in max_by_lc.items():
+            profit_val += price_map.get(c, 0.0) * (units / scale)
+        objectives["profit"] = round(profit_val, 3)
+        # Dispersion
+        objectives["dispersion"] = float(
+            sum((last_res.z_use_by_l_c_values or {}).values())
+        )
+        # Labor
+        labor_total = float(sum((last_res.h_time_by_w_e_t_values or {}).values()))
+        objectives["labor"] = labor_total
+        # Idle
+        idle_units = float(sum((last_res.idle_by_l_t_values or {}).values()))
+        objectives["idle"] = round(idle_units / scale, 3)
+        # Diversity (#crops used)
+        used_crops = {
+            c for (l, c), z in (last_res.z_use_by_l_c_values or {}).items() if z > 0
+        }
+        objectives["diversity"] = float(len(used_crops))
+
+        # Numeric summaries
+        total_worker_capacity = (
+            sum(float(w.capacity_per_day or 0.0) for w in request.workers)
+            * request.horizon.num_days
+        )
+        assigned_res = float(sum((last_res.u_time_by_r_e_t_values or {}).values()))
+        total_res_capacity = (
+            sum(float(r.capacity_per_day or 0.0) for r in request.resources)
+            * request.horizon.num_days
+        )
+        summary = {
+            "workers.capacity_total_h": round(total_worker_capacity, 3),
+            "workers.assigned_total_h": labor_total,
+            "resources.capacity_total_h": round(total_res_capacity, 3),
+            "resources.assigned_total_h": assigned_res,
+        }
+    else:
+        # Heuristic hints on infeasibility
+        required_roles = set().union(
+            *[e.required_roles or set() for e in request.events]
+        )
+        have_roles = (
+            set().union(*[w.roles or set() for w in request.workers])
+            if request.workers
+            else set()
+        )
+        for r in sorted(required_roles - have_roles):
+            hints.append(f"missing role: {r}")
+        required_res_ids = set().union(
+            *[e.required_resources or set() for e in request.events]
+        )
+        have_res_ids = {r.id for r in request.resources}
+        for rid in sorted(required_res_ids - have_res_ids):
+            hints.append(f"missing resource: {rid}")
+        max_land_area = sum(l.area for l in request.lands)
+        for b in request.crop_area_bounds or []:
+            if b.min_area is not None and b.min_area > max_land_area:
+                hints.append(
+                    f"crop {b.crop_id} min_area {b.min_area} > total_land {max_land_area}"
+                )
+        for fa in request.fixed_areas or []:
+            land = next((ld for ld in request.lands if ld.id == fa.land_id), None)
+            if land and fa.area > land.area:
+                hints.append(
+                    f"fixed area {fa.area} for {fa.land_id}/{fa.crop_id} > land area {land.area}"
+                )
+
     return PlanResponse(
         diagnostics=diagnostics,
         assignment=assignment,
         event_assignments=event_assignments,
+        objectives=objectives,
+        summary=summary,
+        constraint_hints=hints,
     )
