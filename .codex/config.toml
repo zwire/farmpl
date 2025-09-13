@@ -8,6 +8,10 @@ file_opener = "cursor"
 [tools]
 web_search = true
 
+[mcp_servers]
+spec-workflow.command = "npx"
+spec-workflow.args = ["-y", "@pimzino/spec-workflow-mcp@latest", "/workspace"]
+
 [mcp_servers.context7]
 command = "npx"
 args = ["-y", "@upstash/context7-mcp"]

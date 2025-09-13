@@ -17,7 +17,8 @@
         "ms-python.python",
         "charliermarsh.ruff",
         "biomejs.biome",
-        "openai.chatgpt"
+        "openai.chatgpt",
+        "Pimzino.spec-workflow-mcp"
       ],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "bash",
