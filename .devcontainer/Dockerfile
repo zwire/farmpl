@@ -28,12 +28,6 @@ RUN mkdir -p /usr/local/share/npm-global && \
 
 ARG USERNAME=node
 
-# Persist bash history.
-RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
-  && mkdir /commandhistory \
-  && touch /commandhistory/.bash_history \
-  && chown -R $USERNAME /commandhistory
-
 # Set `DEVCONTAINER` environment variable to help with orientation
 ENV DEVCONTAINER=true
 
@@ -71,5 +65,14 @@ ENV PATH=$PATH:/usr/local/share/npm-global/bin
 # Set the default shell to bash rather than sh
 ENV SHELL=/bin/bash
 
-# Install Claude
-RUN npm install -g @anthropic-ai/claude-code
+# Install Codex CLI
+RUN npm install -g @openai/codex
+RUN mkdir -p ~/.codex
+RUN ln -s /workspace/.codex/config.toml ~/.codex/config.toml
+
+# Install Gemini CLI
+RUN npm install -g @google/gemini-cli
+
+# Install mmcp
+RUN npm install -g mmcp
+RUN ln -s /workspace/.mmcp.json ~/.mmcp.json

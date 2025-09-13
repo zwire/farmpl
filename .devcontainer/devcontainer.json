@@ -17,7 +17,7 @@
         "ms-python.python",
         "charliermarsh.ruff",
         "biomejs.biome",
-        "anthropic.claude-code"
+        "openai.chatgpt"
       ],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "bash",
@@ -30,9 +30,6 @@
       }
     }
   },
-  "mounts": [
-    "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume"
-  ],
   "forwardPorts": [3000, 8000],
   "remoteEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",

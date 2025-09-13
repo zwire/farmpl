@@ -1,4 +1,5 @@
-.serena
-.venv
 __pycache__
+.venv
 .pytest_cache
+.serena
+.codex/auth.json
