@@ -2,5 +2,4 @@ __pycache__
 .venv
 .pytest_cache
 .serena
-.codex/auth.json
 .spec-workflow/approvals
