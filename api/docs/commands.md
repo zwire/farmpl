@@ -1,20 +1,20 @@
 # コマンド使用ガイド
 
-FarmPL デモ用 CLI は `api/main.py` にあります。`uv` 経由で実行します。
+FarmPL デモ用 CLI は `api/demo.py` にあります。`uv` 経由で実行します。
 
 ## 前提
 - プロジェクトルートで実行
 - 実行は `uv` を使用
 
 ## 基本コマンド
-- `api/main.py`
+- `api/demo.py`
   - 既定は2段（profit→dispersion）の計画を実行し、日別の面積・アイドル・イベント割当を表示します。
 
 例:
-- 実行: `cd api && uv run python main.py`
+- 実行: `cd api && uv run python demo.py`
 
 ## plan サブコマンド（計画の実行）
-- 形式: `cd api && uv run python main.py plan [--extra STAGE ...] [--stages LIST] [--lock-tol PCT] [--lock-tol-by MAP] [--json]`
+- 形式: `cd api && uv run python demo.py plan [--extra STAGE ...] [--stages LIST] [--lock-tol PCT] [--lock-tol-by MAP] [--json]`
 
 オプション:
 - `--extra STAGE`
@@ -39,13 +39,13 @@ FarmPL デモ用 CLI は `api/main.py` にあります。`uv` 経由で実行し
   - 予約（将来の JSON 出力用）。現状は表示形式に影響しません。
 
 使用例:
-- 既定（2段）: `cd api && uv run python main.py plan`
-- 労働最小を3段目に追加: `cd api && uv run python main.py plan --extra labor`
-- 完全指定＋10%許容: `cd api && uv run python main.py plan --stages profit,dispersion,labor --lock-tol 10`
-- 段ごと許容（profit=2%, dispersion=5%）: `cd api && uv run python main.py plan --stages profit,dispersion,idle --lock-tol-by profit=2,dispersion=5`
+- 既定（2段）: `cd api && uv run python demo.py plan`
+- 労働最小を3段目に追加: `cd api && uv run python demo.py plan --extra labor`
+- 完全指定＋10%許容: `cd api && uv run python demo.py plan --stages profit,dispersion,labor --lock-tol 10`
+- 段ごと許容（profit=2%, dispersion=5%）: `cd api && uv run python demo.py plan --stages profit,dispersion,idle --lock-tol-by profit=2,dispersion=5`
 
 ## compare サブコマンド（段階比較のデモ）
-- 形式: `cd api && uv run python main.py compare [--stages LIST] [--lock-tol PCT] [--lock-tol-by MAP] [--json]`
+- 形式: `cd api && uv run python demo.py compare [--stages LIST] [--lock-tol PCT] [--lock-tol-by MAP] [--json]`
 - 出力内容:
   - `two_stage`: profit→dispersion の結果
   - `three_stage_labor`: profit→dispersion→labor の結果
@@ -68,22 +68,22 @@ FarmPL デモ用 CLI は `api/main.py` にあります。`uv` 経由で実行し
 
 ## サンプルコマンド集（ケース別）
 - 既定の2段で実行（profit→dispersion）:
-  - `cd api && uv run python main.py plan`
+  - `cd api && uv run python demo.py plan`
 - 3段目に労働最小を追加（既定順に末尾追加）:
-  - `cd api && uv run python main.py plan --extra labor`
+  - `cd api && uv run python demo.py plan --extra labor`
 - 3段目と4段目に遊休最小・多品目最大を追加:
-  - `cd api && uv run python main.py plan --extra idle --extra diversity`
+  - `cd api && uv run python demo.py plan --extra idle --extra diversity`
 - 完全に順序を指定（profit→dispersion→labor）:
-  - `cd api && uv run python main.py plan --stages profit,dispersion,labor`
+  - `cd api && uv run python demo.py plan --stages profit,dispersion,labor`
 - 完全順序＋前段ロックを10%緩和（許容誤差）:
-  - `cd api && uv run python main.py plan --stages profit,dispersion,labor --lock-tol 10`
+  - `cd api && uv run python demo.py plan --stages profit,dispersion,labor --lock-tol 10`
 - 分散の前に多品目最大を入れる（例: profit→diversity→dispersion）:
-  - `cd api && uv run python main.py plan --stages profit,diversity,dispersion`
+  - `cd api && uv run python demo.py plan --stages profit,diversity,dispersion`
 - 比較デモ（2段・3段の結果をまとめて出力）:
-  - `cd api && uv run python main.py compare`
+  - `cd api && uv run python demo.py compare`
 - 比較デモをJSONで受け取りたい場合:
-  - `cd api && uv run python main.py compare --json`
+  - `cd api && uv run python demo.py compare --json`
 - compare を任意順序で1ケースだけ走らせる（diversity→dispersion など）:
-  - `cd api && uv run python main.py compare --stages profit,diversity,dispersion`
+  - `cd api && uv run python demo.py compare --stages profit,diversity,dispersion`
 - compare で idle を後段に置き、分散ロックを段ごとに緩める:
-  - `cd api && uv run python main.py compare --stages profit,dispersion,idle --lock-tol-by profit=5,dispersion=10`
+  - `cd api && uv run python demo.py compare --stages profit,dispersion,idle --lock-tol-by profit=5,dispersion=10`
