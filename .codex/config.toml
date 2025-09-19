@@ -1,5 +1,5 @@
 network_access = true
-model = "gpt-5"
+model = "gpt-5-codex"
 model_verbosity = "medium"
 model_reasoning_summary = "auto"
 show_raw_agent_reasoning = true
