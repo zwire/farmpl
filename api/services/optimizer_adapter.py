@@ -224,7 +224,24 @@ def _build_timeline(resp: PlanResponse, req: PlanRequest) -> OptimizationTimelin
                     resource_ids=[ru.id for ru in (ea.resource_usage or [])],
                 )
             )
-    return OptimizationTimeline(land_spans=spans, events=items)
+    # 名前マップを組み立て
+    land_names = {land.id: land.name for land in req.lands}
+    crop_names = {crop.id: crop.name for crop in req.crops}
+    worker_names = {worker.id: worker.name for worker in req.workers}
+    resource_names = {res.id: res.name for res in req.resources}
+    event_names = {ev.id: ev.name for ev in req.events}
+
+    return OptimizationTimeline(
+        land_spans=spans,
+        events=items,
+        entity_names={
+            "lands": land_names,
+            "crops": crop_names,
+            "workers": worker_names,
+            "resources": resource_names,
+            "events": event_names,
+        },
+    )
 
 
 def solve_sync(req: OptimizationRequest) -> OptimizationResult:
