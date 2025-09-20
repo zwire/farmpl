@@ -21,6 +21,7 @@ class SolveContext:
     u_time_by_r_e_t_values: dict[tuple[str, str, int], int] | None = None
     idle_by_l_t_values: dict[tuple[str, int], int] | None = None
     occ_by_c_t_values: dict[tuple[str, int], int] | None = None
+    occ_by_l_c_t_values: dict[tuple[str, str, int], int] | None = None
 
 
 def solve(ctx: BuildContext) -> SolveContext:
@@ -48,6 +49,7 @@ def solve(ctx: BuildContext) -> SolveContext:
         uvals: dict[tuple[str, str, int], int] = {}
         idlevals: dict[tuple[str, int], int] = {}
         occvals: dict[tuple[str, int], int] = {}
+        occ_land_vals: dict[tuple[str, str, int], int] = {}
         for key, var in ctx.variables.x_area_by_l_c_t.items():
             xa_lct[key] = int(solver.Value(var))
         for key, var in ctx.variables.z_use_by_l_c.items():
@@ -66,6 +68,8 @@ def solve(ctx: BuildContext) -> SolveContext:
             idlevals[key] = int(solver.Value(var))
         for key, var in ctx.variables.occ_by_c_t.items():
             occvals[key] = int(solver.Value(var))
+        for key, var in ctx.variables.occ_by_l_c_t.items():
+            occ_land_vals[key] = int(solver.Value(var))
         sc.x_area_by_l_c_t_values = xa_lct
         sc.z_use_by_l_c_values = za
         sc.r_event_by_e_t_values = rvals
@@ -74,4 +78,5 @@ def solve(ctx: BuildContext) -> SolveContext:
         sc.u_time_by_r_e_t_values = uvals
         sc.idle_by_l_t_values = idlevals
         sc.occ_by_c_t_values = occvals
+        sc.occ_by_l_c_t_values = occ_land_vals
     return sc

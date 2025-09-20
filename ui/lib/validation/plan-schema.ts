@@ -91,34 +91,8 @@ const eventSchema = z
     requiredRoles: z.array(nonEmptyString).optional(),
     requiredResources: z.array(nonEmptyString).optional(),
     usesLand: z.boolean(),
-    occupancyEffect: z.enum(["start", "hold", "end", "none"]).optional(),
   })
-  .strict()
-  .superRefine((event, ctx) => {
-    if (
-      !event.usesLand &&
-      event.occupancyEffect &&
-      event.occupancyEffect !== "none"
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "土地を使用しない場合、占有効果は none のみ指定できます",
-        path: ["occupancyEffect"],
-      });
-    }
-    if (
-      event.usesLand &&
-      (!event.occupancyEffect || event.occupancyEffect === "none")
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          "土地を利用するイベントは占有効果(start/hold/end)を指定してください",
-        path: ["occupancyEffect"],
-      });
-    }
-  })
-  ;
+  .strict();
 
 const landSchema = z
   .object({
@@ -413,7 +387,6 @@ export const buildApiPlanPayload = (plan: PlanFormState): ApiPlan => {
     required_roles: event.requiredRoles ?? null,
       required_resources: event.requiredResources ?? null,
       uses_land: event.usesLand,
-      occupancy_effect: event.occupancyEffect ?? null,
     })),
     lands: parsed.lands.map((land) => ({
       id: land.id,

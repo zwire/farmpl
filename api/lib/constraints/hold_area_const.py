@@ -26,8 +26,10 @@ class HoldAreaConstConstraint(Constraint):
                     key_t = (land.id, crop.id, t)
                     key_prev = (land.id, crop.id, t - 1)
                     # Enforce constancy only when occupancy is active
-                    occ_t = ctx.variables.occ_by_c_t.get((crop.id, t))
-                    occ_prev = ctx.variables.occ_by_c_t.get((crop.id, t - 1))
+                    occ_t = ctx.variables.occ_by_l_c_t.get((land.id, crop.id, t))
+                    occ_prev = ctx.variables.occ_by_l_c_t.get(
+                        (land.id, crop.id, t - 1)
+                    )
                     if occ_t is not None and occ_prev is not None:
                         # If either side is active, keep constant (approx)
                         model.Add(

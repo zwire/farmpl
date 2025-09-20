@@ -19,7 +19,6 @@ const buildValidPlan = (): PlanFormState => ({
       cropId: "crop-1",
       name: "播種",
       usesLand: true,
-      occupancyEffect: "start",
     },
   ],
   lands: [

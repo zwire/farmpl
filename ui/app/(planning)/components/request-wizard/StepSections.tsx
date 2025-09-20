@@ -1019,7 +1019,6 @@ function EventsSection({
           name: "",
           category: "",
           usesLand: true,
-          occupancyEffect: "start",
           startCond: [],
           endCond: [],
         },
@@ -1114,23 +1113,6 @@ function EventsSection({
                 >
                   <option value="true">使用する</option>
                   <option value="false">使用しない</option>
-                </select>
-              </Field>
-              <Field label="占有効果">
-                <select
-                  value={event.occupancyEffect ?? "none"}
-                  onChange={(e) =>
-                    handleUpdate(index, {
-                      occupancyEffect: e.target
-                        .value as PlanFormEvent["occupancyEffect"],
-                    })
-                  }
-                  className="rounded-md border border-slate-300 px-2 py-2 text-sm"
-                >
-                  <option value="none">なし</option>
-                  <option value="start">start</option>
-                  <option value="hold">hold</option>
-                  <option value="end">end</option>
                 </select>
               </Field>
               <Field label="必要人数">

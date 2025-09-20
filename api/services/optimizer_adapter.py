@@ -76,7 +76,6 @@ def to_domain_plan(api: ApiPlan) -> PlanRequest:
             required_roles=e.required_roles,
             required_resources=e.required_resources,
             uses_land=e.uses_land,
-            occupancy_effect=e.occupancy_effect,
         )
         for e in api.events
     ]

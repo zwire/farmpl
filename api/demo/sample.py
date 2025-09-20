@@ -36,7 +36,6 @@ def build_sample_request() -> PlanRequest:
             required_roles={"admin"},
             start_cond={1, 2, 3},
             end_cond={1, 2, 3},
-            occupancy_effect="start",
         ),
         Event(
             id="E_irrig",
@@ -66,7 +65,6 @@ def build_sample_request() -> PlanRequest:
             preceding_event_id="E_seed",
             lag_min_days=4,
             lag_max_days=6,
-            occupancy_effect="end",
         ),
         # Minimal events for crops C2 and C3 to satisfy API validation
         Event(
@@ -78,7 +76,6 @@ def build_sample_request() -> PlanRequest:
             people_required=1,
             start_cond={1, 2, 3},
             end_cond={1, 2, 3},
-            occupancy_effect="start",
         ),
         Event(
             id="E2_harv",
@@ -92,7 +89,6 @@ def build_sample_request() -> PlanRequest:
             preceding_event_id="E2_seed",
             lag_min_days=2,
             lag_max_days=4,
-            occupancy_effect="end",
         ),
         Event(
             id="E3_seed",
@@ -103,7 +99,6 @@ def build_sample_request() -> PlanRequest:
             people_required=1,
             start_cond={1, 2, 3},
             end_cond={1, 2, 3},
-            occupancy_effect="start",
         ),
         Event(
             id="E3_harv",
@@ -117,12 +112,11 @@ def build_sample_request() -> PlanRequest:
             preceding_event_id="E3_seed",
             lag_min_days=2,
             lag_max_days=5,
-            occupancy_effect="end",
         ),
     ]
 
     return PlanRequest(
-        horizon=Horizon(num_days=7),
+        horizon=Horizon(num_days=10),
         crops=crops,
         events=events,
         lands=lands,

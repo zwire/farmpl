@@ -174,9 +174,6 @@ class ApiEvent(BaseModel):
     required_roles: set[str] | None = None
     required_resources: set[str] | None = None
     uses_land: bool = False
-    occupancy_effect: str | None = Field(
-        default=None, description="start|hold|end|none"
-    )
 
     @model_validator(mode="after")
     def _check_lag_and_occupancy(self):
@@ -184,16 +181,6 @@ class ApiEvent(BaseModel):
             if self.lag_min_days > self.lag_max_days:
                 raise ValueError(
                     "lag_min_days は lag_max_days 以下である必要があります"
-                )
-        if self.uses_land:
-            if self.occupancy_effect not in {"start", "hold", "end"}:
-                raise ValueError(
-                    "uses_land=True の場合、occupancy_effect は start|hold|end のいずれか"
-                )
-        else:
-            if self.occupancy_effect not in {None, "none"}:
-                raise ValueError(
-                    "uses_land=False の場合、occupancy_effect は None または 'none'"
                 )
         return self
 

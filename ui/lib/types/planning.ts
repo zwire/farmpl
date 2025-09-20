@@ -21,8 +21,6 @@ export type JobStatus =
   | "timeout"
   | "canceled";
 
-export type OccupancyEffect = "start" | "hold" | "end" | "none";
-
 export interface ApiHorizon {
   num_days: number;
 }
@@ -52,7 +50,6 @@ export interface ApiEvent {
   required_roles?: string[] | null;
   required_resources?: string[] | null;
   uses_land: boolean;
-  occupancy_effect?: OccupancyEffect | null;
 }
 
 export interface ApiLand {
@@ -222,7 +219,6 @@ export interface PlanFormEvent {
   requiredRoles?: string[];
   requiredResources?: string[];
   usesLand: boolean;
-  occupancyEffect?: Exclude<OccupancyEffect, "none"> | "none";
 }
 
 export interface PlanFormLand {

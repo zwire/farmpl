@@ -23,7 +23,6 @@ const samplePlan: PlanFormState = {
       cropId: "crop-1",
       name: "定植",
       usesLand: true,
-      occupancyEffect: "start",
     },
   ],
   lands: [

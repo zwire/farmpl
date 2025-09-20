@@ -25,7 +25,7 @@ def test_area_can_change_only_after_end() -> None:
                 name="seed",
                 start_cond={1},
                 end_cond={1},
-                occupancy_effect="start",
+                uses_land=True,
             ),
             Event(
                 id="E_end",
@@ -36,7 +36,7 @@ def test_area_can_change_only_after_end() -> None:
                 preceding_event_id="E_seed",
                 lag_min_days=2,
                 lag_max_days=2,
-                occupancy_effect="end",
+                uses_land=True,
             ),
         ],
         lands=[Land(id="L1", name="F1", area=1.0)],
@@ -61,6 +61,7 @@ def test_area_can_change_only_after_end() -> None:
     assert sc.status in ("FEASIBLE", "OPTIMAL")
     # Check occ values
     occ = sc.occ_by_c_t_values
+    assert occ[("C1", 1)] == 1
     assert occ[("C1", 2)] == 1
-    assert occ[("C1", 3)] in (0, 1)  # end day may relax upper bound only
-    # Since exact x values are not directly exposed here, rely on constraints.
+    assert occ[("C1", 3)] == 1
+    assert occ[("C1", 4)] == 0

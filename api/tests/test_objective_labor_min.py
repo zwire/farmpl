@@ -27,7 +27,7 @@ def test_minimize_total_labor_hours_hits_theoretical_minimum() -> None:
                 labor_daily_cap=8.0,
                 start_cond={1, 2},
                 end_cond={1, 2},
-                occupancy_effect="hold",
+                uses_land=True,
             )
         ],
         lands=[Land(id="L1", name="F1", area=1.0)],
@@ -56,4 +56,3 @@ def test_minimize_total_labor_hours_hits_theoretical_minimum() -> None:
     # Sum extracted h values should match the objective
     total_h = sum(res.h_time_by_w_e_t_values.values()) if res.h_time_by_w_e_t_values else 0
     assert total_h == 6
-

@@ -18,7 +18,6 @@ def make_request_body() -> OptimizationRequest:
                     crop_id="c1",
                     name="播種",
                     uses_land=True,
-                    occupancy_effect="start",
                 ),
             ],
             lands=[ApiLand(id="L1", name="畑1", area_a=10)],

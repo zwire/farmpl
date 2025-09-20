@@ -28,11 +28,6 @@ class Event(BaseModel):
     required_roles: set[str] | None = None
     required_resources: set[str] | None = None
     uses_land: bool = Field(False, description="このイベントが土地を占有する作業か")
-    occupancy_effect: str | None = Field(
-        None,
-        description="start|hold|end|none: 作付け占有状態に対する効果",
-        examples=["start", "hold", "end", "none"],
-    )
 
 
 class Land(BaseModel):
