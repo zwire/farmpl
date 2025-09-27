@@ -1,17 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import type { CSSProperties } from "react";
+import { useMemo } from "react";
 
 import { usePlanningStore } from "@/lib/state/planning-store";
-import { useGanttData, type GanttFilters } from "./useGanttData";
+import { createTimelineScale } from "./timeline-scale";
+import { useGanttData } from "./useGanttData";
 
-interface GanttChartProps {
-  className?: string;
-}
+type HexColor = string;
 
 const ROW_HEIGHT = 36;
 const ROW_GAP = 12;
-const DAY_WIDTH = 18;
+const LEFT_GUTTER = 150;
+const RIGHT_GUTTER = 60;
+const HEADER_HEIGHT = 44;
 
 const palette = [
   "#0ea5e9",
@@ -23,7 +25,7 @@ const palette = [
   "#14b8a6",
 ];
 
-const cropColor = (cropId: string) => {
+const cropColor = (cropId: string): HexColor => {
   const hash = Array.from(cropId).reduce(
     (acc, char) => acc + char.charCodeAt(0),
     0,
@@ -31,27 +33,21 @@ const cropColor = (cropId: string) => {
   return palette[hash % palette.length];
 };
 
-export function GanttChart({ className }: GanttChartProps) {
+export function GanttChart({ className }: { className?: string }) {
   const timeline = usePlanningStore((state) => state.lastResult?.timeline);
   const plan = usePlanningStore((state) => state.plan);
 
   const viewModel = useGanttData(timeline ?? undefined, plan);
-
-  const [filters, setFilters] = useState<GanttFilters>({
-    landId: "all",
-    cropId: "all",
-  });
-
-  const filteredSpans = useMemo(() => {
-    if (!viewModel) return [];
-    return viewModel.spans.filter((span) => {
-      const landOk = filters.landId === "all" || span.landId === filters.landId;
-      const cropOk = filters.cropId === "all" || span.cropId === filters.cropId;
-      return landOk && cropOk;
+  const scale = useMemo(() => {
+    if (!viewModel) return null;
+    return createTimelineScale({
+      type: "day",
+      startDateIso: viewModel.startDateIso,
+      totalDays: viewModel.totalDays,
     });
-  }, [filters, viewModel]);
+  }, [viewModel]);
 
-  if (!viewModel || viewModel.spans.length === 0) {
+  if (!viewModel || !scale || viewModel.spans.length === 0) {
     return (
       <div
         className={`flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm ${className ?? ""}`}
@@ -64,111 +60,96 @@ export function GanttChart({ className }: GanttChartProps) {
     );
   }
 
-  const totalHeight =
-    viewModel.landOrder.length * (ROW_HEIGHT + ROW_GAP) + ROW_GAP;
-  const totalWidth =
-    Math.max(
-      viewModel.maxDay + 1,
-      plan?.horizon.numDays ?? viewModel.maxDay + 1,
-    ) *
-      DAY_WIDTH +
-    120;
-
-  const handleLandFilter = (landId: string) => {
-    setFilters((prev) => ({ ...prev, landId }));
+  const dayLabels = viewModel.dayLabels;
+  const columnTemplate = `${LEFT_GUTTER}px repeat(${dayLabels.length}, ${scale.unitWidth}px)`;
+  const gridStyle: CSSProperties = {
+    gridTemplateColumns: columnTemplate,
+    rowGap: `${ROW_GAP}px`,
   };
 
-  const handleCropFilter = (cropId: string) => {
-    setFilters((prev) => ({ ...prev, cropId }));
-  };
+  const headerCells = [
+    <div
+      key="header-land"
+      className="sticky left-0 z-30 flex items-center justify-center border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-600"
+      style={{ height: HEADER_HEIGHT }}
+    >
+      土地 / 日付
+    </div>,
+    ...dayLabels.map((day) => (
+      <div
+        key={`header-${day.day}`}
+        className={`flex flex-col items-center justify-center border border-slate-200 text-[11px] ${
+          day.isMajor
+            ? "bg-slate-100 font-semibold text-slate-700"
+            : "bg-white text-slate-500"
+        }`}
+        style={{ height: HEADER_HEIGHT }}
+        title={formatFullDate(day.dateIso)}
+      >
+        {day.label}
+      </div>
+    )),
+  ];
 
-  const renderRows = () =>
-    viewModel.landOrder.map((landId, index) => {
-      const y = ROW_GAP + index * (ROW_HEIGHT + ROW_GAP);
-      return (
-        <g key={landId} transform={`translate(100, ${y})`}>
-          <text
-            x={-12}
-            y={ROW_HEIGHT / 2}
-            textAnchor="end"
-            alignmentBaseline="middle"
-            className="fill-slate-500 text-[11px]"
-          >
-            {viewModel.landNameById[landId] ?? ""}
-          </text>
-          <line
-            x1={0}
-            y1={ROW_HEIGHT}
-            x2={totalWidth - 120}
-            y2={ROW_HEIGHT}
-            className="stroke-slate-200"
-          />
-        </g>
-      );
-    });
-
-  const renderSpans = () =>
-    filteredSpans.map((span) => {
-      const rowIndex = viewModel.landOrder.indexOf(span.landId);
-      if (rowIndex === -1) return null;
-      const y = ROW_GAP + rowIndex * (ROW_HEIGHT + ROW_GAP);
-      const x = 100 + span.startDay * DAY_WIDTH;
-      const width = Math.max(
-        (span.endDay - span.startDay + 1) * DAY_WIDTH - 4,
-        8,
-      );
-      const rectColor = cropColor(span.cropId);
-      return (
-        <g key={span.id} transform={`translate(${x}, ${y})`}>
-          <rect
-            width={width}
-            height={ROW_HEIGHT - 6}
-            rx={6}
-            fill={`${rectColor}33`}
-            stroke={rectColor}
-          />
-          <text
-            x={8}
-            y={(ROW_HEIGHT - 6) / 2}
-            alignmentBaseline="middle"
-            className="select-none text-[11px] fill-slate-700"
-          >
-            {span.cropName || ""}
-          </text>
-        </g>
-      );
-    });
-
-  const renderEventMarkers = () =>
-    viewModel.events
-      .filter((event) => {
-        const landOk =
-          filters.landId === "all" || event.landId === filters.landId;
-        const cropOk =
-          filters.cropId === "all" || event.cropId === filters.cropId;
-        return landOk && cropOk;
-      })
-      .map((event) => {
-        const rowIndex = event.landId
-          ? viewModel.landOrder.indexOf(event.landId)
-          : Math.max(
-              viewModel.landOrder.indexOf(
-                filters.landId === "all"
-                  ? (event.landId ?? "")
-                  : filters.landId,
-              ),
-              0,
-            );
-        const yBase =
-          rowIndex >= 0 ? ROW_GAP + rowIndex * (ROW_HEIGHT + ROW_GAP) : ROW_GAP;
-        const x = 100 + event.day * DAY_WIDTH;
+  const rowCells = viewModel.landOrder.flatMap((landId) => {
+    const cells = viewModel.landDayCells[landId] ?? [];
+    return [
+      <div
+        key={`${landId}-label`}
+        className="sticky left-0 z-20 flex items-center border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700"
+        style={{ minHeight: ROW_HEIGHT }}
+      >
+        {viewModel.landNameById[landId] ?? landId}
+      </div>,
+      ...cells.map((cell, dayIdx) => {
+        const baseColor = cell.cropId ? cropColor(cell.cropId) : undefined;
+        const background = baseColor ? hexToRgba(baseColor, 0.12) : undefined;
+        const borders: React.CSSProperties = {};
+        if (cell.cropStart && baseColor) {
+          borders.borderLeft = `3px solid ${baseColor}`;
+        }
+        if (cell.cropEnd && baseColor) {
+          borders.borderRight = `3px solid ${baseColor}`;
+        }
         return (
-          <g key={event.id} transform={`translate(${x}, ${yBase - 6})`}>
-            <circle r={6} fill="#2563eb" className="opacity-80" />
-            <title>{`${event.label} (day ${event.day})`}</title>
-          </g>
+          <div
+            key={`${landId}-${dayIdx.toString()}`}
+            className="relative border border-slate-200 px-2 py-1"
+            style={{
+              minHeight: ROW_HEIGHT,
+              backgroundColor: background,
+              ...borders,
+            }}
+          >
+            {cell.cropStart && cell.cropName && (
+              <div
+                className="mb-1 text-[11px] font-semibold text-slate-700"
+                title={cell.cropName}
+              >
+                {cell.cropName}
+              </div>
+            )}
+            <div className="flex flex-col gap-0.5 text-[10px] text-slate-700">
+              {cell.events.slice(0, 2).map((event) => (
+                <span
+                  key={event.id}
+                  className="truncate"
+                  title={`${event.label} (${formatFullDate(event.dateIso)})`}
+                >
+                  ・{event.label}
+                </span>
+              ))}
+              {cell.events.length > 2 && (
+                <span className="text-slate-500">
+                  +{cell.events.length - 2}
+                </span>
+              )}
+            </div>
+          </div>
         );
-      });
+      }),
+    ];
+  });
 
   return (
     <div
@@ -177,59 +158,39 @@ export function GanttChart({ className }: GanttChartProps) {
       <header className="flex flex-col gap-2">
         <h3 className="text-lg font-semibold text-slate-900">ガントチャート</h3>
         <p className="text-xs text-slate-500">
-          土地×作物の占有期間とイベントスケジュールを可視化します。
+          土地 ×
+          日付のマトリクスでイベントを確認できます。セル内には当日のイベント名を表示し、詳細はツールチップから参照可能です。
         </p>
       </header>
-      <div className="flex flex-wrap gap-3 text-xs">
-        <label className="flex items-center gap-2 text-slate-600">
-          土地
-          <select
-            value={filters.landId}
-            onChange={(event) =>
-              handleLandFilter(event.target.value as GanttFilters["landId"])
-            }
-            className="rounded-md border border-slate-300 bg-white px-2 py-1 text-slate-700"
-          >
-            <option value="all">すべて</option>
-            {viewModel.landOptions.map((landId) => (
-              <option key={landId} value={landId}>
-                {viewModel.landNameById[landId] ?? ""}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex items-center gap-2 text-slate-600">
-          作物
-          <select
-            value={filters.cropId}
-            onChange={(event) =>
-              handleCropFilter(event.target.value as GanttFilters["cropId"])
-            }
-            className="rounded-md border border-slate-300 bg-white px-2 py-1 text-slate-700"
-          >
-            <option value="all">すべて</option>
-            {viewModel.cropOptions.map((cropId) => (
-              <option key={cropId} value={cropId}>
-                {viewModel.cropNameById[cropId] ?? ""}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
       <div className="relative overflow-x-auto">
-        <svg
-          viewBox={`0 0 ${totalWidth} ${totalHeight}`}
-          className="max-h-[360px] min-h-[240px] w-full"
-          role="img"
-          aria-label="プラン占用ガントチャート"
-        >
-          <title>プラン占用ガントチャート</title>
-          <rect width={totalWidth} height={totalHeight} fill="transparent" />
-          {renderRows()}
-          {renderSpans()}
-          {renderEventMarkers()}
-        </svg>
+        <div className="grid text-xs" style={gridStyle}>
+          {headerCells}
+          {rowCells}
+        </div>
       </div>
     </div>
   );
 }
+
+const LONG_FORMATTER = new Intl.DateTimeFormat("ja-JP", {
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  weekday: "short",
+  timeZone: "UTC",
+});
+
+const formatFullDate = (iso: string) => {
+  const [year, month, day] = iso.split("-").map(Number);
+  const date = new Date(Date.UTC(year, (month ?? 1) - 1, day ?? 1));
+  return LONG_FORMATTER.format(date);
+};
+
+const hexToRgba = (hex: string, alpha: number) => {
+  const clean = hex.replace("#", "");
+  const bigint = parseInt(clean, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};

@@ -1,27 +1,32 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import ReactFlow, {
-  Background,
-  Controls,
-  MiniMap,
+import {
   addEdge,
   applyEdgeChanges,
   applyNodeChanges,
+  Background,
   type Connection,
+  Controls,
   type Edge,
   type EdgeChange,
+  MarkerType,
   type Node,
   type NodeChange,
-} from "reactflow";
+  ReactFlow,
+} from "@xyflow/react";
+import type { MouseEvent as ReactMouseEvent } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { PlanFormEvent } from "@/lib/types/planning";
+import type { PlanUiEvent } from "@/lib/domain/planning-ui-types";
 
-import "reactflow/dist/style.css";
+import "@xyflow/react/dist/style.css";
 
 interface EventGraphEditorProps {
-  events: PlanFormEvent[];
+  events: PlanUiEvent[];
+  selectedEventId?: string | null;
+  onSelectEvent?: (eventId: string | null) => void;
   onUpdateDependency: (targetId: string, sourceId: string | null) => void;
+  onRemoveEvent?: (eventId: string) => void;
 }
 
 const NODE_HORIZONTAL_GAP = 240;
@@ -30,18 +35,35 @@ const STAGE_WIDTH = 3;
 
 export function EventGraphEditor({
   events,
+  selectedEventId,
+  onSelectEvent,
   onUpdateDependency,
+  onRemoveEvent,
 }: EventGraphEditorProps) {
-  const initialNodes = useMemo(() => generateNodes(events), [events]);
-  const initialEdges = useMemo(() => generateEdges(events), [events]);
-
-  const [nodes, setNodes] = useState<Node[]>(initialNodes);
-  const [edges, setEdges] = useState<Edge[]>(initialEdges);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [nodes, setNodes] = useState<Node[]>(() =>
+    generateNodes(events, selectedEventId ?? null),
+  );
+  const [edges, setEdges] = useState<Edge[]>(() => generateEdges(events));
+  const lastSelectedRef = useRef<string | null>(selectedEventId ?? null);
 
   useEffect(() => {
-    setNodes(initialNodes);
-    setEdges(initialEdges);
-  }, [initialEdges, initialNodes]);
+    if (lastSelectedRef.current === selectedEventId) {
+      return;
+    }
+    if (!containerRef.current) {
+      return;
+    }
+    const { clientWidth: width, clientHeight: height } = containerRef.current;
+    const centerPosition = { x: width / 4, y: height / 4 };
+    setNodes((current) =>
+      syncNodes(current, events, selectedEventId ?? null, centerPosition),
+    );
+  }, [events, selectedEventId]);
+
+  useEffect(() => {
+    setEdges((current) => syncEdges(current, events));
+  }, [events]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes((current) => applyNodeChanges(changes, current));
@@ -60,6 +82,23 @@ export function EventGraphEditor({
     [onUpdateDependency],
   );
 
+  const handleNodeClick = useCallback(
+    (_event: ReactMouseEvent, node: Node) => {
+      if (lastSelectedRef.current !== node.id) {
+        lastSelectedRef.current = node.id;
+        onSelectEvent?.(node.id);
+      }
+    },
+    [onSelectEvent],
+  );
+
+  const handlePaneClick = useCallback(() => {
+    if (lastSelectedRef.current !== null) {
+      lastSelectedRef.current = null;
+      onSelectEvent?.(null);
+    }
+  }, [onSelectEvent]);
+
   const onEdgesDelete = useCallback(
     (edgesToDelete: Edge[]) => {
       edgesToDelete.forEach((edge) => {
@@ -69,19 +108,50 @@ export function EventGraphEditor({
     [onUpdateDependency],
   );
 
+  const onNodesDelete = useCallback(
+    (nodesToDelete: Node[]) => {
+      nodesToDelete.forEach((node) => {
+        onRemoveEvent?.(node.id);
+      });
+    },
+    [onRemoveEvent],
+  );
+
+  const handleSelectionChange = useCallback(
+    (selection: { nodes?: Node[] } | null) => {
+      const selectedNode = selection?.nodes?.[0];
+      if (selectedNode) {
+        if (lastSelectedRef.current !== selectedNode.id) {
+          lastSelectedRef.current = selectedNode.id;
+          onSelectEvent?.(selectedNode.id);
+        }
+      } else if (lastSelectedRef.current !== null) {
+        lastSelectedRef.current = null;
+        onSelectEvent?.(null);
+      }
+    },
+    [onSelectEvent],
+  );
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-      <div className="h-[320px] w-full">
+      <div ref={containerRef} className="h-[320px] w-full">
         <ReactFlow
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onNodeClick={handleNodeClick}
+          onPaneClick={handlePaneClick}
+          onSelectionChange={handleSelectionChange}
           onConnect={onConnect}
           onEdgesDelete={onEdgesDelete}
+          onNodesDelete={onNodesDelete}
+          deleteKeyCode={["Delete", "Backspace"]}
+          panOnScroll
+          selectionOnDrag
           fitView
         >
-          <MiniMap pannable zoomable />
           <Controls position="top-left" showInteractive={false} />
           <Background gap={16} />
         </ReactFlow>
@@ -90,21 +160,26 @@ export function EventGraphEditor({
   );
 }
 
-const generateNodes = (events: PlanFormEvent[]): Node[] =>
+const generateNodes = (
+  events: PlanUiEvent[],
+  selectedId: string | null,
+  centerPosition?: { x: number; y: number } | null,
+): Node[] =>
   events.map((event, index) => {
     const row = Math.floor(index / STAGE_WIDTH);
     const column = index % STAGE_WIDTH;
     return {
       id: event.id,
       data: { label: event.name || event.id },
-      position: {
+      position: centerPosition ?? {
         x: column * NODE_HORIZONTAL_GAP,
         y: row * NODE_VERTICAL_GAP,
       },
+      selected: event.id === selectedId,
     } satisfies Node;
   });
 
-const generateEdges = (events: PlanFormEvent[]): Edge[] =>
+const generateEdges = (events: PlanUiEvent[]): Edge[] =>
   events
     .filter((event) => Boolean(event.precedingEventId))
     .map((event) => ({
@@ -112,4 +187,82 @@ const generateEdges = (events: PlanFormEvent[]): Edge[] =>
       source: event.precedingEventId as string,
       target: event.id,
       animated: true,
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        width: 18,
+        height: 18,
+      },
+      label: createLagLabel(event.lag),
+      labelBgPadding: [6, 2],
+      labelBgBorderRadius: 4,
+      labelBgStyle: { fill: "#ffffff", stroke: "#cbd5f5" },
+      labelStyle: { fontSize: 11, fill: "#0f172a" },
     }));
+
+const syncNodes = (
+  current: Node[],
+  events: PlanUiEvent[],
+  selectedId: string | null,
+  centerPosition: { x: number; y: number } | null,
+): Node[] => {
+  const byId = new Map(current.map((node) => [node.id, node] as const));
+
+  return events.map((event, index) => {
+    const existing = byId.get(event.id);
+    if (existing) {
+      return {
+        ...existing,
+        data: { label: event.name || event.id },
+        selected: event.id === selectedId,
+      } satisfies Node;
+    }
+    const row = Math.floor(index / STAGE_WIDTH);
+    const column = index % STAGE_WIDTH;
+    return {
+      id: event.id,
+      data: { label: event.name || event.id },
+      position: centerPosition ?? {
+        x: column * NODE_HORIZONTAL_GAP,
+        y: row * NODE_VERTICAL_GAP,
+      },
+      selected: event.id === selectedId,
+    } satisfies Node;
+  });
+};
+
+const createLagLabel = (lag: PlanUiEvent["lag"] | undefined): string | undefined => {
+  if (!lag) return undefined;
+  const parts: string[] = [];
+  if (typeof lag.min === "number") {
+    parts.push(`${lag.min}日以上`);
+  }
+  if (typeof lag.max === "number") {
+    parts.push(`${lag.max}日以内`);
+  }
+  return parts.length > 0 ? parts.join(" ") : undefined;
+};
+
+const syncEdges = (current: Edge[], events: PlanUiEvent[]): Edge[] => {
+  const set = new Set(current.map((edge) => edge.id));
+  const updated = generateEdges(events);
+  if (
+    updated.length === current.length &&
+    updated.every((edge) => set.has(edge.id))
+  ) {
+    return updated.map((edge) => ({
+      ...edge,
+      markerEnd: edge.markerEnd,
+    }));
+  }
+  return updated;
+};
+
+const getViewportCenter = (
+  reactFlow: ReturnType<typeof useReactFlow>,
+  container: HTMLDivElement | null,
+): { x: number; y: number } | null => {
+  if (!container) return null;
+  const { clientWidth: width, clientHeight: height } = container;
+  if (!width || !height) return null;
+  return reactFlow.project({ x: width / 2, y: height / 2 });
+};

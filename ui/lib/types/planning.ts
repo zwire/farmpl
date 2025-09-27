@@ -141,6 +141,7 @@ export interface ApiOptimizationTimelineEventItem {
   event_id: string;
   crop_id: string;
   land_id?: string | null;
+  land_ids?: string[] | null;
   worker_ids: string[];
   resource_ids: string[];
 }
@@ -327,12 +328,12 @@ export interface TimelineEventView {
   day: number;
   eventId: string;
   cropId: string;
-  landId?: string;
+  landIds: string[];
   workerIds: string[];
   resourceIds: string[];
   eventName?: string;
   cropName?: string;
-  landName?: string;
+  landNames?: (string | undefined)[];
   workerNames?: (string | undefined)[];
   resourceNames?: (string | undefined)[];
 }

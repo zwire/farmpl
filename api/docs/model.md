@@ -79,9 +79,22 @@ CP-SAT 実装ノート:
     $$\sum_{l} x_{l,c,t} \ge area\_min_c \quad (\forall c, t \text{ s.t. } occ_{c,t}=1 \land \exists l:\ land\_blocked_{l,t}=0)$$
   備考: 全圃場が blocked の日は下限を課さない。
 
-### 4.3 イベント実施の可行性ウィンドウ
-- 窓外抑制: $r_{e,t} = 0$ if $t$ outside $[min(start\_cond_e), max(end\_cond_e)]$。
-- 周期性（freq）・ラグは未実装（将来対応）。
+### 4.3 イベント実施の可行性ウィンドウ / 頻度 / ラグ
+- 可用ウィンドウ: イベント $e$ は日 $t$ が $[\min(start\_cond_e),\;\max(end\_cond_e)]$ に入るときのみ実施可能。
+  $$r_{e,t} = 0 \quad \text{if } t \notin [\min(start\_cond_e),\;\max(end\_cond_e)]$$
+
+- 頻度（`frequency_days=f`）: 任意の連続 $f$ 日の窓でそのイベントは高々1回。
+  $$\sum_{\tau=t}^{t+f-1} r_{e,\tau} \le 1 \quad (\forall t)$$
+  例: $f=2$ で前日との連続実施を禁止、$f=5$ で5日窓に1回のみなど。期間全体で1回に制限したい場合は $f=|T|$ とする。
+
+- ラグ（`preceding_event_id=p, lag_min=L_{\min}, lag_max=L_{\max}`）: 後続イベント $e$ は先行イベント $p$ の実施から $L_{\min}\,..\,L_{\max}$ 日後のいずれかでのみ許可する。
+  - 最低日数が満たせないとき禁止:
+    $$r_{e,t}=0 \quad \text{if } L_{\min}>0 \land t-L_{\min}<1$$
+  - 許可ウィンドウ（十分前の先行）:
+    $$r_{e,t} \le \sum_{\tau=\max(1,\,t-L_{\max})}^{t-L_{\min}} r_{p,\tau}$$
+  - 直近基準の厳密化（“最後に行った先行イベント”から $L_{\min}$ 日は空ける）:
+    $$r_{e,t} + r_{p,\tau} \le 1 \quad (\forall \tau \in [t-L_{\min}+1,\; t])$$
+  上記により、先行が連続日で起きる場合でも「最後の先行」からのラグで判定され、早すぎる後続の発生を防ぐ。
 
 ### 4.4 作付け占有状態（occ）の導出と面積恒常性
 - 占有状態の更新（例: 累積差分の近似）:

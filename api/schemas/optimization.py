@@ -424,7 +424,7 @@ class GanttEventItem(BaseModel):
     day: int = Field(ge=0)
     event_id: str
     crop_id: str
-    land_id: str | None = None
+    land_ids: list[str] = Field(default_factory=list)
     worker_ids: list[str] = Field(default_factory=list)
     resource_ids: list[str] = Field(default_factory=list)
 

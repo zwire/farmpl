@@ -47,23 +47,40 @@ class EventsWindowConstraint(Constraint):
                     if len(window_vars) > 1:
                         model.Add(sum(window_vars) <= 1)
 
-            # Lag dependency: e can only occur Lmin..Lmax days after predecessor p
+            # Lag dependency: e can only occur Lmin..Lmax days after predecessor p,
+            # and must be at least Lmin days after the MOST RECENT p.
             if ev.preceding_event_id and (ev.lag_min_days or ev.lag_max_days):
                 p = ev.preceding_event_id
                 Lmin = int(ev.lag_min_days or 0)
                 Lmax = int(ev.lag_max_days or Lmin)
                 for t in range(1, H + 1):
                     rt = ctx.variables.r_event_by_e_t[(ev.id, t)]
+                    # If not enough days have elapsed to satisfy Lmin, forbid rt
+                    if Lmin > 0 and (t - Lmin) < 1:
+                        model.Add(rt == 0)
+                        continue
                     from_t = max(1, t - Lmax)
-                    to_t = max(1, t - Lmin)
+                    to_t = t - Lmin
+                    if to_t < from_t:
+                        model.Add(rt == 0)
+                        continue
                     preds = [
                         ctx.variables.r_event_by_e_t.setdefault(
                             (p, tau), model.NewBoolVar(f"r_{p}_{tau}")
                         )
                         for tau in range(from_t, to_t + 1)
                     ]
-                    if preds:
-                        model.Add(rt <= sum(preds))
+                    # Require at least one predecessor in the window
+                    model.Add(rt <= sum(preds))
+                    # Additionally, enforce "no predecessor in the last Lmin days"
+                    # so that the lag is computed from the most recent p.
+                    if Lmin > 0:
+                        recent_from = max(1, t - Lmin + 1)
+                        for tau in range(recent_from, t + 1):
+                            pvar = ctx.variables.r_event_by_e_t.setdefault(
+                                (p, tau), model.NewBoolVar(f"r_{p}_{tau}")
+                            )
+                            model.Add(rt + pvar <= 1)
 
         # Occupancy derivation per crop based on uses_land events.
         occ = ctx.variables.occ_by_c_t

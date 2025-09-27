@@ -13,13 +13,13 @@
   "dependencies": {
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
+    "@xyflow/react": "^12.8.5",
     "clsx": "^2.1.1",
     "d3-array": "^3.2.4",
     "file-saver": "^2.0.5",
     "next": "15.5.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "reactflow": "^11.11.4",
     "zod": "^3.25.76",
     "zustand": "^4.5.7"
   },
@@ -35,6 +35,6 @@
     "jsdom": "^25.0.1",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^1.6.1"
+    "vitest": "^3.2.4"
   }
 }

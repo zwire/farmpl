@@ -134,6 +134,7 @@ class EventAssignment(BaseModel):
     assigned_workers: list[WorkerRef] = Field(default_factory=list)
     resource_usage: list[ResourceUsageRef] = Field(default_factory=list)
     crop_area_on_day: float | None = None
+    land_ids: list[str] = Field(default_factory=list)
 
 
 class PlanResponse(BaseModel):

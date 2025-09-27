@@ -119,33 +119,39 @@ export function ComboBox({
 
   return (
     <div ref={containerRef} className={clsx("relative w-full", className)}>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => !disabled && setIsOpen((prev) => !prev)}
-        className={clsx(
-          "flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm transition",
-          disabled
-            ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
-            : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
-        )}
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-      >
-        <span className={clsx("truncate text-left", showPlaceholder && "text-slate-400")}>{displayLabel}</span>
-        <div className="flex items-center gap-1">
-          {allowClear && selectedOption && !disabled && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="rounded border border-transparent px-1 text-xs text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
-            >
-              クリア
-            </button>
-          )}
-          <span className="text-xs text-slate-400">▼</span>
+      <div className="flex w-full items-center gap-1">
+        <div className="relative flex-1">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => !disabled && setIsOpen((prev) => !prev)}
+            className={clsx(
+              "flex w-full items-center justify-between rounded-md border px-3 py-2 pr-8 text-sm transition",
+              disabled
+                ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
+            )}
+            aria-haspopup="listbox"
+            aria-expanded={isOpen}
+          >
+            <span className={clsx("block truncate text-left", showPlaceholder && "text-slate-400")}>
+              {displayLabel}
+            </span>
+          </button>
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+            ▼
+          </span>
         </div>
-      </button>
+        {allowClear && selectedOption && !disabled && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-500 transition hover:bg-slate-100"
+          >
+            クリア
+          </button>
+        )}
+      </div>
       {isOpen && !disabled && (
         <div
           ref={listRef}

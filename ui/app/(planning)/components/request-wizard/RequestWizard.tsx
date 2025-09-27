@@ -4,15 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import type { ZodIssue } from "zod";
 
 import { mapApiResultToView } from "@/lib/types/result-mapper";
+import type { PlanFormState } from "@/lib/types/planning";
+import { PlanningCalendarService } from "@/lib/domain/planning-calendar";
 import {
   planningDraftStorage,
   usePlanningStore,
 } from "@/lib/state/planning-store";
-import {
-  buildApiPlanPayload,
-  validatePlan,
-} from "@/lib/validation/plan-schema";
+import { buildApiPlanPayload } from "@/lib/validation/plan-schema";
 import { WIZARD_STEPS, type WizardStepId } from "./steps";
+import { AvailabilitySection } from "./AvailabilitySection";
+import { HorizonSection } from "./HorizonSection";
+import { EventPlanningSection } from "../events/EventPlanningSection";
 import { StepSections } from "./StepSections";
 import { WizardStepper } from "./WizardStepper";
 
@@ -70,7 +72,50 @@ export function RequestWizard() {
     return () => clearTimeout(timer);
   }, [saveMessage]);
 
-  const validationResult = useMemo(() => validatePlan(plan), [plan]);
+  const conversion = useMemo(
+    () => PlanningCalendarService.convertToApiPlan(plan),
+    [plan],
+  );
+  const apiPlan = conversion.plan;
+
+  const blockingWarnings = useMemo(
+    () =>
+      conversion.warnings.filter(
+        (warning) =>
+          warning.type === "INVALID_DATE" || warning.type === "RANGE_EMPTY",
+      ),
+    [conversion.warnings],
+  );
+
+  const warningIssues = useMemo<ZodIssue[]>(
+    () =>
+      blockingWarnings.map(
+        (warning): ZodIssue => ({
+          code: "custom",
+          message: warning.message,
+          path: warning.path,
+        }),
+      ),
+    [blockingWarnings],
+  );
+
+  const combinedIssues = useMemo<ZodIssue[]>(
+    () => [...conversion.issues, ...warningIssues],
+    [conversion.issues, warningIssues],
+  );
+
+  const hasValidationErrors = combinedIssues.length > 0;
+
+  const validationMessages = useMemo(() => {
+    if (combinedIssues.length === 0) return [] as string[];
+    const unique = new Set<string>();
+    combinedIssues.forEach((issue) => {
+      if (issue.message) {
+        unique.add(issue.message);
+      }
+    });
+    return Array.from(unique);
+  }, [combinedIssues]);
 
   const handleNavigate = (next: WizardStepId | null) => {
     if (!next) return;
@@ -79,6 +124,16 @@ export function RequestWizard() {
 
   const handleStepSelect = (step: WizardStepId) => {
     setCurrentStep(step);
+  };
+
+  const applyPlanFormUpdate = (updater: (prev: PlanFormState) => PlanFormState) => {
+    updatePlan((prev) => {
+      const { plan: previousApiPlan } = PlanningCalendarService.convertToApiPlan(
+        prev,
+      );
+      const nextApiPlan = updater(previousApiPlan);
+      return PlanningCalendarService.mergeApiPlanIntoUiPlan(prev, nextApiPlan);
+    });
   };
 
   const handleReset = () => {
@@ -90,6 +145,7 @@ export function RequestWizard() {
   const handleSaveDraft = () => {
     const savedAt = new Date().toISOString();
     planningDraftStorage.save({
+      version: "ui-v1",
       plan,
       savedAt,
     });
@@ -99,10 +155,11 @@ export function RequestWizard() {
   };
 
   const handleRun = async () => {
-    if (!validationResult.success) {
-      setSubmissionError(
-        "入力内容に不備があります。修正してから実行してください。",
-      );
+    if (hasValidationErrors) {
+      const summary =
+        validationMessages[0] ??
+        "入力内容に不備があります。日付や関連項目を確認してください。";
+      setSubmissionError(summary);
       return;
     }
     if (!API_BASE_URL) {
@@ -127,7 +184,7 @@ export function RequestWizard() {
       const response = await fetch(endpoint, {
         method: "POST",
         headers,
-        body: JSON.stringify({ plan: buildApiPlanPayload(plan) }),
+        body: JSON.stringify({ plan: buildApiPlanPayload(apiPlan) }),
       });
       if (!response.ok) {
         let message = `最適化リクエストが失敗しました (status ${response.status}).`;
@@ -152,10 +209,51 @@ export function RequestWizard() {
     }
   };
 
+  const horizonWarningMessages = useMemo(
+    () =>
+      conversion.warnings
+        .filter((warning) => warning.path[0] === "horizon")
+        .map((warning) => warning.message),
+    [conversion.warnings],
+  );
+
   const stepErrors = useMemo(() => {
-    if (validationResult.success) return [];
-    return collectStepErrors(validationResult.error.issues, currentStep);
-  }, [currentStep, validationResult]);
+    if (!combinedIssues.length) return [];
+    return collectStepErrors(combinedIssues, currentStep);
+  }, [combinedIssues, currentStep]);
+
+  const stepContent = (() => {
+    if (currentStep === "horizon") {
+      return (
+        <HorizonSection
+          plan={plan}
+          onPlanChange={updatePlan}
+          validationErrors={stepErrors}
+          warnings={horizonWarningMessages}
+        />
+      );
+    }
+    if (currentStep === "lands" || currentStep === "workers" || currentStep === "resources") {
+      return (
+        <AvailabilitySection
+          step={currentStep}
+          plan={plan}
+          onPlanChange={updatePlan}
+        />
+      );
+    }
+    if (currentStep === "events") {
+      return <EventPlanningSection plan={plan} onPlanChange={updatePlan} />;
+    }
+    return (
+      <StepSections
+        plan={apiPlan}
+        step={currentStep}
+        onPlanChange={applyPlanFormUpdate}
+        errors={stepErrors}
+      />
+    );
+  })();
 
   return (
     <section className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-10">
@@ -206,12 +304,7 @@ export function RequestWizard() {
           </div>
         </header>
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <StepSections
-            plan={plan}
-            step={currentStep}
-            onPlanChange={updatePlan}
-            errors={stepErrors}
-          />
+          {stepContent}
         </div>
         <footer className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
           <button
@@ -223,9 +316,18 @@ export function RequestWizard() {
             {isSubmitting ? "最適化を実行中…" : "最適化を実行"}
           </button>
         </footer>
-        {(submissionError || !validationResult.success) && (
+        {(submissionError || validationMessages.length > 0) && (
           <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
-            {submissionError ?? "入力内容に不備があります。"}
+            {submissionError && (
+              <p className="font-medium">{submissionError}</p>
+            )}
+            {validationMessages.length > 0 && (
+              <ul className="ml-4 list-disc space-y-1">
+                {validationMessages.map((message) => (
+                  <li key={message}>{message}</li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
       </div>

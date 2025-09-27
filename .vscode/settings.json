@@ -25,5 +25,7 @@
   },
   "editor.codeActionsOnSave": {
     "source.organizeImports.biome": "explicit"
-  }
+  },
+  "biome.lsp.bin": "/workspace/node_modules/@biomejs/biome/bin/biome",
+  "biome.configurationPath": "/workspace/ui/biome.json"
 }

@@ -218,7 +218,7 @@ def _build_timeline(resp: PlanResponse, req: PlanRequest) -> OptimizationTimelin
                     day=ea.day,
                     event_id=ea.event_id,
                     crop_id=crop_by_event.get(ea.event_id, ""),
-                    land_id=None,
+                    land_ids=list(ea.land_ids or []),
                     worker_ids=[w.id for w in (ea.assigned_workers or [])],
                     resource_ids=[ru.id for ru in (ea.resource_usage or [])],
                 )

@@ -80,17 +80,35 @@ const normalizeTimeline = (
       }))
     : [];
   const events = Array.isArray(timeline.events)
-    ? timeline.events.map((event) => ({
+    ? timeline.events.map((event) => {
+        const rawLandIds = Array.isArray((event as any).land_ids)
+          ? ((event as any).land_ids as unknown[])
+          : [];
+        const normalizedLandIds = rawLandIds.filter(
+          (id): id is string => typeof id === "string" && id.length > 0,
+        );
+        if (
+          normalizedLandIds.length === 0 &&
+          typeof (event as any).land_id === "string" &&
+          (event as any).land_id.length > 0
+        ) {
+          normalizedLandIds.push((event as any).land_id as string);
+        }
+
+        return {
         day: event.day,
         eventId: event.event_id,
         cropId: event.crop_id,
-        landId: event.land_id ?? undefined,
+        landIds: normalizedLandIds,
         workerIds: event.worker_ids,
         resourceIds: event.resource_ids,
         // 追加の名前情報（存在すれば）
         eventName: entityNames?.events?.[event.event_id],
         cropName: entityNames?.crops?.[event.crop_id],
-        landName: event.land_id ? entityNames?.lands?.[event.land_id] : undefined,
+        landNames:
+          normalizedLandIds.length > 0
+            ? normalizedLandIds.map((id) => entityNames?.lands?.[id])
+            : undefined,
         workerNames:
           Array.isArray(event.worker_ids)
             ? event.worker_ids.map((id) => entityNames?.workers?.[id]).filter(Boolean)
@@ -101,7 +119,7 @@ const normalizeTimeline = (
                 .map((id) => entityNames?.resources?.[id])
                 .filter(Boolean)
             : undefined,
-      }))
+      }})
     : [];
   return { landSpans, events } as any;
 };
