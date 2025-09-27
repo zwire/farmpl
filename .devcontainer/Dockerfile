@@ -67,7 +67,8 @@ ENV SHELL=/bin/bash
 
 # Install Codex CLI
 RUN npm install -g @openai/codex
-RUN mkdir -p ~/.codex
+RUN mkdir -p ~/.codex/sessions \
+    && chown -R node:node ~/.codex/sessions
 RUN ln -s /workspace/.codex/config.toml ~/.codex/config.toml
 
 # Install Gemini CLI

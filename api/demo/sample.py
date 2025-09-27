@@ -26,7 +26,7 @@ def build_sample_request() -> PlanRequest:
     ]
     events = [
         Event(
-            id="E_seed",
+            id="E1_seed",
             crop_id="C1",
             name="Seeding",
             uses_land=True,
@@ -34,12 +34,11 @@ def build_sample_request() -> PlanRequest:
             labor_daily_cap=3.0,
             people_required=1,
             required_roles={"admin"},
-            start_cond={1, 2, 3},
-            end_cond={1, 2, 3},
-            occupancy_effect="start",
+            start_cond={1, 2, 3, 4, 5},
+            end_cond={1, 2, 3, 4, 5},
         ),
         Event(
-            id="E_irrig",
+            id="E1_irrig",
             crop_id="C1",
             name="Irrigate",
             labor_total_per_area=0.5,
@@ -48,11 +47,11 @@ def build_sample_request() -> PlanRequest:
             required_roles={"admin"},
             start_cond={2, 3, 4, 5, 6},
             end_cond={2, 3, 4, 5, 6},
-            preceding_event_id="E_seed",
+            preceding_event_id="E1_seed",
             frequency_days=3,
         ),
         Event(
-            id="E_harv",
+            id="E1_harv",
             crop_id="C1",
             name="Harvest",
             uses_land=True,
@@ -61,12 +60,8 @@ def build_sample_request() -> PlanRequest:
             people_required=1,
             required_roles={"admin", "harvester"},
             required_resources={"R1"},
-            start_cond={3, 4, 5, 6, 7},
-            end_cond={3, 4, 5, 6, 7},
-            preceding_event_id="E_seed",
-            lag_min_days=4,
-            lag_max_days=6,
-            occupancy_effect="end",
+            preceding_event_id="E1_seed",
+            lag_min_days=5,
         ),
         # Minimal events for crops C2 and C3 to satisfy API validation
         Event(
@@ -78,7 +73,6 @@ def build_sample_request() -> PlanRequest:
             people_required=1,
             start_cond={1, 2, 3},
             end_cond={1, 2, 3},
-            occupancy_effect="start",
         ),
         Event(
             id="E2_harv",
@@ -92,7 +86,6 @@ def build_sample_request() -> PlanRequest:
             preceding_event_id="E2_seed",
             lag_min_days=2,
             lag_max_days=4,
-            occupancy_effect="end",
         ),
         Event(
             id="E3_seed",
@@ -103,7 +96,6 @@ def build_sample_request() -> PlanRequest:
             people_required=1,
             start_cond={1, 2, 3},
             end_cond={1, 2, 3},
-            occupancy_effect="start",
         ),
         Event(
             id="E3_harv",
@@ -117,12 +109,11 @@ def build_sample_request() -> PlanRequest:
             preceding_event_id="E3_seed",
             lag_min_days=2,
             lag_max_days=5,
-            occupancy_effect="end",
         ),
     ]
 
     return PlanRequest(
-        horizon=Horizon(num_days=7),
+        horizon=Horizon(num_days=10),
         crops=crops,
         events=events,
         lands=lands,

@@ -63,11 +63,7 @@ def test_land_area_unit_exclusive() -> None:
 def test_blocked_days_range() -> None:
     horizon = ApiHorizon(num_days=3)
     crops = [ApiCrop(id="c1", name="作物", price_per_a=1000)]
-    events = [
-        ApiEvent(
-            id="e1", crop_id="c1", name="播種", uses_land=True, occupancy_effect="start"
-        )
-    ]
+    events = [ApiEvent(id="e1", crop_id="c1", name="播種", uses_land=True)]
     lands = [ApiLand(id="l1", name="L1", area_10a=1, blocked_days={5})]
     with pytest.raises(Exception) as ei:
         ApiPlan(
@@ -84,9 +80,7 @@ def test_blocked_days_range() -> None:
 def test_event_precedence_and_same_crop() -> None:
     horizon = ApiHorizon(num_days=3)
     crops = [ApiCrop(id="c1", name="作物", price_per_a=1000)]
-    e1 = ApiEvent(
-        id="e1", crop_id="c1", name="播種", uses_land=True, occupancy_effect="start"
-    )
+    e1 = ApiEvent(id="e1", crop_id="c1", name="播種", uses_land=True)
     e2 = ApiEvent(
         id="e2",
         crop_id="c1",

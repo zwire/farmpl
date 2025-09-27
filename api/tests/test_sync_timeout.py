@@ -21,9 +21,7 @@ def make_request_body() -> OptimizationRequest:
         plan=ApiPlan(
             horizon=ApiHorizon(num_days=2),
             crops=[ApiCrop(id="c1", name="作物", price_per_a=1000)],
-            events=[
-                ApiEvent(id="e1", crop_id="c1", name="播種", uses_land=True, occupancy_effect="start"),
-            ],
+            events=[ApiEvent(id="e1", crop_id="c1", name="播種", uses_land=True)],
             lands=[ApiLand(id="L1", name="畑1", area_a=10)],
             workers=[],
             resources=[],
@@ -48,4 +46,3 @@ def test_sync_timeout_returns_timeout_status(monkeypatch):
     assert r.status_code == 200
     data = r.json()
     assert data["status"] == "timeout"
-

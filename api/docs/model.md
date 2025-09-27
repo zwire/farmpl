@@ -23,8 +23,7 @@
 - イベント日次労働上限（h/日）: $labor\_daily\_cap_e (e \in E)$
 - 必須役割リスト: $roles\_req_e \subseteq Q (e \in E)$（空集合可）
 - 共有リソース必要リスト: $resources\_req_e \subseteq R (e \in E)$（空集合可）
- - 土地占有フラグ: $uses\_land_e \in \{0,1\}$
- - 占有効果: $effect\_e \in \{start, hold, end, none\}$（実装では列挙）
+ - 土地占有フラグ: $uses\_land_e \in \{0,1\}$（占有イベントなら 1）
 - 作物面積上下限制約（任意）: $area\_min_c, area\_max_c (c \in C)$（未設定時は $0, +\infty$）
 - 土地の事前割付（任意）: $fixed\_area_{lc} \ge 0 (l \in L, c \in C)$（未設定は $0$）
 - 土地・作業者・共有リソースの利用禁止期間（任意）:
@@ -80,9 +79,22 @@ CP-SAT 実装ノート:
     $$\sum_{l} x_{l,c,t} \ge area\_min_c \quad (\forall c, t \text{ s.t. } occ_{c,t}=1 \land \exists l:\ land\_blocked_{l,t}=0)$$
   備考: 全圃場が blocked の日は下限を課さない。
 
-### 4.3 イベント実施の可行性ウィンドウ
-- 窓外抑制: $r_{e,t} = 0$ if $t$ outside $[min(start\_cond_e), max(end\_cond_e)]$。
-- 周期性（freq）・ラグは未実装（将来対応）。
+### 4.3 イベント実施の可行性ウィンドウ / 頻度 / ラグ
+- 可用ウィンドウ: イベント $e$ は日 $t$ が $[\min(start\_cond_e),\;\max(end\_cond_e)]$ に入るときのみ実施可能。
+  $$r_{e,t} = 0 \quad \text{if } t \notin [\min(start\_cond_e),\;\max(end\_cond_e)]$$
+
+- 頻度（`frequency_days=f`）: 任意の連続 $f$ 日の窓でそのイベントは高々1回。
+  $$\sum_{\tau=t}^{t+f-1} r_{e,\tau} \le 1 \quad (\forall t)$$
+  例: $f=2$ で前日との連続実施を禁止、$f=5$ で5日窓に1回のみなど。期間全体で1回に制限したい場合は $f=|T|$ とする。
+
+- ラグ（`preceding_event_id=p, lag_min=L_{\min}, lag_max=L_{\max}`）: 後続イベント $e$ は先行イベント $p$ の実施から $L_{\min}\,..\,L_{\max}$ 日後のいずれかでのみ許可する。
+  - 最低日数が満たせないとき禁止:
+    $$r_{e,t}=0 \quad \text{if } L_{\min}>0 \land t-L_{\min}<1$$
+  - 許可ウィンドウ（十分前の先行）:
+    $$r_{e,t} \le \sum_{\tau=\max(1,\,t-L_{\max})}^{t-L_{\min}} r_{p,\tau}$$
+  - 直近基準の厳密化（“最後に行った先行イベント”から $L_{\min}$ 日は空ける）:
+    $$r_{e,t} + r_{p,\tau} \le 1 \quad (\forall \tau \in [t-L_{\min}+1,\; t])$$
+  上記により、先行が連続日で起きる場合でも「最後の先行」からのラグで判定され、早すぎる後続の発生を防ぐ。
 
 ### 4.4 作付け占有状態（occ）の導出と面積恒常性
 - 占有状態の更新（例: 累積差分の近似）:
@@ -114,10 +126,21 @@ CP-SAT 実装ノート:
   $$x_{l,c,t} \le area_l \cdot z_{l,c} \quad (\forall l,c,t)$$
   $$z_{l,c} \in \{0,1\}$$
 
-### 4.8 面積の時間連続性（フラつき防止）
-- 占有中（$occ_{c,t}=1$）に限り非ブロック日は一定:
+### 4.8 面積の時間連続性（作付け中の土地利用の一貫性担保）
+- 占有区間の定義:
+  - ある作物 $c$ について $uses\_land_e=1$ のイベント群を考える。
+  - そのイベントが実行された最初の日と最後の日をそれぞれ $t^{\min}_c, t^{\max}_c$ とする。
+  - CP-SAT では補助二値 $prefix_{c,t}$・$suffix_{c,t}$ を用いて、$occ_{c,t} = prefix_{c,t} \land suffix_{c,t}$ となるよう制約する。
+  - これにより $occ_{c,t}=1$ となる日は $t^{\min}_c \le t \le t^{\max}_c$ に一致し、イベント間の空白期間でも占有が途切れない。
+- 占有中（$occ_{c,t}=1$）かつ非ブロック日では面積一定:
   $$x_{l,c,t} = x_{l,c,t-1} \quad (\forall l,c,\; occ_{c,t}=1,\; t\notin blocked(l),\; t-1\notin blocked(l))$$
-- 将来的には、その作付けの土地利用が完了するまで一定であるように変更
+- 占有解除の即時反映:
+  - 各作物・日について $occ_{c,t}=0$ なら全圃場で当該作物面積は 0 に制限する。
+  - 線形化は $x_{l,c,t} \le area_l \cdot occ_{c,t}$（面積を整数化したスケールでは $cap_l$ を用いる）で実現でき、最終 uses_land イベントの翌日以降やブロック日を跨いだ後に自動的に作付けを撤収する。
+- ブロック日による占有断絶:
+  - 圃場ごとの占有指標 $occ_{l,c,t} \in \{0,1\}$ を導入し、$x_{l,c,t} > 0$ なら $occ_{l,c,t}=1$ となるよう $x_{l,c,t} \le cap_l \cdot occ_{l,c,t}$ で結合する。
+  - ブロック日は土地自体が無効化されるので $occ_{l,c,t} = 0$ を強制し、`prefix`/`suffix` 型の伝播は「非ブロック日でのみ持続する」ように $occ_{l,c,t-1}$ を参照しつつブロック日で必ずリセットする。
+  - これにより作付け開始・終了イベントはブロックの挟まらない区間にしか存在できず、土地が途切れるケースではブロック手前で占有が必ず一旦終了してから再開される。
 
 ### 4.9 土地の遊休（アイドル）日
 - 日次アイドル $idle_{l,t} \ge 0$:

@@ -45,6 +45,7 @@ def plan(
     lock_tolerance_pct: float | None = None,
     lock_tolerance_by: dict[str, float] | None = None,
 ) -> PlanResponse:
+    print(request.events)
     # Default constraints (partial time-axis introduced)
     base_constraints: list[Constraint] = [
         LandCapacityConstraint(),
@@ -203,19 +204,26 @@ def plan(
         # Build resource lookup
         res_info = {r.id: r.name for r in request.resources}
 
+        # Lookup tables for event metadata and per-day land usage
+        event_lookup = {event.id: event for event in request.events}
+
         # Precompute crop area by (crop_id, t)
         crop_area_by_t: dict[tuple[str, int], float] = {}
+        land_ids_by_crop_day: dict[tuple[str, int], set[str]] = {}
         if sc.x_area_by_l_c_t_values is not None:
             scale = last_ctx.scale_area
             for (land_id, crop_id, t), units in sc.x_area_by_l_c_t_values.items():
                 crop_area_by_t[(crop_id, t)] = crop_area_by_t.get((crop_id, t), 0.0) + (
                     units / scale
                 )
+                if units > 0:
+                    land_ids_by_crop_day.setdefault((crop_id, t), set()).add(land_id)
 
         pairs = sorted(sc.r_event_by_e_t_values.keys(), key=lambda k: (k[1], k[0]))
         for e_id, t in pairs:
             if sc.r_event_by_e_t_values[(e_id, t)] <= 0:
                 continue
+            ev_meta = event_lookup.get(e_id)
             # Workers
             assigned: list[WorkerRef] = []
             if sc.assign_by_w_e_t_values is not None:
@@ -241,9 +249,14 @@ def plan(
                     )
             # Planted area
             crop_area = None
-            ev_crop = next((e.crop_id for e in request.events if e.id == e_id), None)
+            ev_crop = ev_meta.crop_id if ev_meta is not None else None
             if ev_crop is not None:
                 crop_area = crop_area_by_t.get((ev_crop, t))
+
+            # Land allocation (only for events that occupy land)
+            land_ids: list[str] = []
+            if ev_meta is not None and getattr(ev_meta, "uses_land", False):
+                land_ids = sorted(land_ids_by_crop_day.get((ev_meta.crop_id, t), set()))
 
             event_assignments.append(
                 EventAssignment(
@@ -252,6 +265,7 @@ def plan(
                     assigned_workers=assigned,
                     resource_usage=resources_used,
                     crop_area_on_day=crop_area,
+                    land_ids=land_ids,
                 )
             )
 

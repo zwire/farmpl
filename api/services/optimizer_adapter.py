@@ -76,7 +76,6 @@ def to_domain_plan(api: ApiPlan) -> PlanRequest:
             required_roles=e.required_roles,
             required_resources=e.required_resources,
             uses_land=e.uses_land,
-            occupancy_effect=e.occupancy_effect,
         )
         for e in api.events
     ]
@@ -219,12 +218,29 @@ def _build_timeline(resp: PlanResponse, req: PlanRequest) -> OptimizationTimelin
                     day=ea.day,
                     event_id=ea.event_id,
                     crop_id=crop_by_event.get(ea.event_id, ""),
-                    land_id=None,
+                    land_ids=list(ea.land_ids or []),
                     worker_ids=[w.id for w in (ea.assigned_workers or [])],
                     resource_ids=[ru.id for ru in (ea.resource_usage or [])],
                 )
             )
-    return OptimizationTimeline(land_spans=spans, events=items)
+    # 名前マップを組み立て
+    land_names = {land.id: land.name for land in req.lands}
+    crop_names = {crop.id: crop.name for crop in req.crops}
+    worker_names = {worker.id: worker.name for worker in req.workers}
+    resource_names = {res.id: res.name for res in req.resources}
+    event_names = {ev.id: ev.name for ev in req.events}
+
+    return OptimizationTimeline(
+        land_spans=spans,
+        events=items,
+        entity_names={
+            "lands": land_names,
+            "crops": crop_names,
+            "workers": worker_names,
+            "resources": resource_names,
+            "events": event_names,
+        },
+    )
 
 
 def solve_sync(req: OptimizationRequest) -> OptimizationResult:

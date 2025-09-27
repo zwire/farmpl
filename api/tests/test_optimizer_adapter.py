@@ -32,7 +32,6 @@ def _make_api_plan() -> ApiPlan:
                 crop_id="c1",
                 name="播種",
                 uses_land=True,
-                occupancy_effect="start",
             ),
             ApiEvent(
                 id="e2",

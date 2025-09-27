@@ -42,7 +42,6 @@
   - 通算労働需要 (h/a) と 日次上限 (h/日)
   - (任意) 必須役割リスト / 共有リソース ID リスト
   - 土地占有: uses_land (bool)
-  - 占有効果: occupancy_effect ∈ {start, hold, end, none}
     - start: 作付け開始（以後占有状態に入る）
     - hold: 占有状態の継続（例: 生育・管理）
     - end: 作付け終了（占有状態から出る）

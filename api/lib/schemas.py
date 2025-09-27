@@ -28,11 +28,6 @@ class Event(BaseModel):
     required_roles: set[str] | None = None
     required_resources: set[str] | None = None
     uses_land: bool = Field(False, description="このイベントが土地を占有する作業か")
-    occupancy_effect: str | None = Field(
-        None,
-        description="start|hold|end|none: 作付け占有状態に対する効果",
-        examples=["start", "hold", "end", "none"],
-    )
 
 
 class Land(BaseModel):
@@ -139,6 +134,7 @@ class EventAssignment(BaseModel):
     assigned_workers: list[WorkerRef] = Field(default_factory=list)
     resource_usage: list[ResourceUsageRef] = Field(default_factory=list)
     crop_area_on_day: float | None = None
+    land_ids: list[str] = Field(default_factory=list)
 
 
 class PlanResponse(BaseModel):

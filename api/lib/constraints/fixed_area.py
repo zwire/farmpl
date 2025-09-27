@@ -51,7 +51,7 @@ class FixedAreaConstraint(Constraint):
             blocked = land.blocked_days or set()
             for t in range(1, H + 1):
                 xt = ctx.variables.x_area_by_l_c_t[(fa.land_id, fa.crop_id, t)]
-                occ = ctx.variables.occ_by_c_t.get((fa.crop_id, t))
+                occ = ctx.variables.occ_by_l_c_t.get((fa.land_id, fa.crop_id, t))
                 if occ is None:
                     # If occ not modeled for this crop/day yet, skip equality; keep upper bound
                     model.Add(xt <= b)

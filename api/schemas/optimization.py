@@ -142,7 +142,9 @@ class ApiCrop(BaseModel):
     @model_validator(mode="after")
     def _check_price_unit(self):
         if (self.price_per_a is None) == (self.price_per_10a is None):
-            raise ValueError("price_per_a と price_per_10a はどちらか一方のみ指定してください")
+            raise ValueError(
+                "price_per_a と price_per_10a はどちらか一方のみ指定してください"
+            )
         return self
 
     def normalized_price_per_a(self) -> float:
@@ -172,21 +174,14 @@ class ApiEvent(BaseModel):
     required_roles: set[str] | None = None
     required_resources: set[str] | None = None
     uses_land: bool = False
-    occupancy_effect: str | None = Field(
-        default=None, description="start|hold|end|none"
-    )
 
     @model_validator(mode="after")
     def _check_lag_and_occupancy(self):
         if self.lag_min_days is not None and self.lag_max_days is not None:
             if self.lag_min_days > self.lag_max_days:
-                raise ValueError("lag_min_days は lag_max_days 以下である必要があります")
-        if self.uses_land:
-            if self.occupancy_effect not in {"start", "hold", "end"}:
-                raise ValueError("uses_land=True の場合、occupancy_effect は start|hold|end のいずれか")
-        else:
-            if self.occupancy_effect not in {None, "none"}:
-                raise ValueError("uses_land=False の場合、occupancy_effect は None または 'none'")
+                raise ValueError(
+                    "lag_min_days は lag_max_days 以下である必要があります"
+                )
         return self
 
 
@@ -364,7 +359,9 @@ class ApiPlan(BaseModel):
         for e in self.events:
             if e.preceding_event_id is not None:
                 if e.preceding_event_id not in event_ids:
-                    raise ValueError(f"preceding_event_id が存在しません: {e.preceding_event_id}")
+                    raise ValueError(
+                        f"preceding_event_id が存在しません: {e.preceding_event_id}"
+                    )
                 pred = next(ev for ev in self.events if ev.id == e.preceding_event_id)
                 if pred.crop_id != e.crop_id:
                     raise ValueError("preceding_event は同一作物内で参照してください")
@@ -427,7 +424,7 @@ class GanttEventItem(BaseModel):
     day: int = Field(ge=0)
     event_id: str
     crop_id: str
-    land_id: str | None = None
+    land_ids: list[str] = Field(default_factory=list)
     worker_ids: list[str] = Field(default_factory=list)
     resource_ids: list[str] = Field(default_factory=list)
 
@@ -437,3 +434,5 @@ class OptimizationTimeline(BaseModel):
 
     land_spans: list[GanttLandSpan] = Field(default_factory=list)
     events: list[GanttEventItem] = Field(default_factory=list)
+    # 各エンティティのID→表示名マップ
+    entity_names: dict[str, dict[str, str]] = Field(default_factory=dict)

@@ -13,6 +13,9 @@ class LinkAreaUseConstraint(Constraint):
     def apply(self, ctx: BuildContext) -> None:
         model = ctx.model
         scale = ctx.scale_area
+        uses_land_crops = {
+            ev.crop_id for ev in ctx.request.events if getattr(ev, "uses_land", False)
+        }
 
         H = ctx.request.horizon.num_days
         for land in ctx.request.lands:
@@ -29,6 +32,7 @@ class LinkAreaUseConstraint(Constraint):
                     ctx.variables.x_area_by_l_c[key] = model.NewIntVar(
                         0, cap, f"x_{land.id}_{crop.id}"
                     )
+                crop_uses_land = crop.id in uses_land_crops
                 blocked = land.blocked_days or set()
                 for t in range(1, H + 1):
                     key_t = (land.id, crop.id, t)
@@ -36,6 +40,14 @@ class LinkAreaUseConstraint(Constraint):
                         ctx.variables.x_area_by_l_c_t[key_t] = model.NewIntVar(
                             0, cap, f"x_{land.id}_{crop.id}_{t}"
                         )
+                    occ_l = None
+                    if crop_uses_land:
+                        occ_key = (land.id, crop.id, t)
+                        if occ_key not in ctx.variables.occ_by_l_c_t:
+                            ctx.variables.occ_by_l_c_t[occ_key] = model.NewBoolVar(
+                                f"occ_{land.id}_{crop.id}_{t}"
+                            )
+                        occ_l = ctx.variables.occ_by_l_c_t[occ_key]
                     model.Add(
                         ctx.variables.x_area_by_l_c_t[key_t]
                         <= cap * ctx.variables.z_use_by_l_c[key]
@@ -46,11 +58,19 @@ class LinkAreaUseConstraint(Constraint):
                     # Tie to base:
                     # - If occupancy is modeled: equality only when occ=1 and not blocked
                     # - If occupancy is not modeled: keep original non-blocked equality
-                    occ = ctx.variables.occ_by_c_t.get((crop.id, t))
+                    if occ_l is not None:
+                        model.Add(
+                            ctx.variables.x_area_by_l_c_t[key_t] <= cap * occ_l
+                        )
                     if t not in blocked:
-                        if occ is not None:
+                        if occ_l is not None:
                             model.Add(
                                 ctx.variables.x_area_by_l_c_t[key_t] == base
-                            ).OnlyEnforceIf(occ)
+                            ).OnlyEnforceIf(occ_l)
                         else:
-                            model.Add(ctx.variables.x_area_by_l_c_t[key_t] == base)
+                            model.Add(
+                                ctx.variables.x_area_by_l_c_t[key_t] == base
+                            )
+                    else:
+                        if occ_l is not None:
+                            model.Add(occ_l == 0)

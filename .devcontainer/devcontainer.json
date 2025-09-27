@@ -37,5 +37,8 @@
     "POWERLEVEL9K_DISABLE_GITSTATUS": "true"
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+  "mounts": [
+    "source=farmpl-codex-sessions,target=/home/node/.codex/sessions,type=volume"
+  ],
   "workspaceFolder": "/workspace"
 }

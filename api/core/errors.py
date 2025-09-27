@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
@@ -30,6 +31,8 @@ def _problem(
 
 
 def install_exception_handlers(app: FastAPI) -> None:
+    logger = logging.getLogger(__name__)
+
     def _sanitize(obj: Any) -> Any:
         # Recursively convert validation error structures into JSON-safe values
         if isinstance(obj, Exception):
@@ -43,21 +46,35 @@ def install_exception_handlers(app: FastAPI) -> None:
         return obj
 
     @app.exception_handler(RequestValidationError)
-    async def _handle_request_validation(_: Request, exc: RequestValidationError):  # type: ignore[override]
+    async def _handle_request_validation(request: Request, exc: RequestValidationError):  # type: ignore[override]
+        errors = _sanitize(exc.errors())
+        logger.warning(
+            "422 Request validation failed: method=%s path=%s errors=%s",
+            request.method,
+            request.url.path,
+            errors,
+        )
         return _problem(
             422,
             "Unprocessable Entity",
             "Request validation failed",
-            extras={"errors": _sanitize(exc.errors())},
+            extras={"errors": errors},
         )
 
     @app.exception_handler(ValidationError)
-    async def _handle_pydantic_validation(_: Request, exc: ValidationError):  # type: ignore[override]
+    async def _handle_pydantic_validation(request: Request, exc: ValidationError):  # type: ignore[override]
+        errors = _sanitize(exc.errors())
+        logger.warning(
+            "422 Payload validation failed: method=%s path=%s errors=%s",
+            request.method,
+            request.url.path,
+            errors,
+        )
         return _problem(
             422,
             "Unprocessable Entity",
             "Payload validation failed",
-            extras={"errors": _sanitize(exc.errors())},
+            extras={"errors": errors},
         )
 
     @app.exception_handler(DomainError)

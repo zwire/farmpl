@@ -71,7 +71,6 @@ def _plan_to_api(plan: PlanRequest) -> dict[str, Any]:
             "people_required",
             "labor_total_per_area",
             "labor_daily_cap",
-            "occupancy_effect",
         ):
             v = getattr(e, k, None)
             if v is not None:
