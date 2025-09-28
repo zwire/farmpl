@@ -45,7 +45,11 @@ const parseIsoDate = (value: string): Date | null => {
   const year = Number(yearStr);
   const month = Number(monthStr);
   const day = Number(dayStr);
-  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+  if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    !Number.isInteger(day)
+  ) {
     return null;
   }
   const date = new Date(Date.UTC(year, month - 1, day));
@@ -360,7 +364,12 @@ const constructPlanForm = (
   warnings: PlanConversionWarning[],
 ): PlanFormState => {
   const maxDayIndex = Math.max(totalDays - 1, 0);
-  const lands = toPlanFormLands(uiPlan.lands, horizonDates, maxDayIndex, warnings);
+  const lands = toPlanFormLands(
+    uiPlan.lands,
+    horizonDates,
+    maxDayIndex,
+    warnings,
+  );
   const workers = toPlanFormWorkers(
     uiPlan.workers,
     horizonDates,
@@ -387,9 +396,11 @@ const constructPlanForm = (
     workers,
     resources,
     events,
-    cropAreaBounds: uiPlan.cropAreaBounds.map<PlanFormCropAreaBound>((bound) => ({
-      ...bound,
-    })),
+    cropAreaBounds: uiPlan.cropAreaBounds.map<PlanFormCropAreaBound>(
+      (bound) => ({
+        ...bound,
+      }),
+    ),
     fixedAreas: uiPlan.fixedAreas.map<PlanFormFixedArea>((fixed) => ({
       ...fixed,
     })),
@@ -405,7 +416,10 @@ const constructPlanForm = (
 };
 
 export const PlanningCalendarService = {
-  recalculateHorizon(startDate: IsoDateString, endDate: IsoDateString): PlanUiHorizon {
+  recalculateHorizon(
+    startDate: IsoDateString,
+    endDate: IsoDateString,
+  ): PlanUiHorizon {
     const { start, end } = ensureValidHorizonDates(startDate, endDate);
     const totalDays = differenceInDays(start, end) + 1;
     return {
@@ -461,18 +475,19 @@ export const PlanningCalendarService = {
       uiPlan.horizon.endDate,
     );
     const totalDays = differenceInDays(start, end) + 1;
-    const normalizedPlan = constructPlanForm(uiPlan, { start, end }, totalDays, warnings);
+    const normalizedPlan = constructPlanForm(
+      uiPlan,
+      { start, end },
+      totalDays,
+      warnings,
+    );
 
     const parsed = planFormSchema.safeParse(normalizedPlan);
     if (!parsed.success) {
       parsed.error.issues.forEach((issue) => {
         issues.push(issue);
         warnings.push(
-          createWarning(
-            "VALIDATION_ERROR",
-            issue.path,
-            issue.message,
-          ),
+          createWarning("VALIDATION_ERROR", issue.path, issue.message),
         );
       });
       return { plan: normalizedPlan, warnings, issues };

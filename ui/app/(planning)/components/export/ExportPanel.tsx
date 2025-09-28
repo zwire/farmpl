@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-
+import { PlanningCalendarService } from "@/lib/domain/planning-calendar";
 import {
   exportPlanTemplate,
   exportResultCsv,
@@ -37,7 +37,8 @@ export function ExportPanel() {
   };
 
   const handleExportPlan = () => {
-    exportPlanTemplate(plan);
+    const apiPlan = PlanningCalendarService.convertToApiPlan(plan).plan;
+    exportPlanTemplate(apiPlan);
     setExportMessage("現在のプラン入力をJSONとしてエクスポートしました。");
   };
 

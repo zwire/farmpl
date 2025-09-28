@@ -98,7 +98,10 @@ interface MeasurementInputProps {
   onChange: (unit: AreaMeasurement["unit"], value: number) => void;
 }
 
-export function MeasurementInput({ measurement, onChange }: MeasurementInputProps) {
+export function MeasurementInput({
+  measurement,
+  onChange,
+}: MeasurementInputProps) {
   const unit = measurement?.unit ?? "a";
   const value = measurement?.value ?? 0;
   return (
@@ -117,9 +120,7 @@ export function MeasurementInput({ measurement, onChange }: MeasurementInputProp
         type="number"
         min={0}
         value={value}
-        onChange={(event) =>
-          onChange(unit, Number(event.target.value || "0"))
-        }
+        onChange={(event) => onChange(unit, Number(event.target.value || "0"))}
         className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
       />
     </div>

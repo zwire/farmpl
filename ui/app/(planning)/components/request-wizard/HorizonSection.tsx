@@ -3,7 +3,10 @@
 import type { ChangeEvent } from "react";
 
 import { PlanningCalendarService } from "@/lib/domain/planning-calendar";
-import type { IsoDateString, PlanUiState } from "@/lib/domain/planning-ui-types";
+import type {
+  IsoDateString,
+  PlanUiState,
+} from "@/lib/domain/planning-ui-types";
 
 interface HorizonSectionProps {
   plan: PlanUiState;
@@ -101,8 +104,8 @@ export function HorizonSection({
       {messages.length > 0 && (
         <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
           <ul className="ml-4 list-disc">
-            {messages.map((message, index) => (
-              <li key={`${message}-${index}`}>{message}</li>
+            {messages.map((message) => (
+              <li key={message}>{message}</li>
             ))}
           </ul>
         </div>

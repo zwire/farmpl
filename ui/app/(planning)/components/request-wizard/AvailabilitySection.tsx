@@ -1,13 +1,21 @@
 "use client";
 
-import {
-  ChipInput,
-} from "./inputs/ChipInput";
+import { ChipInput } from "./inputs/ChipInput";
 import { DateRangeInput } from "./inputs/DateRangeInput";
-import { EntityCard, Field, MeasurementInput, SectionCard } from "./SectionElements";
+import {
+  EntityCard,
+  Field,
+  MeasurementInput,
+  SectionCard,
+} from "./SectionElements";
 import { createUniqueId } from "./utils";
 
-import type { PlanUiLand, PlanUiResource, PlanUiState, PlanUiWorker } from "@/lib/domain/planning-ui-types";
+import type {
+  PlanUiLand,
+  PlanUiResource,
+  PlanUiState,
+  PlanUiWorker,
+} from "@/lib/domain/planning-ui-types";
 
 interface AvailabilitySectionProps {
   step: "lands" | "workers" | "resources";
@@ -15,7 +23,11 @@ interface AvailabilitySectionProps {
   onPlanChange: (updater: (prev: PlanUiState) => PlanUiState) => void;
 }
 
-export function AvailabilitySection({ step, plan, onPlanChange }: AvailabilitySectionProps) {
+export function AvailabilitySection({
+  step,
+  plan,
+  onPlanChange,
+}: AvailabilitySectionProps) {
   if (step === "lands") {
     return (
       <SectionCard
@@ -28,7 +40,10 @@ export function AvailabilitySection({ step, plan, onPlanChange }: AvailabilitySe
             lands: [
               ...prev.lands,
               {
-                id: createUniqueId("land", prev.lands.map((land) => land.id)),
+                id: createUniqueId(
+                  "land",
+                  prev.lands.map((land) => land.id),
+                ),
                 name: "",
                 area: { unit: "a", value: 0 },
                 tags: [],
@@ -57,7 +72,9 @@ export function AvailabilitySection({ step, plan, onPlanChange }: AvailabilitySe
                 <input
                   value={land.name}
                   onChange={(event) =>
-                    updateLand(onPlanChange, index, { name: event.target.value })
+                    updateLand(onPlanChange, index, {
+                      name: event.target.value,
+                    })
                   }
                   className="rounded-md border border-slate-300 px-3 py-2 text-sm"
                 />
@@ -112,7 +129,10 @@ export function AvailabilitySection({ step, plan, onPlanChange }: AvailabilitySe
             workers: [
               ...prev.workers,
               {
-                id: createUniqueId("worker", prev.workers.map((worker) => worker.id)),
+                id: createUniqueId(
+                  "worker",
+                  prev.workers.map((worker) => worker.id),
+                ),
                 name: "",
                 roles: [],
                 capacityPerDay: 8,
@@ -141,7 +161,9 @@ export function AvailabilitySection({ step, plan, onPlanChange }: AvailabilitySe
                 <input
                   value={worker.name}
                   onChange={(event) =>
-                    updateWorker(onPlanChange, index, { name: event.target.value })
+                    updateWorker(onPlanChange, index, {
+                      name: event.target.value,
+                    })
                   }
                   className="rounded-md border border-slate-300 px-3 py-2 text-sm"
                 />

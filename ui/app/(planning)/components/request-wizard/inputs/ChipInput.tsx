@@ -10,7 +10,12 @@ interface ChipInputProps {
   emptyMessage?: string;
 }
 
-export function ChipInput({ value, onChange, placeholder, emptyMessage }: ChipInputProps) {
+export function ChipInput({
+  value,
+  onChange,
+  placeholder,
+  emptyMessage,
+}: ChipInputProps) {
   const [inputValue, setInputValue] = useState("");
 
   const addChip = (raw: string) => {

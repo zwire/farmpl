@@ -54,21 +54,40 @@ const normalizeConstraintHints = (api: ApiOptimizationResult) => {
   });
 };
 
+type RawTimeline = {
+  entity_names?: {
+    lands?: Record<string, string>;
+    crops?: Record<string, string>;
+    workers?: Record<string, string>;
+    resources?: Record<string, string>;
+    events?: Record<string, string>;
+  };
+  land_spans?: Array<{
+    land_id: string;
+    crop_id: string;
+    start_day: number;
+    end_day: number;
+    area_a: number;
+  }>;
+  events?: Array<{
+    day: number;
+    event_id: string;
+    crop_id: string;
+    land_ids?: unknown;
+    land_id?: string;
+    worker_ids?: string[];
+    resource_ids?: string[];
+  }>;
+};
+
 const normalizeTimeline = (
   timeline: ApiOptimizationResult["timeline"],
 ): OptimizationResultView["timeline"] => {
   if (!timeline) return undefined;
-  const entityNames = (timeline as any).entity_names as
-    | {
-        lands?: Record<string, string>;
-        crops?: Record<string, string>;
-        workers?: Record<string, string>;
-        resources?: Record<string, string>;
-        events?: Record<string, string>;
-      }
-    | undefined;
-  const landSpans = Array.isArray(timeline.land_spans)
-    ? timeline.land_spans.map((span) => ({
+  const raw = timeline as RawTimeline;
+  const entityNames = raw.entity_names;
+  const landSpans = Array.isArray(raw.land_spans)
+    ? raw.land_spans.map((span) => ({
         landId: span.land_id,
         cropId: span.crop_id,
         startDay: span.start_day,
@@ -79,49 +98,50 @@ const normalizeTimeline = (
         cropName: entityNames?.crops?.[span.crop_id],
       }))
     : [];
-  const events = Array.isArray(timeline.events)
-    ? timeline.events.map((event) => {
-        const rawLandIds = Array.isArray((event as any).land_ids)
-          ? ((event as any).land_ids as unknown[])
+  const events = Array.isArray(raw.events)
+    ? raw.events.map((event) => {
+        const rawLandIds = Array.isArray(event.land_ids)
+          ? (event.land_ids as unknown[])
           : [];
         const normalizedLandIds = rawLandIds.filter(
           (id): id is string => typeof id === "string" && id.length > 0,
         );
         if (
           normalizedLandIds.length === 0 &&
-          typeof (event as any).land_id === "string" &&
-          (event as any).land_id.length > 0
+          typeof event.land_id === "string" &&
+          event.land_id.length > 0
         ) {
-          normalizedLandIds.push((event as any).land_id as string);
+          normalizedLandIds.push(event.land_id);
         }
 
         return {
-        day: event.day,
-        eventId: event.event_id,
-        cropId: event.crop_id,
-        landIds: normalizedLandIds,
-        workerIds: event.worker_ids,
-        resourceIds: event.resource_ids,
-        // 追加の名前情報（存在すれば）
-        eventName: entityNames?.events?.[event.event_id],
-        cropName: entityNames?.crops?.[event.crop_id],
-        landNames:
-          normalizedLandIds.length > 0
-            ? normalizedLandIds.map((id) => entityNames?.lands?.[id])
+          day: event.day,
+          eventId: event.event_id,
+          cropId: event.crop_id,
+          landIds: normalizedLandIds,
+          workerIds: event.worker_ids ?? [],
+          resourceIds: event.resource_ids ?? [],
+          // 追加の名前情報（存在すれば）
+          eventName: entityNames?.events?.[event.event_id],
+          cropName: entityNames?.crops?.[event.crop_id],
+          landNames:
+            normalizedLandIds.length > 0
+              ? normalizedLandIds.map((id) => entityNames?.lands?.[id])
+              : undefined,
+          workerNames: Array.isArray(event.worker_ids)
+            ? event.worker_ids
+                .map((id) => entityNames?.workers?.[id])
+                .filter(Boolean)
             : undefined,
-        workerNames:
-          Array.isArray(event.worker_ids)
-            ? event.worker_ids.map((id) => entityNames?.workers?.[id]).filter(Boolean)
-            : undefined,
-        resourceNames:
-          Array.isArray(event.resource_ids)
+          resourceNames: Array.isArray(event.resource_ids)
             ? event.resource_ids
                 .map((id) => entityNames?.resources?.[id])
                 .filter(Boolean)
             : undefined,
-      }})
+        };
+      })
     : [];
-  return { landSpans, events } as any;
+  return { landSpans, events };
 };
 
 export const mapApiResultToView = (

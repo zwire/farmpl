@@ -2,39 +2,24 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { ZodIssue } from "zod";
-
-import { mapApiResultToView } from "@/lib/types/result-mapper";
-import type { PlanFormState } from "@/lib/types/planning";
 import { PlanningCalendarService } from "@/lib/domain/planning-calendar";
 import {
   planningDraftStorage,
   usePlanningStore,
 } from "@/lib/state/planning-store";
+import type { PlanFormState } from "@/lib/types/planning";
+import { mapApiResultToView } from "@/lib/types/result-mapper";
 import { buildApiPlanPayload } from "@/lib/validation/plan-schema";
-import { WIZARD_STEPS, type WizardStepId } from "./steps";
+import { EventPlanningSection } from "../events/EventPlanningSection";
 import { AvailabilitySection } from "./AvailabilitySection";
 import { HorizonSection } from "./HorizonSection";
-import { EventPlanningSection } from "../events/EventPlanningSection";
 import { StepSections } from "./StepSections";
+import { WIZARD_STEPS, type WizardStepId } from "./steps";
 import { WizardStepper } from "./WizardStepper";
-
-const STEP_SEQUENCE = WIZARD_STEPS.map((step) => step.id);
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_FARMPL_API_BASE ?? "";
 const API_KEY = process.env.NEXT_PUBLIC_FARMPL_API_KEY ?? "";
 const BEARER_TOKEN = process.env.NEXT_PUBLIC_FARMPL_BEARER_TOKEN ?? "";
-
-function getNextStep(step: WizardStepId): WizardStepId | null {
-  const index = STEP_SEQUENCE.indexOf(step);
-  if (index === -1 || index === STEP_SEQUENCE.length - 1) return null;
-  return STEP_SEQUENCE[index + 1];
-}
-
-function getPreviousStep(step: WizardStepId): WizardStepId | null {
-  const index = STEP_SEQUENCE.indexOf(step);
-  if (index <= 0) return null;
-  return STEP_SEQUENCE[index - 1];
-}
 
 export function RequestWizard() {
   const plan = usePlanningStore((state) => state.plan);
@@ -117,20 +102,16 @@ export function RequestWizard() {
     return Array.from(unique);
   }, [combinedIssues]);
 
-  const handleNavigate = (next: WizardStepId | null) => {
-    if (!next) return;
-    setCurrentStep(next);
-  };
-
   const handleStepSelect = (step: WizardStepId) => {
     setCurrentStep(step);
   };
 
-  const applyPlanFormUpdate = (updater: (prev: PlanFormState) => PlanFormState) => {
+  const applyPlanFormUpdate = (
+    updater: (prev: PlanFormState) => PlanFormState,
+  ) => {
     updatePlan((prev) => {
-      const { plan: previousApiPlan } = PlanningCalendarService.convertToApiPlan(
-        prev,
-      );
+      const { plan: previousApiPlan } =
+        PlanningCalendarService.convertToApiPlan(prev);
       const nextApiPlan = updater(previousApiPlan);
       return PlanningCalendarService.mergeApiPlanIntoUiPlan(prev, nextApiPlan);
     });
@@ -233,7 +214,11 @@ export function RequestWizard() {
         />
       );
     }
-    if (currentStep === "lands" || currentStep === "workers" || currentStep === "resources") {
+    if (
+      currentStep === "lands" ||
+      currentStep === "workers" ||
+      currentStep === "resources"
+    ) {
       return (
         <AvailabilitySection
           step={currentStep}

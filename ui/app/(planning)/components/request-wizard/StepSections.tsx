@@ -1,21 +1,20 @@
 "use client";
 
 import { useMemo } from "react";
-
+import type { WizardStepId } from "@/lib/state/wizard-steps";
 import type {
-  AreaMeasurement,
   PlanFormCrop,
   PlanFormFixedArea,
   PlanFormState,
 } from "@/lib/types/planning";
-import type { WizardStepId } from "@/lib/state/wizard-steps";
 
+import { ComboBox, type ComboBoxOption } from "./ComboBox";
 import {
-  ComboBox,
-  MultiComboBox,
-  type ComboBoxOption,
-} from "./ComboBox";
-import { EntityCard, Field, MeasurementInput, SectionCard } from "./SectionElements";
+  EntityCard,
+  Field,
+  MeasurementInput,
+  SectionCard,
+} from "./SectionElements";
 import { createUniqueId } from "./utils";
 
 type Preferences = NonNullable<PlanFormState["preferences"]>;
@@ -90,8 +89,8 @@ export function StepSections({
         <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">
           <p className="font-semibold">入力エラー</p>
           <ul className="ml-4 list-disc">
-            {errors.map((error, index) => (
-              <li key={`${error}-${index}`}>{error}</li>
+            {errors.map((error) => (
+              <li key={error}>{error}</li>
             ))}
           </ul>
         </div>
@@ -152,7 +151,10 @@ function CropsSection({
       crops: [
         ...prev.crops,
         {
-          id: createUniqueId("crop", prev.crops.map((crop) => crop.id)),
+          id: createUniqueId(
+            "crop",
+            prev.crops.map((crop) => crop.id),
+          ),
           name: "",
           category: "",
           price: undefined,
@@ -237,6 +239,24 @@ function CropsSection({
   );
 }
 
+function EventsSection({
+  plan,
+  onPlanChange,
+}: Pick<StepSectionsProps, "plan" | "onPlanChange">) {
+  return (
+    <SectionCard
+      title="イベント"
+      description="イベント詳細はイベントエディタから編集してください"
+      hasItems={plan.events.length > 0}
+      emptyMessage="イベントが登録されていません。イベント依存のフローで追加してください。"
+    >
+      <p className="text-xs text-slate-500">
+        イベントの追加・編集はイベント依存関係セクションで行えます。
+      </p>
+    </SectionCard>
+  );
+}
+
 function LandsSection({
   plan,
   onPlanChange,
@@ -273,7 +293,10 @@ function LandsSection({
       lands: [
         ...prev.lands,
         {
-          id: createUniqueId("land", prev.lands.map((land) => land.id)),
+          id: createUniqueId(
+            "land",
+            prev.lands.map((land) => land.id),
+          ),
           name: "",
           area: { unit: "a", value: 0 },
           tags: [],
@@ -928,9 +951,6 @@ function ConstraintsSection({
     </div>
   );
 }
-
-
-
 
 const toNumberList = (value: string) =>
   value
