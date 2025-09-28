@@ -15,8 +15,14 @@ interface EventPlanningSectionProps {
   onPlanChange: (updater: (prev: PlanUiState) => PlanUiState) => void;
 }
 
-export function EventPlanningSection({ plan, onPlanChange }: EventPlanningSectionProps) {
-  const cropIds = useMemo(() => plan.crops.map((crop) => crop.id), [plan.crops]);
+export function EventPlanningSection({
+  plan,
+  onPlanChange,
+}: EventPlanningSectionProps) {
+  const cropIds = useMemo(
+    () => plan.crops.map((crop) => crop.id),
+    [plan.crops],
+  );
   const [selectedCropId, setSelectedCropId] = useState<string | null>(
     cropIds[0] ?? null,
   );
@@ -39,7 +45,10 @@ export function EventPlanningSection({ plan, onPlanChange }: EventPlanningSectio
   }, [cropIds, selectedCropId]);
 
   useEffect(() => {
-    if (selectedEventId && !cropEvents.some((event) => event.id === selectedEventId)) {
+    if (
+      selectedEventId &&
+      !cropEvents.some((event) => event.id === selectedEventId)
+    ) {
       setSelectedEventId(cropEvents[0]?.id ?? null);
     }
     if (!selectedEventId && cropEvents.length > 0) {
@@ -52,7 +61,10 @@ export function EventPlanningSection({ plan, onPlanChange }: EventPlanningSectio
   };
 
   const handleAddEvent = () => {
-    const newId = createUniqueId("event", plan.events.map((event) => event.id));
+    const newId = createUniqueId(
+      "event",
+      plan.events.map((event) => event.id),
+    );
     onPlanChange((prev) => {
       const cropId = selectedCropId ?? prev.crops[0]?.id ?? "";
       const newEvent: PlanUiEvent = {
@@ -78,7 +90,6 @@ export function EventPlanningSection({ plan, onPlanChange }: EventPlanningSectio
     setSelectedEventId(newId);
   };
 
-
   const handleRemoveEvent = (eventId: string) => {
     onPlanChange((prev) => ({
       ...prev,
@@ -103,7 +114,10 @@ export function EventPlanningSection({ plan, onPlanChange }: EventPlanningSectio
     });
   };
 
-  const handleDependencyChange = (targetId: string, sourceId: string | null) => {
+  const handleDependencyChange = (
+    targetId: string,
+    sourceId: string | null,
+  ) => {
     onPlanChange((prev) => {
       const index = prev.events.findIndex((event) => event.id === targetId);
       if (index === -1) return prev;
@@ -118,7 +132,10 @@ export function EventPlanningSection({ plan, onPlanChange }: EventPlanningSectio
       };
     });
   };
-  const timelinePreview = useMemo(() => PlanningCalendarService.convertToApiPlan(plan), [plan]);
+  const timelinePreview = useMemo(
+    () => PlanningCalendarService.convertToApiPlan(plan),
+    [plan],
+  );
 
   const handleCropSelect = (event: ChangeEvent<HTMLSelectElement>) => {
     const value = event.target.value;
@@ -196,7 +213,8 @@ const sanitizeEvent = (event: PlanUiEvent): PlanUiEvent => {
   const endDates = event.endDates?.filter(Boolean);
   return {
     ...event,
-    startDates: startDates && startDates.length > 0 ? startDates.sort() : undefined,
+    startDates:
+      startDates && startDates.length > 0 ? startDates.sort() : undefined,
     endDates: endDates && endDates.length > 0 ? endDates.sort() : undefined,
   };
 };

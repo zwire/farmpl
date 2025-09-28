@@ -2,32 +2,48 @@
 
 import type { ChangeEvent } from "react";
 
-import type { DateRange, PlanUiState } from "@/lib/domain/planning-ui-types";
+import type {
+  DateRange,
+  IsoDateString,
+  PlanUiState,
+} from "@/lib/domain/planning-ui-types";
 
 interface DateRangeInputProps {
   ranges: DateRange[];
   onChange: (next: DateRange[]) => void;
   horizon: PlanUiState["horizon"];
+  emptyMessage?: string;
 }
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-const normalizeDate = (value: string): string | null =>
-  ISO_DATE_PATTERN.test(value) ? value : null;
+const normalizeDate = (value: string): IsoDateString | null =>
+  ISO_DATE_PATTERN.test(value) ? (value as IsoDateString) : null;
 
-export function DateRangeInput({ ranges, onChange, horizon }: DateRangeInputProps) {
+export function DateRangeInput({
+  ranges,
+  onChange,
+  horizon,
+  emptyMessage = "まだ封鎖期間がありません。下の「期間を追加」を押してください。",
+}: DateRangeInputProps) {
   const updateRange = (index: number, patch: Partial<DateRange>) => {
     const next = [...ranges];
     next[index] = { ...next[index], ...patch };
     onChange(next);
   };
 
-  const handleStartChange = (index: number, event: ChangeEvent<HTMLInputElement>) => {
+  const handleStartChange = (
+    index: number,
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
     const value = event.target.value;
     updateRange(index, { start: value ? normalizeDate(value) : null });
   };
 
-  const handleEndChange = (index: number, event: ChangeEvent<HTMLInputElement>) => {
+  const handleEndChange = (
+    index: number,
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
     const value = event.target.value;
     updateRange(index, { end: value ? normalizeDate(value) : null });
   };
@@ -75,7 +91,8 @@ export function DateRangeInput({ ranges, onChange, horizon }: DateRangeInputProp
                   )}
                 </div>
                 <span className="text-[11px] text-slate-400">
-                  未入力の場合は計画開始日({horizon.startDate})からとみなします。
+                  未入力の場合は計画開始日({horizon.startDate}
+                  )からとみなします。
                 </span>
               </label>
               <label className="flex flex-col gap-1">
@@ -114,9 +131,7 @@ export function DateRangeInput({ ranges, onChange, horizon }: DateRangeInputProp
           </div>
         ))}
         {ranges.length === 0 && (
-          <p className="text-xs text-slate-500">
-            まだ封鎖期間がありません。下の「期間を追加」を押してください。
-          </p>
+          <p className="text-xs text-slate-500">{emptyMessage}</p>
         )}
       </div>
       <button

@@ -2,23 +2,38 @@
 
 import { useMemo, useState } from "react";
 
-import type { PlanUiEvent, PlanUiState } from "@/lib/domain/planning-ui-types";
-import { ChipInput } from "../request-wizard/inputs/ChipInput";
-import { Field } from "../request-wizard/SectionElements";
+import type {
+  DateRange,
+  PlanUiEvent,
+  PlanUiState,
+} from "@/lib/domain/planning-ui-types";
+import { PlanningEventDateUtils } from "@/lib/state/planning-store";
 import {
   ComboBox,
-  MultiComboBox,
   type ComboBoxOption,
+  MultiComboBox,
 } from "../request-wizard/ComboBox";
+import { ChipInput } from "../request-wizard/inputs/ChipInput";
+import { DateRangeInput } from "../request-wizard/inputs/DateRangeInput";
+import { Field } from "../request-wizard/SectionElements";
 
 interface EventDetailsPanelProps {
   plan: PlanUiState;
   eventId: string | null;
-  onChange: (eventId: string, updater: (prev: PlanUiEvent) => PlanUiEvent) => void;
+  onChange: (
+    eventId: string,
+    updater: (prev: PlanUiEvent) => PlanUiEvent,
+  ) => void;
   onRemove: (eventId: string) => void;
 }
 
-const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+const Section = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => (
   <details className="rounded-lg border border-slate-200 bg-white/80">
     <summary className="cursor-pointer select-none rounded-lg px-4 py-2 text-sm font-semibold text-slate-700">
       {title}
@@ -29,30 +44,51 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
   </details>
 );
 
-export function EventDetailsPanel({ plan, eventId, onChange, onRemove }: EventDetailsPanelProps) {
-  const selectedEvent = eventId ? plan.events.find((event) => event.id === eventId) : null;
+export function EventDetailsPanel({
+  plan,
+  eventId,
+  onChange,
+  onRemove,
+}: EventDetailsPanelProps) {
+  const selectedEvent = eventId
+    ? plan.events.find((event) => event.id === eventId)
+    : null;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const roleOptions = useMemo<ComboBoxOption[]>(() => {
-    const roles = new Set<string>();
-    plan.workers.forEach((worker) => worker.roles.forEach((role) => roles.add(role)));
-    return Array.from(roles).map((role) => ({ value: role, label: role }));
-  }, [plan.workers]);
+  const startRanges = useMemo(() => {
+    if (!selectedEvent) return [];
+    return PlanningEventDateUtils.collapseDatesToRanges(
+      selectedEvent.startDates,
+      plan.horizon,
+    );
+  }, [plan.horizon, selectedEvent]);
+
+  const endRanges = useMemo(() => {
+    if (!selectedEvent) return [];
+    return PlanningEventDateUtils.collapseDatesToRanges(
+      selectedEvent.endDates,
+      plan.horizon,
+    );
+  }, [plan.horizon, selectedEvent]);
 
   const resourceOptions = useMemo<ComboBoxOption[]>(
-  () =>
-    plan.resources.map((resource) => ({
-      value: resource.id,
-      label: resource.name || resource.id,
-      description: resource.category ?? undefined,
-    })),
-  [plan.resources],
-);
+    () =>
+      plan.resources.map((resource) => ({
+        value: resource.id,
+        label: resource.name || resource.id,
+        description: resource.category ?? undefined,
+      })),
+    [plan.resources],
+  );
 
   const precedingEventOptions = useMemo<ComboBoxOption[]>(() => {
     if (!selectedEvent) return [];
     return plan.events
-      .filter((event) => event.id !== selectedEvent.id && event.cropId === selectedEvent.cropId)
+      .filter(
+        (event) =>
+          event.id !== selectedEvent.id &&
+          event.cropId === selectedEvent.cropId,
+      )
       .map((event) => ({
         value: event.id,
         label: event.name || event.id,
@@ -79,7 +115,10 @@ export function EventDetailsPanel({ plan, eventId, onChange, onRemove }: EventDe
 
   const updateLabor = (patch: Partial<NonNullable<PlanUiEvent["labor"]>>) => {
     update((prev) => {
-      const next = { ...(prev.labor ?? {}) } as Record<string, number | undefined>;
+      const next = { ...(prev.labor ?? {}) } as Record<
+        string,
+        number | undefined
+      >;
       for (const [key, val] of Object.entries(patch)) {
         if (val === undefined) {
           delete next[key];
@@ -87,9 +126,13 @@ export function EventDetailsPanel({ plan, eventId, onChange, onRemove }: EventDe
           next[key] = val;
         }
       }
-      const cleanedEntries = Object.entries(next).filter(([, val]) => val !== undefined);
+      const cleanedEntries = Object.entries(next).filter(
+        ([, val]) => val !== undefined,
+      );
       const cleaned = cleanedEntries.length
-        ? (Object.fromEntries(cleanedEntries) as NonNullable<PlanUiEvent["labor"]>)
+        ? (Object.fromEntries(cleanedEntries) as NonNullable<
+            PlanUiEvent["labor"]
+          >)
         : undefined;
       return { ...prev, labor: cleaned };
     });
@@ -97,7 +140,10 @@ export function EventDetailsPanel({ plan, eventId, onChange, onRemove }: EventDe
 
   const updateLag = (patch: Partial<NonNullable<PlanUiEvent["lag"]>>) => {
     update((prev) => {
-      const next = { ...(prev.lag ?? {}) } as Record<string, number | undefined>;
+      const next = { ...(prev.lag ?? {}) } as Record<
+        string,
+        number | undefined
+      >;
       for (const [key, val] of Object.entries(patch)) {
         if (val === undefined) {
           delete next[key];
@@ -105,12 +151,38 @@ export function EventDetailsPanel({ plan, eventId, onChange, onRemove }: EventDe
           next[key] = val;
         }
       }
-      const cleanedEntries = Object.entries(next).filter(([, val]) => val !== undefined);
+      const cleanedEntries = Object.entries(next).filter(
+        ([, val]) => val !== undefined,
+      );
       const cleaned = cleanedEntries.length
-        ? (Object.fromEntries(cleanedEntries) as NonNullable<PlanUiEvent["lag"]>)
+        ? (Object.fromEntries(cleanedEntries) as NonNullable<
+            PlanUiEvent["lag"]
+          >)
         : undefined;
       return { ...prev, lag: cleaned };
     });
+  };
+
+  const handleStartRangesChange = (ranges: DateRange[]) => {
+    const expanded = PlanningEventDateUtils.expandRangesToDateList(
+      ranges,
+      plan.horizon,
+    );
+    update((prev) => ({
+      ...prev,
+      startDates: expanded,
+    }));
+  };
+
+  const handleEndRangesChange = (ranges: DateRange[]) => {
+    const expanded = PlanningEventDateUtils.expandRangesToDateList(
+      ranges,
+      plan.horizon,
+    );
+    update((prev) => ({
+      ...prev,
+      endDates: expanded,
+    }));
   };
 
   return (
@@ -135,25 +207,36 @@ export function EventDetailsPanel({ plan, eventId, onChange, onRemove }: EventDe
         <Field label="名称">
           <input
             value={selectedEvent.name}
-            onChange={(event) => update((prev) => ({ ...prev, name: event.target.value }))}
+            onChange={(event) =>
+              update((prev) => ({ ...prev, name: event.target.value }))
+            }
             className="rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
         </Field>
         <Field label="カテゴリ">
           <input
             value={selectedEvent.category ?? ""}
-            onChange={(event) => update((prev) => ({ ...prev, category: event.target.value || undefined }))}
+            onChange={(event) =>
+              update((prev) => ({
+                ...prev,
+                category: event.target.value || undefined,
+              }))
+            }
             className="rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
         </Field>
         <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">
-          対象作物: <span className="font-medium text-slate-700">{cropDisplayName}</span>
+          対象作物:{" "}
+          <span className="font-medium text-slate-700">{cropDisplayName}</span>
         </p>
         <Field label="土地を使用">
           <select
             value={String(selectedEvent.usesLand)}
             onChange={(event) =>
-              update((prev) => ({ ...prev, usesLand: event.target.value === "true" }))
+              update((prev) => ({
+                ...prev,
+                usesLand: event.target.value === "true",
+              }))
             }
             className="rounded-md border border-slate-300 px-3 py-2 text-sm"
           >
@@ -186,37 +269,27 @@ export function EventDetailsPanel({ plan, eventId, onChange, onRemove }: EventDe
         </Field>
 
         {!selectedEvent.precedingEventId && (
-          <div className="grid gap-3 md:grid-cols-2">
-            <Field label="開始条件 (最も早い開始日)">
+          <div className="flex flex-col gap-3">
+            <Field label="開始条件 (許可される期間)">
               <small className="block text-[11px] text-slate-400">
-                指定した日付以降であればイベントを開始できます。未入力の場合は制約なしです。
+                指定した期間に含まれる各日付が開始可能日として保存されます。未設定の場合は制約なしです。
               </small>
-              <input
-                type="date"
-                value={selectedEvent.startDates?.[0] ?? ""}
-                onChange={(event) =>
-                  update((prev) => ({
-                    ...prev,
-                    startDates: event.target.value ? [event.target.value] : undefined,
-                  }))
-                }
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+              <DateRangeInput
+                ranges={startRanges}
+                onChange={handleStartRangesChange}
+                horizon={plan.horizon}
+                emptyMessage="開始可能な期間が登録されていません"
               />
             </Field>
-            <Field label="終了条件 (締切日)">
+            <Field label="終了条件 (締切期間)">
               <small className="block text-[11px] text-slate-400">
-                この日付までにイベントを完了する必要があります。未入力の場合は制約なしです。
+                指定した期間に含まれる各日付が締切日として保存されます。未設定の場合は制約なしです。
               </small>
-              <input
-                type="date"
-                value={selectedEvent.endDates?.[0] ?? ""}
-                onChange={(event) =>
-                  update((prev) => ({
-                    ...prev,
-                    endDates: event.target.value ? [event.target.value] : undefined,
-                  }))
-                }
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+              <DateRangeInput
+                ranges={endRanges}
+                onChange={handleEndRangesChange}
+                horizon={plan.horizon}
+                emptyMessage="締切期間が登録されていません"
               />
             </Field>
           </div>
@@ -234,7 +307,10 @@ export function EventDetailsPanel({ plan, eventId, onChange, onRemove }: EventDe
                 value={selectedEvent.lag?.min ?? ""}
                 onChange={(event) =>
                   updateLag({
-                    min: event.target.value === "" ? undefined : Number(event.target.value || 0),
+                    min:
+                      event.target.value === ""
+                        ? undefined
+                        : Number(event.target.value || 0),
                   })
                 }
                 className="rounded-md border border-slate-300 px-3 py-2 text-sm"
@@ -250,7 +326,10 @@ export function EventDetailsPanel({ plan, eventId, onChange, onRemove }: EventDe
                 value={selectedEvent.lag?.max ?? ""}
                 onChange={(event) =>
                   updateLag({
-                    max: event.target.value === "" ? undefined : Number(event.target.value || 0),
+                    max:
+                      event.target.value === ""
+                        ? undefined
+                        : Number(event.target.value || 0),
                   })
                 }
                 className="rounded-md border border-slate-300 px-3 py-2 text-sm"
@@ -261,7 +340,7 @@ export function EventDetailsPanel({ plan, eventId, onChange, onRemove }: EventDe
 
         <Field label="繰り返し頻度 (日)">
           <small className="block text-[11px] text-slate-400">
-            同じイベントを周期的に実施する場合の間隔です。未入力のときは単発イベントとして扱われます。
+            同じイベントを周期的に実施する場合の間隔です。
           </small>
           <input
             type="number"
@@ -271,7 +350,9 @@ export function EventDetailsPanel({ plan, eventId, onChange, onRemove }: EventDe
               update((prev) => ({
                 ...prev,
                 frequencyDays:
-                  event.target.value === "" ? undefined : Number(event.target.value || 0),
+                  event.target.value === ""
+                    ? undefined
+                    : Number(event.target.value || 0),
               }))
             }
             className="rounded-md border border-slate-300 px-3 py-2 text-sm"
@@ -280,7 +361,6 @@ export function EventDetailsPanel({ plan, eventId, onChange, onRemove }: EventDe
       </Section>
 
       <Section title="労働・リソース">
-
         <div className="grid gap-3 md:grid-cols-3">
           <Field label="必要人数">
             <input
@@ -290,7 +370,9 @@ export function EventDetailsPanel({ plan, eventId, onChange, onRemove }: EventDe
               onChange={(event) =>
                 updateLabor({
                   peopleRequired:
-                    event.target.value === "" ? undefined : Number(event.target.value || 0),
+                    event.target.value === ""
+                      ? undefined
+                      : Number(event.target.value || 0),
                 })
               }
               className="rounded-md border border-slate-300 px-3 py-2 text-sm"
@@ -304,7 +386,9 @@ export function EventDetailsPanel({ plan, eventId, onChange, onRemove }: EventDe
               onChange={(event) =>
                 updateLabor({
                   totalPerA:
-                    event.target.value === "" ? undefined : Number(event.target.value || 0),
+                    event.target.value === ""
+                      ? undefined
+                      : Number(event.target.value || 0),
                 })
               }
               className="rounded-md border border-slate-300 px-3 py-2 text-sm"
@@ -318,7 +402,9 @@ export function EventDetailsPanel({ plan, eventId, onChange, onRemove }: EventDe
               onChange={(event) =>
                 updateLabor({
                   dailyCap:
-                    event.target.value === "" ? undefined : Number(event.target.value || 0),
+                    event.target.value === ""
+                      ? undefined
+                      : Number(event.target.value || 0),
                 })
               }
               className="rounded-md border border-slate-300 px-3 py-2 text-sm"

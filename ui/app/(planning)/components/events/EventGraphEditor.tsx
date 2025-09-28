@@ -14,7 +14,6 @@ import {
   type NodeChange,
   ReactFlow,
 } from "@xyflow/react";
-import type { MouseEvent as ReactMouseEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { PlanUiEvent } from "@/lib/domain/planning-ui-types";
@@ -82,23 +81,6 @@ export function EventGraphEditor({
     [onUpdateDependency],
   );
 
-  const handleNodeClick = useCallback(
-    (_event: ReactMouseEvent, node: Node) => {
-      if (lastSelectedRef.current !== node.id) {
-        lastSelectedRef.current = node.id;
-        onSelectEvent?.(node.id);
-      }
-    },
-    [onSelectEvent],
-  );
-
-  const handlePaneClick = useCallback(() => {
-    if (lastSelectedRef.current !== null) {
-      lastSelectedRef.current = null;
-      onSelectEvent?.(null);
-    }
-  }, [onSelectEvent]);
-
   const onEdgesDelete = useCallback(
     (edgesToDelete: Edge[]) => {
       edgesToDelete.forEach((edge) => {
@@ -119,15 +101,10 @@ export function EventGraphEditor({
 
   const handleSelectionChange = useCallback(
     (selection: { nodes?: Node[] } | null) => {
-      const selectedNode = selection?.nodes?.[0];
-      if (selectedNode) {
-        if (lastSelectedRef.current !== selectedNode.id) {
-          lastSelectedRef.current = selectedNode.id;
-          onSelectEvent?.(selectedNode.id);
-        }
-      } else if (lastSelectedRef.current !== null) {
-        lastSelectedRef.current = null;
-        onSelectEvent?.(null);
+      const newSelectedId = selection?.nodes?.[0]?.id ?? null;
+      if (lastSelectedRef.current !== newSelectedId) {
+        lastSelectedRef.current = newSelectedId;
+        onSelectEvent?.(newSelectedId);
       }
     },
     [onSelectEvent],
@@ -141,8 +118,6 @@ export function EventGraphEditor({
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
-          onNodeClick={handleNodeClick}
-          onPaneClick={handlePaneClick}
           onSelectionChange={handleSelectionChange}
           onConnect={onConnect}
           onEdgesDelete={onEdgesDelete}
@@ -230,7 +205,9 @@ const syncNodes = (
   });
 };
 
-const createLagLabel = (lag: PlanUiEvent["lag"] | undefined): string | undefined => {
+const createLagLabel = (
+  lag: PlanUiEvent["lag"] | undefined,
+): string | undefined => {
   if (!lag) return undefined;
   const parts: string[] = [];
   if (typeof lag.min === "number") {
@@ -255,14 +232,4 @@ const syncEdges = (current: Edge[], events: PlanUiEvent[]): Edge[] => {
     }));
   }
   return updated;
-};
-
-const getViewportCenter = (
-  reactFlow: ReturnType<typeof useReactFlow>,
-  container: HTMLDivElement | null,
-): { x: number; y: number } | null => {
-  if (!container) return null;
-  const { clientWidth: width, clientHeight: height } = container;
-  if (!width || !height) return null;
-  return reactFlow.project({ x: width / 2, y: height / 2 });
 };

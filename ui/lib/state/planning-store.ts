@@ -1,5 +1,8 @@
 import { create } from "zustand";
-
+import {
+  INITIAL_STEP_ID,
+  type WizardStepId,
+} from "@/app/(planning)/components/request-wizard/steps";
 import { PlanningCalendarService } from "@/lib/domain/planning-calendar";
 import type {
   DateRange,
@@ -10,11 +13,10 @@ import type {
   PlanUiState,
   PlanUiWorker,
 } from "@/lib/domain/planning-ui-types";
-import type { OptimizationResultView, PlanFormState } from "@/lib/types/planning";
-import {
-  INITIAL_STEP_ID,
-  type WizardStepId,
-} from "@/app/(planning)/components/request-wizard/steps";
+import type {
+  OptimizationResultView,
+  PlanFormState,
+} from "@/lib/types/planning";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -56,7 +58,11 @@ const parseIsoDate = (value: string): Date | null => {
   const year = Number(yearStr);
   const month = Number(monthStr);
   const day = Number(dayStr);
-  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+  if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    !Number.isInteger(day)
+  ) {
     return null;
   }
   const date = new Date(Date.UTC(year, month - 1, day));
@@ -83,7 +89,10 @@ const toTodayIsoDate = (): IsoDateString => {
 
 const buildHorizonFromLength = (length: number): PlanUiState["horizon"] => {
   const startDate = toTodayIsoDate();
-  const start = parseIsoDate(startDate)!;
+  const start = parseIsoDate(startDate);
+  if (!start) {
+    return buildDefaultHorizon();
+  }
   const end = formatIsoDate(addDays(start, Math.max(length, 1) - 1));
   return PlanningCalendarService.recalculateHorizon(startDate, end);
 };
@@ -102,6 +111,110 @@ const sanitizeDateList = (dates?: string[]): IsoDateString[] | undefined => {
     ),
   ).sort();
   return unique.length ? unique : undefined;
+};
+
+const sanitizeDateListWithinHorizon = (
+  dates: string[] | undefined,
+  horizon: PlanUiState["horizon"],
+): IsoDateString[] | undefined => {
+  const sanitized = sanitizeDateList(dates);
+  if (!sanitized) return undefined;
+  const horizonStart = parseIsoDate(horizon.startDate);
+  const horizonEnd = parseIsoDate(horizon.endDate);
+  if (!horizonStart || !horizonEnd) {
+    return sanitized;
+  }
+  const within = sanitized.filter((value) => {
+    const date = parseIsoDate(value);
+    if (!date) return false;
+    return date >= horizonStart && date <= horizonEnd;
+  });
+  return within.length ? within : undefined;
+};
+
+const clampDateToHorizon = (
+  value: Date,
+  horizonStart: Date,
+  horizonEnd: Date,
+): Date => {
+  if (value < horizonStart) return horizonStart;
+  if (value > horizonEnd) return horizonEnd;
+  return value;
+};
+
+const expandRangesToDateList = (
+  ranges: DateRange[] | undefined,
+  horizon: PlanUiState["horizon"],
+): IsoDateString[] | undefined => {
+  if (!ranges || ranges.length === 0) return undefined;
+  const horizonStart = parseIsoDate(horizon.startDate);
+  const horizonEnd = parseIsoDate(horizon.endDate);
+  if (!horizonStart || !horizonEnd) {
+    return sanitizeDateList(
+      ranges
+        .flatMap((range) => [range.start, range.end])
+        .filter(
+          (value): value is IsoDateString =>
+            typeof value === "string" && ISO_DATE_PATTERN.test(value),
+        ),
+    );
+  }
+  const allDates: string[] = [];
+  for (const range of ranges) {
+    const rawStart = range.start ? parseIsoDate(range.start) : horizonStart;
+    const rawEnd = range.end ? parseIsoDate(range.end) : horizonEnd;
+    if (!rawStart || !rawEnd) continue;
+    const clampedStart = clampDateToHorizon(rawStart, horizonStart, horizonEnd);
+    const clampedEnd = clampDateToHorizon(rawEnd, horizonStart, horizonEnd);
+    if (clampedStart > clampedEnd) continue;
+    for (
+      let cursor = clampedStart;
+      cursor <= clampedEnd;
+      cursor = addDays(cursor, 1)
+    ) {
+      allDates.push(formatIsoDate(cursor));
+    }
+  }
+  return sanitizeDateList(allDates);
+};
+
+const collapseDatesToRanges = (
+  dates: IsoDateString[] | undefined,
+  horizon: PlanUiState["horizon"],
+): DateRange[] => {
+  const sanitized = sanitizeDateListWithinHorizon(dates, horizon);
+  if (!sanitized) return [];
+  const ranges: DateRange[] = [];
+  let currentStart = sanitized[0];
+  let previous = sanitized[0];
+
+  const consecutive = (a: string, b: string): boolean => {
+    const dateA = parseIsoDate(a);
+    const dateB = parseIsoDate(b);
+    if (!dateA || !dateB) return false;
+    return (dateB.getTime() - dateA.getTime()) / MS_PER_DAY === 1;
+  };
+
+  for (let i = 1; i < sanitized.length; i += 1) {
+    const value = sanitized[i];
+    if (consecutive(previous, value)) {
+      previous = value;
+      continue;
+    }
+    ranges.push({ start: currentStart, end: previous });
+    currentStart = value;
+    previous = value;
+  }
+
+  ranges.push({ start: currentStart, end: previous });
+  return ranges;
+};
+
+export const PlanningEventDateUtils = {
+  sanitizeDateList,
+  sanitizeDateListWithinHorizon,
+  expandRangesToDateList,
+  collapseDatesToRanges,
 };
 
 const sanitizeRanges = (ranges?: DateRange[]): DateRange[] =>
@@ -150,8 +263,8 @@ const sanitizePlan = (plan: PlanUiState): PlanUiState => {
     })),
     events: plan.events.map((event) => ({
       ...event,
-      startDates: sanitizeDateList(event.startDates),
-      endDates: sanitizeDateList(event.endDates),
+      startDates: sanitizeDateListWithinHorizon(event.startDates, horizon),
+      endDates: sanitizeDateListWithinHorizon(event.endDates, horizon),
     })),
     cropAreaBounds: plan.cropAreaBounds.map((bound) => ({ ...bound })),
     fixedAreas: plan.fixedAreas.map((fixed) => ({ ...fixed })),
@@ -265,7 +378,9 @@ const migrateLegacyPlan = (plan: PlanFormState): PlanUiState => {
     crops: plan.crops.map((crop) => ({ ...crop })),
     lands: plan.lands.map((land) => legacyLandToUi(land, horizon)),
     workers: plan.workers.map((worker) => legacyWorkerToUi(worker, horizon)),
-    resources: plan.resources.map((resource) => legacyResourceToUi(resource, horizon)),
+    resources: plan.resources.map((resource) =>
+      legacyResourceToUi(resource, horizon),
+    ),
     events: plan.events.map((event) => legacyEventToUi(event, horizon)),
     cropAreaBounds: plan.cropAreaBounds.map((bound) => ({ ...bound })),
     fixedAreas: plan.fixedAreas.map((fixed) => ({ ...fixed })),
@@ -372,7 +487,10 @@ export const usePlanningStore = create<PlanningStoreState>((set) => ({
   setLastResult: (result) => set({ lastResult: result }),
 }));
 
-const toDraftData = (plan: PlanUiState, savedAt?: string | null): PlanningDraftData => ({
+const toDraftData = (
+  plan: PlanUiState,
+  savedAt?: string | null,
+): PlanningDraftData => ({
   version: "ui-v1",
   plan: sanitizePlan(plan),
   savedAt: savedAt ?? new Date().toISOString(),
@@ -381,7 +499,9 @@ const toDraftData = (plan: PlanUiState, savedAt?: string | null): PlanningDraftD
 const parseDraftEnvelope = (value: string | null): PlanningDraftData | null => {
   if (!value) return null;
   try {
-    const parsed = JSON.parse(value) as PlanningDraftData | LegacyPlanningDraftData;
+    const parsed = JSON.parse(value) as
+      | PlanningDraftData
+      | LegacyPlanningDraftData;
     if (!parsed || typeof parsed !== "object") {
       throw new Error("Invalid draft payload");
     }

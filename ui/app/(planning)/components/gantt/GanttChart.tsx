@@ -12,7 +12,6 @@ type HexColor = string;
 const ROW_HEIGHT = 36;
 const ROW_GAP = 12;
 const LEFT_GUTTER = 150;
-const RIGHT_GUTTER = 60;
 const HEADER_HEIGHT = 44;
 
 const palette = [

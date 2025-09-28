@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it } from "vitest";
-
+import { PlanningCalendarService } from "@/lib/domain/planning-calendar";
+import type { DateRange, PlanUiState } from "@/lib/domain/planning-ui-types";
 import {
+  createEmptyPlan,
   DRAFT_STORAGE_KEY,
   LEGACY_DRAFT_STORAGE_KEY,
-  createEmptyPlan,
+  PlanningEventDateUtils,
   planningDraftStorage,
   usePlanningStore,
 } from "@/lib/state/planning-store";
-import type { PlanUiState } from "@/lib/domain/planning-ui-types";
 import type { PlanFormState } from "@/lib/types/planning";
 
 const createSamplePlan = (): PlanUiState => {
@@ -161,5 +162,62 @@ describe("planningDraftStorage", () => {
     expect(migrated?.plan.crops[0].id).toBe("legacy-crop");
     expect(migrated?.plan.events[0].startDates?.length).toBe(2);
     expect(migrated?.plan.lands[0].blocked.length).toBeGreaterThan(0);
+  });
+});
+
+describe("PlanningEventDateUtils", () => {
+  const horizon = PlanningCalendarService.recalculateHorizon(
+    "2025-03-01",
+    "2025-03-10",
+  );
+
+  it("expands ranges into deduplicated sorted date arrays", () => {
+    const ranges: DateRange[] = [
+      { start: "2025-03-02", end: "2025-03-04" },
+      { start: "2025-03-04", end: "2025-03-05" },
+    ];
+
+    const expanded = PlanningEventDateUtils.expandRangesToDateList(
+      ranges,
+      horizon,
+    );
+
+    expect(expanded).toEqual([
+      "2025-03-02",
+      "2025-03-03",
+      "2025-03-04",
+      "2025-03-05",
+    ]);
+  });
+
+  it("clamps open-ended ranges to the planning horizon", () => {
+    const ranges: DateRange[] = [
+      { start: null, end: "2025-02-25" },
+      { start: "2025-03-09", end: null },
+    ];
+
+    const expanded = PlanningEventDateUtils.expandRangesToDateList(
+      ranges,
+      horizon,
+    );
+
+    expect(expanded).toEqual(["2025-03-01", "2025-03-09", "2025-03-10"]);
+  });
+
+  it("collapses consecutive dates into minimal ranges", () => {
+    const dates = [
+      "2025-03-01",
+      "2025-03-02",
+      "2025-03-05",
+      "2025-03-06",
+      "2025-03-07",
+    ];
+
+    const ranges = PlanningEventDateUtils.collapseDatesToRanges(dates, horizon);
+
+    expect(ranges).toEqual([
+      { start: "2025-03-01", end: "2025-03-02" },
+      { start: "2025-03-05", end: "2025-03-07" },
+    ]);
   });
 });

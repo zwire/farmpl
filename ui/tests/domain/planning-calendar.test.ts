@@ -92,8 +92,8 @@ describe("PlanningCalendarService", () => {
           cropId: "crop-spinach",
           name: "播種",
           category: "農作業",
-          startDates: ["2025-03-05"],
-          endDates: ["2025-03-07"],
+          startDates: ["2025-03-05", "2025-03-06"],
+          endDates: ["2025-03-07", "2025-03-08"],
           frequencyDays: undefined,
           precedingEventId: undefined,
           lag: { min: 1, max: 3 },
@@ -118,14 +118,13 @@ describe("PlanningCalendarService", () => {
       },
     };
 
-    const { plan: apiPlan, warnings } = PlanningCalendarService.convertToApiPlan(
-      plan,
-    );
+    const { plan: apiPlan, warnings } =
+      PlanningCalendarService.convertToApiPlan(plan);
 
     expect(warnings.length).toBeGreaterThan(0);
-    expect(
-      warnings.some((warning) => warning.type === "RANGE_CLIPPED"),
-    ).toBe(true);
+    expect(warnings.some((warning) => warning.type === "RANGE_CLIPPED")).toBe(
+      true,
+    );
 
     const parsed = planFormSchema.safeParse(apiPlan);
     expect(parsed.success).toBe(true);
@@ -135,8 +134,8 @@ describe("PlanningCalendarService", () => {
     expect(firstLand.blockedDays).toEqual([0, 2, 3, 8, 9]);
 
     const firstEvent = apiPlan.events[0];
-    expect(firstEvent.startCond).toEqual([4]);
-    expect(firstEvent.endCond).toEqual([6]);
+    expect(firstEvent.startCond).toEqual([4, 5]);
+    expect(firstEvent.endCond).toEqual([6, 7]);
   });
 
   it("records warnings for invalid date inputs while omitting them from the result", () => {
@@ -174,13 +173,12 @@ describe("PlanningCalendarService", () => {
       fixedAreas: [],
     };
 
-    const { plan: apiPlan, warnings } = PlanningCalendarService.convertToApiPlan(
-      plan,
-    );
+    const { plan: apiPlan, warnings } =
+      PlanningCalendarService.convertToApiPlan(plan);
 
-    expect(
-      warnings.some((warning) => warning.type === "INVALID_DATE"),
-    ).toBe(true);
+    expect(warnings.some((warning) => warning.type === "INVALID_DATE")).toBe(
+      true,
+    );
     expect(apiPlan.events[0].startCond).toBeUndefined();
   });
 
@@ -216,6 +214,8 @@ describe("PlanningCalendarService", () => {
     };
 
     const { plan: apiPlan } = PlanningCalendarService.convertToApiPlan(plan);
-    expect(apiPlan.lands[0].blockedDays).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(apiPlan.lands[0].blockedDays).toEqual([
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+    ]);
   });
 });

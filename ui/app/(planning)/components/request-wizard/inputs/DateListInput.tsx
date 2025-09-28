@@ -11,7 +11,11 @@ interface DateListInputProps {
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-export function DateListInput({ value, onChange, placeholder }: DateListInputProps) {
+export function DateListInput({
+  value,
+  onChange,
+  placeholder,
+}: DateListInputProps) {
   const [draft, setDraft] = useState("");
 
   const addDate = (input: string) => {

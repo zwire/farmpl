@@ -1,13 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export interface ComboBoxOption {
   value: string;
@@ -134,7 +128,12 @@ export function ComboBox({
             aria-haspopup="listbox"
             aria-expanded={isOpen}
           >
-            <span className={clsx("block truncate text-left", showPlaceholder && "text-slate-400")}>
+            <span
+              className={clsx(
+                "block truncate text-left",
+                showPlaceholder && "text-slate-400",
+              )}
+            >
               {displayLabel}
             </span>
           </button>
@@ -178,7 +177,7 @@ export function ComboBox({
                   type="button"
                   data-option-index={index}
                   className={clsx(
-                    "flex w-full flex-col items-start gap-1 px-3 py-2 text-left text-sm", 
+                    "flex w-full flex-col items-start gap-1 px-3 py-2 text-left text-sm",
                     option.value === value
                       ? "bg-sky-50 text-sky-700"
                       : "hover:bg-slate-100",
@@ -275,7 +274,10 @@ export function MultiComboBox({
   const selectedLabels = useMemo(() => {
     if (value.length === 0) return placeholder;
     const labels = value
-      .map((selected) => options.find((option) => option.value === selected)?.label)
+      .map(
+        (selected) =>
+          options.find((option) => option.value === selected)?.label,
+      )
       .filter((label): label is string => Boolean(label));
     if (labels.length === 0) return placeholder;
     if (labels.length <= 2) return labels.join(", ");
@@ -303,7 +305,14 @@ export function MultiComboBox({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        <span className={clsx("truncate text-left", showPlaceholder && "text-slate-400")}>{selectedLabels}</span>
+        <span
+          className={clsx(
+            "truncate text-left",
+            showPlaceholder && "text-slate-400",
+          )}
+        >
+          {selectedLabels}
+        </span>
         <div className="flex items-center gap-2">
           {value.length > 0 && !disabled && (
             <button
@@ -338,10 +347,7 @@ export function MultiComboBox({
               閉じる
             </button>
           </div>
-          <div
-            className="overflow-auto px-2 py-2"
-            style={{ maxHeight }}
-          >
+          <div className="overflow-auto px-2 py-2" style={{ maxHeight }}>
             {filtered.length === 0 ? (
               <p className="px-1 py-3 text-center text-xs text-slate-400">
                 一致する候補がありません
@@ -354,7 +360,9 @@ export function MultiComboBox({
                     key={option.value}
                     className={clsx(
                       "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm transition",
-                      isChecked ? "bg-sky-50 text-sky-700" : "hover:bg-slate-100",
+                      isChecked
+                        ? "bg-sky-50 text-sky-700"
+                        : "hover:bg-slate-100",
                     )}
                   >
                     <input
@@ -365,7 +373,9 @@ export function MultiComboBox({
                     />
                     <div className="flex flex-col">
                       <span className="font-medium">{option.label}</span>
-                      <span className="text-xs text-slate-500">{option.value}</span>
+                      <span className="text-xs text-slate-500">
+                        {option.value}
+                      </span>
                       {option.description && (
                         <span className="text-xs text-slate-400">
                           {option.description}

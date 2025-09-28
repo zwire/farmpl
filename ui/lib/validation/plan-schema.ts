@@ -109,7 +109,9 @@ const workerSchema = z
     id: requiredId,
     name: nonEmptyString,
     roles: z.array(nonEmptyString).default([]),
-    capacityPerDay: z.number().positive("キャパシティは正の数で入力してください"),
+    capacityPerDay: z
+      .number()
+      .positive("キャパシティは正の数で入力してください"),
     blockedDays: dayArray,
   })
   .strict();
@@ -376,15 +378,15 @@ export const buildApiPlanPayload = (plan: PlanFormState): ApiPlan => {
       name: event.name,
       category: event.category ?? null,
       start_cond: event.startCond ?? null,
-    end_cond: event.endCond ?? null,
-    frequency_days: event.frequencyDays ?? null,
-    preceding_event_id: event.precedingEventId ?? null,
-    lag_min_days: event.lag?.min ?? null,
-    lag_max_days: event.lag?.max ?? null,
-    people_required: event.labor?.peopleRequired ?? null,
-    labor_total_per_a: event.labor?.totalPerA ?? null,
-    labor_daily_cap: event.labor?.dailyCap ?? null,
-    required_roles: event.requiredRoles ?? null,
+      end_cond: event.endCond ?? null,
+      frequency_days: event.frequencyDays ?? null,
+      preceding_event_id: event.precedingEventId ?? null,
+      lag_min_days: event.lag?.min ?? null,
+      lag_max_days: event.lag?.max ?? null,
+      people_required: event.labor?.peopleRequired ?? null,
+      labor_total_per_a: event.labor?.totalPerA ?? null,
+      labor_daily_cap: event.labor?.dailyCap ?? null,
+      required_roles: event.requiredRoles ?? null,
       required_resources: event.requiredResources ?? null,
       uses_land: event.usesLand,
     })),
@@ -413,25 +415,25 @@ export const buildApiPlanPayload = (plan: PlanFormState): ApiPlan => {
     crop_area_bounds:
       parsed.cropAreaBounds.length > 0
         ? parsed.cropAreaBounds.map((bound) => ({
-          crop_id: bound.cropId,
-          min_area_a:
-            bound.minArea?.unit === "a" ? bound.minArea.value : undefined,
-          min_area_10a:
-            bound.minArea?.unit === "10a" ? bound.minArea.value : undefined,
-          max_area_a:
-            bound.maxArea?.unit === "a" ? bound.maxArea.value : undefined,
-          max_area_10a:
-            bound.maxArea?.unit === "10a" ? bound.maxArea.value : undefined,
-        }))
+            crop_id: bound.cropId,
+            min_area_a:
+              bound.minArea?.unit === "a" ? bound.minArea.value : undefined,
+            min_area_10a:
+              bound.minArea?.unit === "10a" ? bound.minArea.value : undefined,
+            max_area_a:
+              bound.maxArea?.unit === "a" ? bound.maxArea.value : undefined,
+            max_area_10a:
+              bound.maxArea?.unit === "10a" ? bound.maxArea.value : undefined,
+          }))
         : null,
     fixed_areas:
       parsed.fixedAreas.length > 0
         ? parsed.fixedAreas.map((fixed) => ({
-          land_id: fixed.landId,
-          crop_id: fixed.cropId,
-          area_a: fixed.area.unit === "a" ? fixed.area.value : null,
-          area_10a: fixed.area.unit === "10a" ? fixed.area.value : null,
-        }))
+            land_id: fixed.landId,
+            crop_id: fixed.cropId,
+            area_a: fixed.area.unit === "a" ? fixed.area.value : null,
+            area_10a: fixed.area.unit === "10a" ? fixed.area.value : null,
+          }))
         : null,
     preferences: parsed.preferences
       ? {

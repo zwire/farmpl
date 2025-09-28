@@ -27,16 +27,11 @@ export interface TimelineScale {
 }
 
 export const createTimelineScale = ({
-  type,
   startDateIso,
   totalDays,
   minUnitWidth = 18,
 }: TimelineScaleOptions): TimelineScale => {
-  switch (type) {
-    case "day":
-    default:
-      return createDayScale({ startDateIso, totalDays, minUnitWidth });
-  }
+  return createDayScale({ startDateIso, totalDays, minUnitWidth });
 };
 
 const createDayScale = ({
