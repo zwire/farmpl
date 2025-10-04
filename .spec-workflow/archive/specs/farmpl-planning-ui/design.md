@@ -115,12 +115,6 @@ graph TD
 - **Dependencies:** 同上チャートライブラリ。
 - **Reuses:** 同一カラーパレット、Legendコンポーネント。
 
-### ExportPanel
-- **Purpose:** JSON/CSVエクスポート、入力テンプレート保存。
-- **Interfaces:** `ExportPanel({ result, plan })`
-- **Dependencies:** `file-saver` ユーティリティ、`PlanSerializer`。
-- **Reuses:** 通知トースト。
-
 ### ValidationEngine
 - **Purpose:** Zodによるオブジェクトスキーマ検証、Pydanticと整合するクロスチェック。
 - **Interfaces:** `validatePlan(plan: PlanFormState): ValidationResult`

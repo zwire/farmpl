@@ -4,10 +4,9 @@ import { useMemo } from "react";
 
 import { usePlanningStore } from "@/lib/state/planning-store";
 import type { OptimizationResultView } from "@/lib/types/planning";
-import { ConstraintHints, MetricsCards } from "./index";
-import { MetricsCharts } from "../metrics/MetricsCharts";
-import { ExportPanel } from "../export/ExportPanel";
 import { GanttChart } from "../gantt/GanttChart";
+import { MetricsCharts } from "../metrics/MetricsCharts";
+import { ConstraintHints, MetricsCards } from "./index";
 
 interface ResultDashboardProps {
   onNavigateToSection?: (sectionId: string) => void;
@@ -50,8 +49,6 @@ export function ResultDashboard({ onNavigateToSection }: ResultDashboardProps) {
       />
 
       <GanttChart />
-
-      <ExportPanel />
     </section>
   );
 }

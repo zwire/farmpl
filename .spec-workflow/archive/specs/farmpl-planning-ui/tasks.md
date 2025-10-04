@@ -48,7 +48,7 @@
   - _Requirements: 4
   - _Prompt: Implement the task for spec farmpl-planning-ui, first run spec-workflow-guide to get the workflow guide then implement the task: Role: React data viz engineer | Task: Produce an interactive gantt chart with filters and tooltips for land spans/events per requirement 4 | Restrictions: Keep rendering performant (virtualize >200 bars), respect theme colors, ensure keyboard focus support | _Leverage: visx library, ui/lib/types/planning.ts | _Requirements: 4 | Success: Chart responds to filters, tooltips show details, renders within performance targets_
 
-- [x] 7. メトリクス可視化とエクスポート機能を追加する
+- [x] 7. メトリクス可視化とエクスポート機能を追加する (廃止済み)
   - Files: ui/app/(planning)/components/metrics/MetricsCharts.tsx, ui/lib/export/export-utils.ts
   - 内容: 目的関数やリソース利用のチャートを描画し、結果JSON/CSVおよび入力テンプレートJSONのエクスポートを実装する。
   - 目的: 要件3と要件5で求められる分析表示とデータ共有を支援する。
