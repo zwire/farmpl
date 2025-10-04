@@ -21,7 +21,7 @@ def list_templates() -> list[TemplateListItem]:
     return loader.list_items()
 
 
-class InstantiateRequest(inst.BaseModel):
+class InstantiateRequest(BaseModel):
     template_id: str
     start_date: date
     horizon_days: int

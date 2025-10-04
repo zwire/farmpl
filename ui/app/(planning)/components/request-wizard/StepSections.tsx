@@ -158,13 +158,16 @@ function CropsSection({
         const url = `${API_BASE_URL.replace(/\/$/, "")}/v1/templates/crops`;
         const headers: Record<string, string> = {};
         if (API_KEY) headers["X-API-Key"] = API_KEY;
-        if (BEARER_TOKEN) headers["Authorization"] = `Bearer ${BEARER_TOKEN}`;
+        if (BEARER_TOKEN) headers.Authorization = `Bearer ${BEARER_TOKEN}`;
         const resp = await fetch(url, { headers });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = (await resp.json()) as CropCatalogItem[];
         if (!aborted) setCatalog(data);
-      } catch (e: any) {
-        if (!aborted) setCatalogError(e?.message ?? String(e));
+      } catch (e: unknown) {
+        if (!aborted) {
+          const message = e instanceof Error ? e.message : String(e);
+          setCatalogError(message);
+        }
       }
     })();
     return () => {

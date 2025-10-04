@@ -1,7 +1,7 @@
 "use client";
 
 import type { ChangeEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { PlanningCalendarService } from "@/lib/domain/planning-calendar";
 import type { PlanUiEvent, PlanUiState } from "@/lib/domain/planning-ui-types";
@@ -90,7 +90,7 @@ export function EventPlanningSection({
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [startDate, setStartDate] = useState<string>(plan.horizon.startDate);
 
-  const refreshSuggestions = async () => {
+  const refreshSuggestions = useCallback(async () => {
     if (!API_BASE_URL || !selectedCropName) return;
     setVariantLoading(true);
     setVariantError(null);
@@ -98,19 +98,19 @@ export function EventPlanningSection({
       const url = `${API_BASE_URL.replace(/\/$/, "")}/v1/templates/crops/suggest?query=${encodeURIComponent(selectedCropName)}`;
       const headers: Record<string, string> = {};
       if (API_KEY) headers["X-API-Key"] = API_KEY;
-      if (BEARER_TOKEN) headers["Authorization"] = `Bearer ${BEARER_TOKEN}`;
+      if (BEARER_TOKEN) headers.Authorization = `Bearer ${BEARER_TOKEN}`;
       const resp = await fetch(url, { headers });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = (await resp.json()) as SuggestResponse;
       const flat = data.items.flatMap((it) => it.variants);
       setVariants(flat);
       if (flat[0]) setSelectedTemplateId(flat[0].template_id);
-    } catch (e: any) {
-      setVariantError(e?.message ?? String(e));
+    } catch (e: unknown) {
+      setVariantError(e instanceof Error ? e.message : String(e));
     } finally {
       setVariantLoading(false);
     }
-  };
+  }, [API_BASE_URL, API_KEY, BEARER_TOKEN, selectedCropName]);
 
   useEffect(() => {
     // auto-refresh when crop changes
@@ -120,15 +120,17 @@ export function EventPlanningSection({
     setVariantError(null);
     if (selectedCropName) void refreshSuggestions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCropName]);
+  }, [selectedCropName, plan.horizon.startDate, refreshSuggestions]);
 
   const initializeFromTemplate = async () => {
     if (!API_BASE_URL || !selectedTemplateId || !selectedCropId) return;
     try {
       const endpoint = `${API_BASE_URL.replace(/\/$/, "")}/v1/templates/instantiate-events`;
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
       if (API_KEY) headers["X-API-Key"] = API_KEY;
-      if (BEARER_TOKEN) headers["Authorization"] = `Bearer ${BEARER_TOKEN}`;
+      if (BEARER_TOKEN) headers.Authorization = `Bearer ${BEARER_TOKEN}`;
       const payload = {
         template_id: selectedTemplateId,
         start_date: startDate,
@@ -141,55 +143,62 @@ export function EventPlanningSection({
         body: JSON.stringify(payload),
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data: { events: {
-        id: string;
-        crop_id: string;
-        name: string;
-        category?: string | null;
-        start_cond?: number[] | null;
-        end_cond?: number[] | null;
-        frequency_days?: number | null;
-        preceding_event_id?: string | null;
-        lag_min_days?: number | null;
-        lag_max_days?: number | null;
-        people_required?: number | null;
-        labor_total_per_a?: number | null;
-        labor_daily_cap?: number | null;
-        required_roles?: string[] | null;
-        required_resources?: string[] | null;
-        uses_land: boolean;
-      }[] } = await resp.json();
+      const data: {
+        events: {
+          id: string;
+          crop_id: string;
+          name: string;
+          category?: string | null;
+          start_cond?: number[] | null;
+          end_cond?: number[] | null;
+          frequency_days?: number | null;
+          preceding_event_id?: string | null;
+          lag_min_days?: number | null;
+          lag_max_days?: number | null;
+          people_required?: number | null;
+          labor_total_per_a?: number | null;
+          labor_daily_cap?: number | null;
+          required_roles?: string[] | null;
+          required_resources?: string[] | null;
+          uses_land: boolean;
+        }[];
+      } = await resp.json();
 
       const toIsoDates = (indices?: number[] | null) =>
         (indices ?? undefined)?.map((i) =>
           PlanningCalendarService.dayIndexToDate(plan.horizon.startDate, i),
         );
 
-      const mapped = data.events.map((ev): PlanUiEvent => ({
-        id: ev.id,
-        cropId: selectedCropId,
-        name: ev.name,
-        category: ev.category ?? undefined,
-        startDates: toIsoDates(ev.start_cond),
-        endDates: toIsoDates(ev.end_cond),
-        frequencyDays: ev.frequency_days ?? undefined,
-        precedingEventId: ev.preceding_event_id ?? undefined,
-        lag:
-          ev.lag_min_days || ev.lag_max_days
-            ? { min: ev.lag_min_days ?? undefined, max: ev.lag_max_days ?? undefined }
-            : undefined,
-        labor:
-          ev.people_required || ev.labor_total_per_a || ev.labor_daily_cap
-            ? {
-                peopleRequired: ev.people_required ?? undefined,
-                totalPerA: ev.labor_total_per_a ?? undefined,
-                dailyCap: ev.labor_daily_cap ?? undefined,
-              }
-            : undefined,
-        requiredRoles: ev.required_roles ?? undefined,
-        requiredResources: ev.required_resources ?? undefined,
-        usesLand: ev.uses_land,
-      }));
+      const mapped = data.events.map(
+        (ev): PlanUiEvent => ({
+          id: ev.id,
+          cropId: selectedCropId,
+          name: ev.name,
+          category: ev.category ?? undefined,
+          startDates: toIsoDates(ev.start_cond),
+          endDates: toIsoDates(ev.end_cond),
+          frequencyDays: ev.frequency_days ?? undefined,
+          precedingEventId: ev.preceding_event_id ?? undefined,
+          lag:
+            ev.lag_min_days || ev.lag_max_days
+              ? {
+                  min: ev.lag_min_days ?? undefined,
+                  max: ev.lag_max_days ?? undefined,
+                }
+              : undefined,
+          labor:
+            ev.people_required || ev.labor_total_per_a || ev.labor_daily_cap
+              ? {
+                  peopleRequired: ev.people_required ?? undefined,
+                  totalPerA: ev.labor_total_per_a ?? undefined,
+                  dailyCap: ev.labor_daily_cap ?? undefined,
+                }
+              : undefined,
+          requiredRoles: ev.required_roles ?? undefined,
+          requiredResources: ev.required_resources ?? undefined,
+          usesLand: ev.uses_land,
+        }),
+      );
 
       onPlanChange((prev) => ({
         ...prev,

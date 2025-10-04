@@ -53,17 +53,54 @@ export function GanttChart({ className }: { className?: string }) {
 
   const { gantt: viewPrefs } = useViewPreferencesStore();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [drillDownRange, setDrillDownRange] = useState<{
+    startDay: number;
+    endDay: number;
+  } | null>(null);
 
   const baseViewModel = useGanttData(timeline ?? undefined, plan);
 
   const scale = useMemo(() => {
     if (!baseViewModel) return null;
+
+    if (drillDownRange) {
+      const drillDownStartDate = new Date(baseViewModel.startDateIso);
+      drillDownStartDate.setUTCDate(
+        drillDownStartDate.getUTCDate() + drillDownRange.startDay,
+      );
+
+      return createTimelineScale({
+        type: "day",
+        startDateIso: drillDownStartDate.toISOString(),
+        totalDays: drillDownRange.endDay - drillDownRange.startDay + 1,
+      });
+    }
+
     return createTimelineScale({
-      type: viewPrefs.scale,
+      type: "third",
       startDateIso: baseViewModel.startDateIso,
       totalDays: baseViewModel.totalDays,
     });
-  }, [baseViewModel, viewPrefs.scale]);
+  }, [baseViewModel, drillDownRange]);
+
+  const handleHeaderClick = (tickIndex: number) => {
+    if (drillDownRange || !baseViewModel) return;
+
+    const thirdScale = createTimelineScale({
+      type: "third",
+      startDateIso: baseViewModel.startDateIso,
+      totalDays: baseViewModel.totalDays,
+    });
+
+    const dayRange = thirdScale.tickToDayRange(tickIndex);
+    if (dayRange) {
+      setDrillDownRange(dayRange);
+    }
+  };
+
+  const handleBackToThirds = () => {
+    setDrillDownRange(null);
+  };
 
   const viewModel = useGanttViewModel(baseViewModel, viewPrefs.mode);
 
@@ -118,19 +155,22 @@ export function GanttChart({ className }: { className?: string }) {
     >
       {viewPrefs.mode === "land" ? "土地" : "作物"} / 日付
     </div>,
-    ...scale.ticks.map((tick) => (
-      <div
-        key={`header-${tick.day}`}
-        className={`flex flex-col items-center justify-center border border-slate-200 text-[11px] ${
+    ...scale.ticks.map((tick, index) => (
+      <button
+        type="button"
+        key={`header-${drillDownRange ? drillDownRange.startDay + tick.day : tick.day}`}
+        disabled={!!drillDownRange}
+        className={`flex w-full flex-col items-center justify-center border border-slate-200 text-[11px] disabled:cursor-default ${
           tick.isMajor
             ? "bg-slate-100 font-semibold text-slate-700"
             : "bg-white text-slate-500"
-        }`}
+        } ${!drillDownRange ? "cursor-pointer hover:bg-slate-200" : ""}`}
         style={{ height: HEADER_HEIGHT }}
         title={scale.formatTooltip(tick.day)}
+        onClick={() => handleHeaderClick(index)}
       >
         {tick.label}
-      </div>
+      </button>
     )),
   ];
 
@@ -146,8 +186,21 @@ export function GanttChart({ className }: { className?: string }) {
       </div>,
       ...scale.ticks.map((tick, tickIndex) => {
         let dayRange = scale.tickToDayRange(tickIndex);
+
+        if (drillDownRange && dayRange) {
+          dayRange = {
+            startDay: drillDownRange.startDay + dayRange.startDay,
+            endDay: drillDownRange.startDay + dayRange.endDay,
+          };
+        }
+
         if (!dayRange) {
-          const dayCell = scale.type === "day" ? dayCells[tick.day] : undefined;
+          const absoluteDay = drillDownRange
+            ? drillDownRange.startDay + tick.day
+            : tick.day;
+
+          const dayCell =
+            scale.type === "day" ? dayCells[absoluteDay] : undefined;
           if (!dayCell) {
             return (
               <div
@@ -157,7 +210,7 @@ export function GanttChart({ className }: { className?: string }) {
               ></div>
             );
           }
-          dayRange = { startDay: tick.day, endDay: tick.day };
+          dayRange = { startDay: absoluteDay, endDay: absoluteDay };
         }
 
         const eventsForTick = [];
@@ -217,7 +270,18 @@ export function GanttChart({ className }: { className?: string }) {
             <h3 className="text-lg font-semibold text-slate-900">
               タイムライン
             </h3>
-            <ViewControls />
+            <div className="flex items-center gap-4">
+              <ViewControls />
+              {drillDownRange && (
+                <button
+                  type="button"
+                  onClick={handleBackToThirds}
+                  className="rounded-lg p-2 text-sm text-blue-600 hover:underline"
+                >
+                  &larr; 旬表示に戻る
+                </button>
+              )}
+            </div>
             <CategoryLegend items={allCategories} />
           </header>
           <div className="relative overflow-x-auto">

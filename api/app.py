@@ -11,6 +11,9 @@ from core import rate_limit as rate_limit_mw
 from core.errors import install_exception_handlers
 from core.logging import configure_root_logger, request_logging_middleware
 from core.metrics import metrics
+from routers.optimize import router as optimize_router
+from routers.system import router as system_router
+from routers.templates import router as templates_router
 
 
 def _get_allowed_origins() -> list[str]:
@@ -70,30 +73,12 @@ def create_app() -> FastAPI:
         pass
 
     # Centralized error handlers (422/Domain/HTTP/500)
-    try:
-        install_exception_handlers(app)
-    except Exception:
-        pass
+    install_exception_handlers(app)
 
     # Mount routers
-    try:
-        from routers.optimize import router as optimize_router
-
-        app.include_router(optimize_router)
-    except Exception:
-        pass
-    try:
-        from routers.templates import router as templates_router
-
-        app.include_router(templates_router)
-    except Exception:
-        pass
-    try:
-        from routers.system import router as system_router
-
-        app.include_router(system_router)
-    except Exception:
-        pass
+    app.include_router(optimize_router)
+    app.include_router(templates_router)
+    app.include_router(system_router)
 
     @app.get("/healthz")
     def healthz() -> dict[str, str]:

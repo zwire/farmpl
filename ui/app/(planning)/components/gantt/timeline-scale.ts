@@ -279,7 +279,8 @@ const determineTickInterval = (totalDays: number): number => {
 };
 
 const parseIsoDate = (iso: string): Date => {
-  const [year, month, day] = iso.split("-").map(Number);
+  const datePart = iso.split("T")[0];
+  const [year, month, day] = datePart.split("-").map(Number);
   return new Date(Date.UTC(year, (month ?? 1) - 1, day ?? 1));
 };
 
