@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { WizardStepId } from "@/lib/state/wizard-steps";
 import type {
   PlanFormCrop,
@@ -130,6 +130,48 @@ function CropsSection({
   plan,
   onPlanChange,
 }: Pick<StepSectionsProps, "plan" | "onPlanChange">) {
+  const API_BASE_URL = process.env.NEXT_PUBLIC_FARMPL_API_BASE ?? "";
+  const API_KEY = process.env.NEXT_PUBLIC_FARMPL_API_KEY ?? "";
+  const BEARER_TOKEN = process.env.NEXT_PUBLIC_FARMPL_BEARER_TOKEN ?? "";
+
+  type CropVariantItem = {
+    template_id: string;
+    label: string;
+    variant?: string | null;
+    price_per_a?: number | null;
+    default_horizon_days?: number | null;
+  };
+  type CropCatalogItem = {
+    crop_name: string;
+    category?: string | null;
+    variants: CropVariantItem[];
+  };
+
+  const [catalog, setCatalog] = useState<CropCatalogItem[] | null>(null);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let aborted = false;
+    (async () => {
+      try {
+        if (!API_BASE_URL) return;
+        const url = `${API_BASE_URL.replace(/\/$/, "")}/v1/templates/crops`;
+        const headers: Record<string, string> = {};
+        if (API_KEY) headers["X-API-Key"] = API_KEY;
+        if (BEARER_TOKEN) headers["Authorization"] = `Bearer ${BEARER_TOKEN}`;
+        const resp = await fetch(url, { headers });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = (await resp.json()) as CropCatalogItem[];
+        if (!aborted) setCatalog(data);
+      } catch (e: any) {
+        if (!aborted) setCatalogError(e?.message ?? String(e));
+      }
+    })();
+    return () => {
+      aborted = true;
+    };
+  }, [API_BASE_URL, API_KEY, BEARER_TOKEN]);
+
   const handleUpdate = (index: number, patch: Partial<PlanFormCrop>) => {
     onPlanChange((prev) => {
       const next = [...prev.crops];
@@ -166,7 +208,7 @@ function CropsSection({
   return (
     <SectionCard
       title="作物"
-      description="計画に含める作物と価格を登録します"
+      description="計画に含める作物と価格を登録します。テンプレからも選べます"
       actionLabel="作物を追加"
       onAction={handleAdd}
       emptyMessage="作物が登録されていません。追加ボタンから作成してください。"
@@ -232,6 +274,36 @@ function CropsSection({
                 </select>
               </div>
             </Field>
+            <div className="md:col-span-3 grid grid-cols-1 gap-2">
+              <Field label="テンプレから作物を選択（任意）">
+                <ComboBox
+                  value={""}
+                  onChange={(value) => {
+                    if (!catalog) return;
+                    const item = catalog.find((it) => it.crop_name === value);
+                    if (!item) return;
+                    const v0 = item.variants[0];
+                    handleUpdate(index, {
+                      name: item.crop_name,
+                      category: item.category ?? "",
+                      price: v0?.price_per_a
+                        ? { unit: "a", value: v0.price_per_a }
+                        : crop.price,
+                    });
+                  }}
+                  options={(catalog ?? []).map(
+                    (it): ComboBoxOption => ({
+                      label: it.category
+                        ? `${it.crop_name}（${it.category}）`
+                        : it.crop_name,
+                      value: it.crop_name,
+                    }),
+                  )}
+                  disabled={!catalog || catalog.length === 0}
+                  placeholder={catalogError ?? "テンプレの作物名を選択"}
+                />
+              </Field>
+            </div>
           </div>
         </EntityCard>
       ))}

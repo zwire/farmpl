@@ -1,4 +1,7 @@
-from .optimizer_adapter import solve_sync, to_domain_plan
+"""Lightweight services namespace.
 
-__all__ = ["solve_sync", "to_domain_plan"]
+Avoid importing heavy submodules (e.g., optimizer/OR-Tools) at package import
+time to keep routers and tools importable without optional deps.
+"""
 
+__all__: list[str] = []

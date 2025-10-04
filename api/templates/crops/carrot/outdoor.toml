@@ -1,0 +1,65 @@
+[template]
+id = "carrot_rouchi"
+label = "ニンジン(露地)"
+crop_id = "cr"
+crop_name = "ニンジン"
+category = "vegetable"
+variant = "露地"
+price_per_a = 80000.0
+
+[horizon_hint]
+default_days = 130
+
+[seasonal]
+default = 1.0
+coeff_by_month = { "3"=1.10, "4"=1.0, "5"=0.95, "6"=0.90, "7"=0.90, "8"=0.95, "9"=1.0, "10"=1.10, "11"=1.25, "12"=1.40, "1"=1.50, "2"=1.40 }
+
+[[events]]
+id = "sow"
+name = "播種"
+category = "播種"
+uses_land = true          # 直まきで畝占有が始まる想定
+start_window_days = [1, 10]
+seasonal_scale = false
+labor_total_per_a = 1.2
+
+[[events]]
+id = "thinning"
+name = "間引き"
+category = "管理"
+uses_land = false
+preceding_event_id = "sow"
+lag_days = [20, 35]
+seasonal_scale = false
+labor_total_per_a = 1.0
+
+[[events]]
+id = "harvest_start"
+name = "収穫開始"
+category = "収穫"
+uses_land = true
+preceding_event_id = "sow"
+lag_days = [80, 110]
+seasonal_scale = true
+labor_total_per_a = 3.0
+
+[[events]]
+id = "harvest_end"
+name = "収穫終了"
+category = "収穫"
+uses_land = true
+preceding_event_id = "harvest_start"
+lag_days = [10, 25]
+seasonal_scale = false
+
+[[events]]
+id = "pesticide"
+name = "防除"
+category = "防除"
+uses_land = false
+preceding_event_id = "sow"
+lag_days = [20, 100]
+frequency_days = 14
+seasonal_scale = false
+labor_total_per_a = 0.6
+labor_daily_cap = 3.0

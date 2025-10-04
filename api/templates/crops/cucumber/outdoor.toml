@@ -1,0 +1,77 @@
+[template]
+id = "cucumber_rouchi"
+label = "キュウリ(露地)"
+crop_id = "ck"
+crop_name = "キュウリ"
+category = "vegetable"
+variant = "露地"
+price_per_a = 100000.0
+
+[horizon_hint]
+default_days = 140
+
+[seasonal]
+default = 1.0
+coeff_by_month = { "4"=0.95, "5"=0.90, "6"=0.85, "7"=0.85, "8"=0.90, "9"=1.0, "10"=1.10, "11"=1.25, "12"=1.40, "1"=1.50, "2"=1.40, "3"=1.10 }
+
+[[events]]
+id = "sow"
+name = "播種"
+category = "播種"
+uses_land = false
+start_window_days = [1, 7]
+seasonal_scale = false
+labor_total_per_a = 1.5
+
+[[events]]
+id = "transplant"
+name = "定植"
+category = "定植"
+uses_land = true
+preceding_event_id = "sow"
+lag_days = [20, 30]
+seasonal_scale = true
+labor_total_per_a = 4.0
+
+[[events]]
+id = "harvest_start"
+name = "収穫開始"
+category = "収穫"
+uses_land = true
+preceding_event_id = "transplant"
+lag_days = [25, 40]
+seasonal_scale = true
+labor_total_per_a = 4.0
+
+[[events]]
+id = "harvest_end"
+name = "収穫終了"
+category = "収穫"
+uses_land = true
+preceding_event_id = "harvest_start"
+lag_days = [35, 60]
+seasonal_scale = true
+
+[[events]]
+id = "care"
+name = "摘心・管理"
+category = "管理"
+uses_land = false
+preceding_event_id = "transplant"
+lag_days = [7, 50]
+frequency_days = 7
+seasonal_scale = false
+labor_total_per_a = 2.5
+labor_daily_cap = 4.0
+
+[[events]]
+id = "pesticide"
+name = "防除"
+category = "防除"
+uses_land = false
+preceding_event_id = "transplant"
+lag_days = [10, 110]
+frequency_days = 14
+seasonal_scale = false
+labor_total_per_a = 0.7
+labor_daily_cap = 3.0

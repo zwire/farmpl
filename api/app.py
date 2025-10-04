@@ -83,6 +83,12 @@ def create_app() -> FastAPI:
     except Exception:
         pass
     try:
+        from routers.templates import router as templates_router
+
+        app.include_router(templates_router)
+    except Exception:
+        pass
+    try:
         from routers.system import router as system_router
 
         app.include_router(system_router)
