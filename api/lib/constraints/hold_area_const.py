@@ -31,8 +31,9 @@ class HoldAreaConstConstraint(Constraint):
                         (land.id, crop.id, t - 1)
                     )
                     if occ_t is not None and occ_prev is not None:
-                        # If either side is active, keep constant (approx)
+                        # Enforce constancy only within continuous occupancy:
+                        # both previous and current day must be occupied.
                         model.Add(
                             ctx.variables.x_area_by_l_c_t[key_t]
                             == ctx.variables.x_area_by_l_c_t[key_prev]
-                        ).OnlyEnforceIf([occ_t])
+                        ).OnlyEnforceIf([occ_prev, occ_t])

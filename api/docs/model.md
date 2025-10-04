@@ -132,8 +132,10 @@ CP-SAT 実装ノート:
   - そのイベントが実行された最初の日と最後の日をそれぞれ $t^{\min}_c, t^{\max}_c$ とする。
   - CP-SAT では補助二値 $prefix_{c,t}$・$suffix_{c,t}$ を用いて、$occ_{c,t} = prefix_{c,t} \land suffix_{c,t}$ となるよう制約する。
   - これにより $occ_{c,t}=1$ となる日は $t^{\min}_c \le t \le t^{\max}_c$ に一致し、イベント間の空白期間でも占有が途切れない。
-- 占有中（$occ_{c,t}=1$）かつ非ブロック日では面積一定:
-  $$x_{l,c,t} = x_{l,c,t-1} \quad (\forall l,c,\; occ_{c,t}=1,\; t\notin blocked(l),\; t-1\notin blocked(l))$$
+- 占有セグメント内（連続占有）かつ非ブロック日では面積一定:
+  $$x_{l,c,t} = x_{l,c,t-1} \quad (\forall l,c,\; occ_{c,t-1}=1 \land occ_{c,t}=1,\; t\notin blocked(l),\; t-1\notin blocked(l))$$
+  備考: 占有が 0→1 に切り替わる境界日（開始日）や 1→0 の終了日には等式を課さない。これにより、
+  非占有日のゼロ値を開始日に引きずって FixedArea 等と矛盾する事態を避ける。
 - 占有解除の即時反映:
   - 各作物・日について $occ_{c,t}=0$ なら全圃場で当該作物面積は 0 に制限する。
   - 線形化は $x_{l,c,t} \le area_l \cdot occ_{c,t}$（面積を整数化したスケールでは $cap_l$ を用いる）で実現でき、最終 uses_land イベントの翌日以降やブロック日を跨いだ後に自動的に作付けを撤収する。
