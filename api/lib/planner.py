@@ -45,7 +45,6 @@ def plan(
     lock_tolerance_pct: float | None = None,
     lock_tolerance_by: dict[str, float] | None = None,
 ) -> PlanResponse:
-    print(request.events)
     # Default constraints (partial time-axis introduced)
     base_constraints: list[Constraint] = [
         LandCapacityConstraint(),

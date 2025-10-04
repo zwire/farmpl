@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 
 import type {
   DateRange,
   PlanUiEvent,
   PlanUiState,
 } from "@/lib/domain/planning-ui-types";
+import { EVENT_CATEGORY_OPTIONS } from "@/lib/domain/planning-ui-types";
 import { PlanningEventDateUtils } from "@/lib/state/planning-store";
 import {
   ComboBox,
@@ -54,6 +55,13 @@ export function EventDetailsPanel({
     ? plan.events.find((event) => event.id === eventId)
     : null;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const categoryOptionsId = useId();
+
+  const categoryOptions = useMemo(
+    () => EVENT_CATEGORY_OPTIONS.map((cat) => ({ value: cat, label: cat })),
+    [],
+  );
 
   const startRanges = useMemo(() => {
     if (!selectedEvent) return [];
@@ -204,6 +212,30 @@ export function EventDetailsPanel({
       </div>
 
       <Section title="基本情報">
+        <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">
+          対象作物:{" "}
+          <span className="font-medium text-slate-700">{cropDisplayName}</span>
+        </p>
+        <Field label="カテゴリ">
+          <input
+            list={categoryOptionsId}
+            value={selectedEvent.category ?? ""}
+            onChange={(event) => {
+              const newCategory = event.target.value || undefined;
+              update((prev) => ({
+                ...prev,
+                category: newCategory,
+                name: !prev.name ? (newCategory ?? prev.name) : prev.name,
+              }));
+            }}
+            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+          />
+          <datalist id={categoryOptionsId}>
+            {categoryOptions.map((opt) => (
+              <option key={opt.value} value={opt.value} />
+            ))}
+          </datalist>
+        </Field>
         <Field label="名称">
           <input
             value={selectedEvent.name}
@@ -213,22 +245,6 @@ export function EventDetailsPanel({
             className="rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
         </Field>
-        <Field label="カテゴリ">
-          <input
-            value={selectedEvent.category ?? ""}
-            onChange={(event) =>
-              update((prev) => ({
-                ...prev,
-                category: event.target.value || undefined,
-              }))
-            }
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-        </Field>
-        <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">
-          対象作物:{" "}
-          <span className="font-medium text-slate-700">{cropDisplayName}</span>
-        </p>
         <Field label="土地を使用">
           <select
             value={String(selectedEvent.usesLand)}

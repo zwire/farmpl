@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { PlanningCalendarService } from "@/lib/domain/planning-calendar";
 import type { PlanUiEvent, PlanUiState } from "@/lib/domain/planning-ui-types";
-import { createUniqueId } from "../request-wizard/utils";
 import { SectionCard } from "../request-wizard/SectionElements";
-import { EventGraphEditor } from "./EventGraphEditor";
+import { createUniqueId } from "../request-wizard/utils";
 import { EventDetailsPanel } from "./EventDetailsPanel";
+import { EventGraphEditor } from "./EventGraphEditor";
 
 interface EventPlanningSectionProps {
   plan: PlanUiState;

@@ -1,3 +1,4 @@
+import type { ZodIssue } from "zod";
 import type {
   AreaMeasurement,
   PlanFormCrop,
@@ -10,7 +11,6 @@ import type {
   PlanFormWorker,
   PriceMeasurement,
 } from "@/lib/types/planning";
-import type { ZodIssue } from "zod";
 
 export type IsoDateString = `${number}-${number}-${number}`;
 
@@ -66,6 +66,33 @@ export interface PlanUiState {
 
 export type PlanUiAreaMeasurement = AreaMeasurement;
 export type PlanUiPriceMeasurement = PriceMeasurement;
+
+export type EventCategory =
+  | "播種"
+  | "定植"
+  | "施肥"
+  | "除草"
+  | "防除"
+  | "潅水"
+  | "収穫"
+  | "出荷"
+  | "圃場準備"
+  | "片付け"
+  | "その他";
+
+export const EVENT_CATEGORY_OPTIONS: readonly EventCategory[] = [
+  "播種",
+  "定植",
+  "施肥",
+  "除草",
+  "防除",
+  "潅水",
+  "収穫",
+  "出荷",
+  "圃場準備",
+  "片付け",
+  "その他",
+];
 
 export type WarningType =
   | "INVALID_DATE"

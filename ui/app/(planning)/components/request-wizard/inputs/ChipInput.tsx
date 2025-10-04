@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import type { KeyboardEvent } from "react";
+import { useState } from "react";
 
 interface ChipInputProps {
   value: string[];
