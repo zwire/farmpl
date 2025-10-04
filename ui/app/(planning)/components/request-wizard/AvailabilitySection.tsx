@@ -1,5 +1,11 @@
 "use client";
 
+import type {
+  PlanUiLand,
+  PlanUiResource,
+  PlanUiState,
+  PlanUiWorker,
+} from "@/lib/domain/planning-ui-types";
 import { ChipInput } from "./inputs/ChipInput";
 import { DateRangeInput } from "./inputs/DateRangeInput";
 import {
@@ -9,13 +15,6 @@ import {
   SectionCard,
 } from "./SectionElements";
 import { createUniqueId } from "./utils";
-
-import type {
-  PlanUiLand,
-  PlanUiResource,
-  PlanUiState,
-  PlanUiWorker,
-} from "@/lib/domain/planning-ui-types";
 
 interface AvailabilitySectionProps {
   step: "lands" | "workers" | "resources";

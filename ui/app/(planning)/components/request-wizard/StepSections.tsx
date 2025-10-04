@@ -77,7 +77,7 @@ export function StepSections({
           />
         );
       case "events":
-        return <EventsSection plan={plan} onPlanChange={onPlanChange} />;
+        return <EventsSection plan={plan} />;
       default:
         return null;
     }
@@ -89,8 +89,8 @@ export function StepSections({
         <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">
           <p className="font-semibold">入力エラー</p>
           <ul className="ml-4 list-disc">
-            {errors.map((error) => (
-              <li key={error}>{error}</li>
+            {errors.map((error, index) => (
+              <li key={index.toString()}>{error}</li>
             ))}
           </ul>
         </div>
@@ -157,7 +157,7 @@ function CropsSection({
           ),
           name: "",
           category: "",
-          price: undefined,
+          price: { unit: "a", value: 1 },
         },
       ],
     }));
@@ -239,10 +239,7 @@ function CropsSection({
   );
 }
 
-function EventsSection({
-  plan,
-  onPlanChange,
-}: Pick<StepSectionsProps, "plan" | "onPlanChange">) {
+function EventsSection({ plan }: Pick<StepSectionsProps, "plan">) {
   return (
     <SectionCard
       title="イベント"
@@ -716,7 +713,7 @@ function ConstraintsSection({
         {
           landId: prev.lands[0]?.id ?? "",
           cropId: prev.crops[0]?.id ?? "",
-          area: { unit: "a", value: 0 },
+          area: { unit: "a", value: 0.1 },
         },
       ],
     }));

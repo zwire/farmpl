@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-
-import { validatePlan } from "@/lib/validation/plan-schema";
 import type { PlanFormState } from "@/lib/types/planning";
+import { validatePlan } from "@/lib/validation/plan-schema";
 
 const buildValidPlan = (): PlanFormState => ({
   horizon: { numDays: 30 },
