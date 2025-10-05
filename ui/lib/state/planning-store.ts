@@ -433,6 +433,7 @@ export interface PlanningStoreState {
   isSubmitting: boolean;
   submissionError: string | null;
   lastResult: OptimizationResultView | null;
+  lastJobId: string | null;
   setPlan: (plan: PlanUiState) => void;
   updatePlan: (updater: (prev: PlanUiState) => PlanUiState) => void;
   setCurrentStep: (step: WizardStepId) => void;
@@ -443,6 +444,7 @@ export interface PlanningStoreState {
   setIsSubmitting: (value: boolean) => void;
   setSubmissionError: (message: string | null) => void;
   setLastResult: (result: OptimizationResultView | null) => void;
+  setLastJobId: (jobId: string | null) => void;
 }
 
 const STEP_IDS = new Set(WIZARD_STEP_IDS);
@@ -458,6 +460,7 @@ export const usePlanningStore = create<PlanningStoreState>((set) => ({
   isSubmitting: false,
   submissionError: null,
   lastResult: null,
+  lastJobId: null,
   setPlan: (plan) => set({ plan: sanitizePlan(plan), isDirty: true }),
   updatePlan: (updater) =>
     set((state) => ({
@@ -485,6 +488,7 @@ export const usePlanningStore = create<PlanningStoreState>((set) => ({
   setIsSubmitting: (value) => set({ isSubmitting: value }),
   setSubmissionError: (message) => set({ submissionError: message }),
   setLastResult: (result) => set({ lastResult: result }),
+  setLastJobId: (jobId) => set({ lastJobId: jobId }),
 }));
 
 const toDraftData = (

@@ -40,6 +40,7 @@ export function RequestWizard() {
     (state) => state.setSubmissionError,
   );
   const setLastResult = usePlanningStore((state) => state.setLastResult);
+  const setLastJobId = usePlanningStore((state) => state.setLastJobId);
 
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
@@ -152,7 +153,9 @@ export function RequestWizard() {
     setSubmissionError(null);
 
     try {
-      const endpoint = `${API_BASE_URL.replace(/\/$/, "")}/v1/optimize`;
+      // Use async optimize to obtain job_id, then poll and set result.
+      const base = API_BASE_URL.replace(/\/$/, "");
+      const endpoint = `${base}/v1/optimize/async`;
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
@@ -179,8 +182,35 @@ export function RequestWizard() {
         }
         throw new Error(message);
       }
-      const result = await response.json();
-      setLastResult(mapApiResultToView(result));
+      const job = (await response.json()) as { job_id: string };
+      setLastJobId(job.job_id);
+
+      // poll job endpoint until succeeded/failed
+      const jobUrl = `${base}/v1/jobs/${job.job_id}`;
+      const pollHeaders = headers;
+      let attempts = 0;
+      const maxAttempts = 60; // ~60 * 2000ms = 120s
+      while (attempts++ < maxAttempts) {
+        const jr = await fetch(jobUrl, { headers: pollHeaders });
+        if (!jr.ok)
+          throw new Error(`ジョブ取得に失敗しました (status ${jr.status})`);
+        const info = (await jr.json()) as {
+          status: string;
+          result?: unknown | null;
+        };
+        if (info.status === "succeeded" && info.result) {
+          setLastResult(mapApiResultToView(info.result as any));
+          break;
+        }
+        if (
+          info.status === "failed" ||
+          info.status === "timeout" ||
+          info.status === "canceled"
+        ) {
+          throw new Error(`ジョブが失敗しました: ${info.status}`);
+        }
+        await new Promise((r) => setTimeout(r, 2000));
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "最適化の実行に失敗しました。";

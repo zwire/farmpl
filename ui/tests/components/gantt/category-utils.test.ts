@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { classifyEventCategory } from "@/app/(planning)/components/gantt/classifyEventCategory";
-import { colorForCategory } from "@/app/(planning)/components/gantt/colorForCategory";
+import { classifyEventCategory } from "@/app/(planning)/components/metrics/gantt/classifyEventCategory";
+import { colorForCategory } from "@/app/(planning)/components/metrics/gantt/colorForCategory";
 import { EVENT_CATEGORY_OPTIONS } from "@/lib/domain/planning-ui-types";
 
 describe("classifyEventCategory", () => {

@@ -365,3 +365,51 @@ export interface OptimizationRequestDraft {
 
 // Utility types for downstream selectors / helpers
 export type IdMap<T extends { id: string }> = Record<string, T>;
+
+// ========================= Metrics timeline types ========================= //
+
+export type MetricsInterval = "decade" | "day";
+
+export interface MetricsEventMetric {
+  id: string;
+  label: string;
+  start_day: number; // 0-based day index
+  end_day?: number | null;
+  type?: string | null;
+}
+
+export interface MetricsWorkerMetric {
+  worker_id: string;
+  name: string;
+  utilization: number; // hours used within bucket
+  capacity: number; // capacity hours within bucket
+}
+
+export interface MetricsLandMetric {
+  land_id: string;
+  name: string;
+  utilization: number; // area used within bucket
+  capacity: number; // capacity area within bucket
+}
+
+export interface MetricsDaySummary {
+  labor_total_hours: number;
+  labor_capacity_hours: number;
+  land_total_area: number;
+  land_capacity_area: number;
+}
+
+export interface MetricsDayRecord {
+  interval: MetricsInterval;
+  day_index?: number | null; // present when interval=day
+  period_key?: string | null; // present when interval=decade (e.g., 000:U)
+  events: MetricsEventMetric[];
+  workers: MetricsWorkerMetric[];
+  lands: MetricsLandMetric[];
+  summary: MetricsDaySummary;
+}
+
+export interface MetricsTimelineResponse {
+  interval: MetricsInterval;
+  records: MetricsDayRecord[];
+}

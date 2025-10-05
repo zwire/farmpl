@@ -2,10 +2,20 @@
 
 import { extent } from "d3-array";
 
-import type { OptimizationResultView } from "@/lib/types/planning";
+import { useEffect, useMemo, useState } from "react";
+import type {
+  MetricsInterval,
+  MetricsTimelineResponse,
+  OptimizationResultView,
+} from "@/lib/types/planning";
+import { mapTimelineResponse } from "@/lib/types/result-mapper";
+import { GanttChart } from "./gantt/GanttChart";
+import { LandsTimeline } from "./LandsTimeline";
+import { WorkersTimeline } from "./WorkersTimeline";
 
 interface MetricsChartsProps {
   result: OptimizationResultView | null;
+  jobId?: string; // optional: when provided, enables timeline fetch
 }
 
 interface MetricDatum {
@@ -16,8 +26,74 @@ interface MetricDatum {
 }
 
 const MAX_BARS = 6;
+const API_BASE_URL = process.env.NEXT_PUBLIC_FARMPL_API_BASE ?? "";
+const API_KEY = process.env.NEXT_PUBLIC_FARMPL_API_KEY ?? "";
+const BEARER_TOKEN = process.env.NEXT_PUBLIC_FARMPL_BEARER_TOKEN ?? "";
 
-export function MetricsCharts({ result }: MetricsChartsProps) {
+export function MetricsCharts({ result, jobId }: MetricsChartsProps) {
+  const [tab, setTab] = useState<"events" | "workers" | "lands">("events");
+  const [bucket, setBucket] = useState<MetricsInterval>("decade");
+  const [timeline, setTimeline] = useState<MetricsTimelineResponse | null>(
+    null,
+  );
+
+  const { startDay, endDay } = useMemo(() => {
+    // Derive a sensible default range from the current result timeline (if any)
+    const tl = result?.timeline;
+    if (!tl) return { startDay: 0, endDay: 29 };
+    const dayVals: number[] = [];
+    for (const e of tl.events ?? []) {
+      dayVals.push(e.day - 1);
+    }
+    for (const s of tl.landSpans ?? []) {
+      dayVals.push(s.startDay - 1);
+      dayVals.push(s.endDay - 1);
+    }
+    const min = Math.max(0, Math.min(...(dayVals.length ? dayVals : [0])));
+    const max = Math.max(...(dayVals.length ? dayVals : [29]));
+    return { startDay: min, endDay: max };
+  }, [result]);
+
+  const finished = result?.status === "ok";
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      // ジョブ未完了 or jobIdなし or API_BASE未設定なら問い合わせない
+      if (!jobId || !finished || !API_BASE_URL) {
+        setTimeline(null);
+        return;
+      }
+      const params = new URLSearchParams({
+        job_id: jobId,
+        start_day: String(startDay),
+        end_day: String(endDay),
+        bucket,
+      });
+      const endpoint = `${API_BASE_URL.replace(/\/$/, "")}/v1/metrics/timeline?${params.toString()}`;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (API_KEY) {
+        headers["X-API-Key"] = API_KEY;
+      }
+      if (BEARER_TOKEN) {
+        headers.Authorization = `Bearer ${BEARER_TOKEN}`;
+      }
+      const res = await fetch(endpoint, { headers });
+      if (!res.ok) {
+        setTimeline(null);
+        return;
+      }
+      const json = await res.json();
+      if (!cancelled) setTimeline(mapTimelineResponse(json));
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId, finished, startDay, endDay, bucket]);
+
   if (!result) {
     return (
       <section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
@@ -49,6 +125,72 @@ export function MetricsCharts({ result }: MetricsChartsProps) {
       <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
         メトリクス可視化
       </h3>
+      {/* Timelines (optional, only when jobId is provided) */}
+      {jobId ? (
+        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+          <div className="flex items-center justify-between">
+            <div className="flex gap-2 text-sm">
+              <button
+                type="button"
+                className={tabBtn(tab === "events")}
+                onClick={() => setTab("events")}
+              >
+                イベント
+              </button>
+              <button
+                type="button"
+                className={tabBtn(tab === "workers")}
+                onClick={() => setTab("workers")}
+              >
+                作業者
+              </button>
+              <button
+                type="button"
+                className={tabBtn(tab === "lands")}
+                onClick={() => setTab("lands")}
+              >
+                土地
+              </button>
+            </div>
+            <div className="flex gap-2 text-xs">
+              <button
+                type="button"
+                className={tabBtn(bucket === "decade")}
+                onClick={() => setBucket("decade")}
+              >
+                旬
+              </button>
+              <button
+                type="button"
+                className={tabBtn(bucket === "day")}
+                onClick={() => setBucket("day")}
+              >
+                日
+              </button>
+            </div>
+          </div>
+          {tab === "events" ? (
+            // 既存のガントチャートをそのまま再利用
+            <GanttChart />
+          ) : timeline ? (
+            tab === "workers" ? (
+              <WorkersTimeline
+                interval={timeline.interval}
+                records={timeline.records}
+              />
+            ) : (
+              <LandsTimeline
+                interval={timeline.interval}
+                records={timeline.records}
+              />
+            )
+          ) : (
+            <p className="text-xs text-slate-500">
+              ジョブ完了後にタイムラインを表示します。
+            </p>
+          )}
+        </div>
+      ) : null}
       <div className="grid gap-6 md:grid-cols-2">
         {datasets.map((dataset) => (
           <BarChart
@@ -137,3 +279,12 @@ const BarChart = ({ title, data }: BarChartProps) => {
 };
 
 export { extractMetrics };
+
+function tabBtn(active: boolean) {
+  return (
+    "rounded-md border px-2 py-1 " +
+    (active
+      ? "border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-900/20 dark:text-sky-300"
+      : "border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400")
+  );
+}

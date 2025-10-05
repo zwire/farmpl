@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from schemas import JobInfo, OptimizationRequest
 
-from .job_backend import InMemoryJobBackend, JobBackend
+from .job_backend import InMemoryJobBackend, JobBackend, JobSnapshot
 
 _backend: JobBackend = InMemoryJobBackend()
 
@@ -21,3 +21,7 @@ def cancel(job_id: str) -> bool:
 
 def shutdown(wait: bool = False) -> None:
     _backend.shutdown(wait=wait)
+
+
+def snapshot(job_id: str) -> JobSnapshot:
+    return _backend.snapshot(job_id)
