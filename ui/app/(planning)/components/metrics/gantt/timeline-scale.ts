@@ -226,22 +226,13 @@ const createDayScale = ({
 
   const tickInterval = determineTickInterval(totalDays);
   const ticks: TimelineTick[] = [];
-  for (let day = 0; day < totalDays; day += tickInterval) {
+  for (let day = 0; day < totalDays; day++) {
     const date = addDays(baseDate, day);
     ticks.push({
       day,
       x: day * unitWidth,
       label: formatter.format(date),
       isMajor: date.getUTCDate() === 1 || tickInterval === 1,
-    });
-  }
-  if (ticks.length > 0 && ticks[ticks.length - 1]?.day !== totalDays - 1) {
-    const lastDate = addDays(baseDate, totalDays - 1);
-    ticks.push({
-      day: totalDays - 1,
-      x: (totalDays - 1) * unitWidth,
-      label: formatter.format(lastDate),
-      isMajor: true,
     });
   }
 
@@ -255,10 +246,8 @@ const createDayScale = ({
       Math.max(endDay - startDay + 1, 0) * unitWidth,
     formatTooltip: (day) => tooltipFormatter.format(addDays(baseDate, day)),
     tickToDayRange: (tickIndex: number) => {
-      // For day scale, tick.day is the day index, which is the same as the tickIndex if interval is 1.
-      // The ticks array may not be contiguous, so we should get it from there.
-      const tick = ticks.find((t) => t.day === tickIndex);
-      if (!tick) return null; // Should not happen in practice for day scale
+      const tick = ticks[tickIndex];
+      if (!tick) return null;
       return { startDay: tick.day, endDay: tick.day };
     },
   };
@@ -273,9 +262,9 @@ const determineUnitWidth = (totalDays: number): number => {
 
 const determineTickInterval = (totalDays: number): number => {
   if (totalDays <= 35) return 1;
-  if (totalDays <= 90) return 7;
-  if (totalDays <= 180) return 14;
-  return 30;
+  if (totalDays <= 90) return 3; // More frequent labels
+  if (totalDays <= 180) return 7; // More frequent labels
+  return 14; // More frequent labels
 };
 
 const parseIsoDate = (iso: string): Date => {

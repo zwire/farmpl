@@ -10,8 +10,6 @@ import type {
 } from "@/lib/types/planning";
 import { mapTimelineResponse } from "@/lib/types/result-mapper";
 import { GanttChart } from "./gantt/GanttChart";
-import { LandsTimeline } from "./LandsTimeline";
-import { WorkersTimeline } from "./WorkersTimeline";
 
 interface MetricsChartsProps {
   result: OptimizationResultView | null;
@@ -31,7 +29,6 @@ const API_KEY = process.env.NEXT_PUBLIC_FARMPL_API_KEY ?? "";
 const BEARER_TOKEN = process.env.NEXT_PUBLIC_FARMPL_BEARER_TOKEN ?? "";
 
 export function MetricsCharts({ result, jobId }: MetricsChartsProps) {
-  const [tab, setTab] = useState<"events" | "workers" | "lands">("events");
   const [bucket, setBucket] = useState<MetricsInterval>("decade");
   const [timeline, setTimeline] = useState<MetricsTimelineResponse | null>(
     null,
@@ -116,7 +113,7 @@ export function MetricsCharts({ result, jobId }: MetricsChartsProps) {
     datasets.push({ title: "サマリメトリクス", values: summaryMetrics });
   }
 
-  if (datasets.length === 0) {
+  if (datasets.length === 0 && !jobId) {
     return null;
   }
 
@@ -127,31 +124,8 @@ export function MetricsCharts({ result, jobId }: MetricsChartsProps) {
       </h3>
       {/* Timelines (optional, only when jobId is provided) */}
       {jobId ? (
-        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
-          <div className="flex items-center justify-between">
-            <div className="flex gap-2 text-sm">
-              <button
-                type="button"
-                className={tabBtn(tab === "events")}
-                onClick={() => setTab("events")}
-              >
-                イベント
-              </button>
-              <button
-                type="button"
-                className={tabBtn(tab === "workers")}
-                onClick={() => setTab("workers")}
-              >
-                作業者
-              </button>
-              <button
-                type="button"
-                className={tabBtn(tab === "lands")}
-                onClick={() => setTab("lands")}
-              >
-                土地
-              </button>
-            </div>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-end">
             <div className="flex gap-2 text-xs">
               <button
                 type="button"
@@ -169,37 +143,20 @@ export function MetricsCharts({ result, jobId }: MetricsChartsProps) {
               </button>
             </div>
           </div>
-          {tab === "events" ? (
-            // 既存のガントチャートをそのまま再利用
-            <GanttChart />
-          ) : timeline ? (
-            tab === "workers" ? (
-              <WorkersTimeline
-                interval={timeline.interval}
-                records={timeline.records}
-              />
-            ) : (
-              <LandsTimeline
-                interval={timeline.interval}
-                records={timeline.records}
-              />
-            )
-          ) : (
-            <p className="text-xs text-slate-500">
-              ジョブ完了後にタイムラインを表示します。
-            </p>
-          )}
+          <GanttChart timeline={timeline} />
         </div>
       ) : null}
-      <div className="grid gap-6 md:grid-cols-2">
-        {datasets.map((dataset) => (
-          <BarChart
-            key={dataset.title}
-            title={dataset.title}
-            data={dataset.values}
-          />
-        ))}
-      </div>
+      {datasets.length > 0 ? (
+        <div className="grid gap-6 md:grid-cols-2">
+          {datasets.map((dataset) => (
+            <BarChart
+              key={dataset.title}
+              title={dataset.title}
+              data={dataset.values}
+            />
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }
