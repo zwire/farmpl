@@ -46,6 +46,16 @@ def sync_timeout_ms() -> int:
         return 30000
 
 
+def cp_num_workers() -> int:
+    v = os.getenv("CP_NUM_WORKERS", "0").strip()
+    try:
+        iv = int(v)
+        # 0 lets OR-Tools auto-detect; negative treated as 0
+        return max(0, min(iv, 64))
+    except ValueError:
+        return 0
+
+
 def async_timeout_s() -> int:
     v = os.getenv("ASYNC_TIMEOUT_S", "1800").strip()
     try:

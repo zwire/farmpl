@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from schemas import JobInfo, OptimizationRequest, OptimizationResult
 
-from .optimizer_adapter import solve_sync as _solve_sync
+from . import optimizer_adapter as _oa
 
 
 @runtime_checkable
@@ -89,7 +89,8 @@ class InMemoryJobBackend:
                         st.progress = 1.0
                         st.completed_at = datetime.now(UTC)
                     return
-                res = _solve_sync(st.req)
+                # Resolve at call time so test monkeypatching works
+                res = _oa.solve_sync(st.req)
                 with self._lock:
                     st.result = res
                     st.status = "succeeded" if res.status == "ok" else res.status  # type: ignore[assignment]

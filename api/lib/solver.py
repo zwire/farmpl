@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 
 from ortools.sat.python import cp_model
@@ -22,12 +23,55 @@ class SolveContext:
     idle_by_l_t_values: dict[tuple[str, int], int] | None = None
     occ_by_c_t_values: dict[tuple[str, int], int] | None = None
     occ_by_l_c_t_values: dict[tuple[str, str, int], int] | None = None
+    # timings
+    solve_ms: float | None = None
 
 
-def solve(ctx: BuildContext) -> SolveContext:
+def solve(ctx: BuildContext, prev: SolveContext | None = None) -> SolveContext:
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 5.0
+    # Configure from env if available
+    try:
+        from core import config as _cfg
+
+        mt = _cfg.sync_timeout_ms()
+        nw = getattr(_cfg, "cp_num_workers", lambda: 0)()
+    except Exception:
+        mt = 5000
+        nw = 0
+    solver.parameters.max_time_in_seconds = max(0.1, (mt or 5000) / 1000.0)
+    if isinstance(nw, int) and nw >= 0:
+        solver.parameters.num_search_workers = nw
+
+    # Warm start with hints from previous solution
+    if prev is not None:
+        # Per-day areas
+        if prev.x_area_by_l_c_t_values is not None:
+            for key, var in ctx.variables.x_area_by_l_c_t.items():
+                if key in prev.x_area_by_l_c_t_values:
+                    try:
+                        ctx.model.AddHint(var, int(prev.x_area_by_l_c_t_values[key]))
+                    except AttributeError:
+                        pass
+        # Use flags
+        if prev.z_use_by_l_c_values is not None:
+            for key, var in ctx.variables.z_use_by_l_c.items():
+                if key in prev.z_use_by_l_c_values:
+                    try:
+                        ctx.model.AddHint(var, int(prev.z_use_by_l_c_values[key]))
+                    except AttributeError:
+                        pass
+        # Event actives
+        if prev.r_event_by_e_t_values is not None:
+            for key, var in ctx.variables.r_event_by_e_t.items():
+                if key in prev.r_event_by_e_t_values:
+                    try:
+                        ctx.model.AddHint(var, int(prev.r_event_by_e_t_values[key]))
+                    except AttributeError:
+                        pass
+
+    t0 = time.perf_counter()
     status = solver.Solve(ctx.model)
+    t1 = time.perf_counter()
 
     status_map = {
         cp_model.OPTIMAL: "OPTIMAL",
@@ -38,6 +82,7 @@ def solve(ctx: BuildContext) -> SolveContext:
     }
 
     sc = SolveContext(build=ctx, status=status_map.get(status, "UNKNOWN"))
+    sc.solve_ms = (t1 - t0) * 1000.0
     if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         sc.objective_value = solver.ObjectiveValue()
         # Extract variable values

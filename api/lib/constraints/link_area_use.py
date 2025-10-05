@@ -27,14 +27,23 @@ class LinkAreaUseConstraint(Constraint):
                     ctx.variables.z_use_by_l_c[key] = model.NewBoolVar(
                         f"z_{land.id}_{crop.id}"
                     )
-                # per-day links (also create envelope base x[l,c] for reporting)
+                # base envelope x[l,c] for reporting
                 if key not in ctx.variables.x_area_by_l_c:
                     ctx.variables.x_area_by_l_c[key] = model.NewIntVar(
                         0, cap, f"x_{land.id}_{crop.id}"
                     )
+                base = ctx.variables.x_area_by_l_c[key]
                 crop_uses_land = crop.id in uses_land_crops
                 blocked = land.blocked_days or set()
-                for t in range(1, H + 1):
+                # Per-day creation:
+                # - If crop has uses_land events, restrict to possible occupancy span
+                # - Otherwise (no occupancy model), create for all days to keep
+                #   legacy behavior and allow bounds/idle objectives to operate.
+                occ_days = ctx.occ_days_by_crop.get(crop.id, set())
+                days_iter = (
+                    range(1, H + 1) if not occ_days else sorted(occ_days)
+                )
+                for t in days_iter:
                     key_t = (land.id, crop.id, t)
                     if key_t not in ctx.variables.x_area_by_l_c_t:
                         ctx.variables.x_area_by_l_c_t[key_t] = model.NewIntVar(
@@ -53,11 +62,9 @@ class LinkAreaUseConstraint(Constraint):
                         <= cap * ctx.variables.z_use_by_l_c[key]
                     )
                     # Upper bound by base envelope always
-                    base = ctx.variables.x_area_by_l_c[key]
                     model.Add(ctx.variables.x_area_by_l_c_t[key_t] <= base)
                     # Tie to base:
                     # - If occupancy is modeled: equality only when occ=1 and not blocked
-                    # - If occupancy is not modeled: keep original non-blocked equality
                     if occ_l is not None:
                         model.Add(
                             ctx.variables.x_area_by_l_c_t[key_t] <= cap * occ_l
@@ -68,9 +75,8 @@ class LinkAreaUseConstraint(Constraint):
                                 ctx.variables.x_area_by_l_c_t[key_t] == base
                             ).OnlyEnforceIf(occ_l)
                         else:
-                            model.Add(
-                                ctx.variables.x_area_by_l_c_t[key_t] == base
-                            )
+                            # No occupancy modeling: keep original equality
+                            model.Add(ctx.variables.x_area_by_l_c_t[key_t] == base)
                     else:
                         if occ_l is not None:
                             model.Add(occ_l == 0)

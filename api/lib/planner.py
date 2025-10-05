@@ -32,6 +32,7 @@ from .schemas import (
     ResourceUsageRef,
     WorkerRef,
 )
+import time
 from .solver import solve
 
 
@@ -91,7 +92,9 @@ def plan(
     reason = None
     tol = float(lock_tolerance_pct or 0.0)
     for name, sense in stage_defs:
+        t_build0 = time.perf_counter()
         ctx = build_model(request, base_constraints, [])
+        t_build1 = time.perf_counter()
         # Apply previous locks
         for lname, lsense, val in locks:
             if lname == "profit":
@@ -137,7 +140,7 @@ def plan(
             # Unknown extra stage; skip
             continue
 
-        res = solve(ctx)
+        res = solve(ctx, prev=last_res)
         last_ctx = ctx
         last_res = res
         if res.status not in ("FEASIBLE", "OPTIMAL"):
@@ -146,7 +149,29 @@ def plan(
         # lock value and record summary
         val = int(res.objective_value or 0)
         locks.append((name, sense, val))
-        stage_summaries.append({"name": name, "sense": sense, "value": val})
+        # quick variable counts
+        vars_count = {
+            "x_lct": len(ctx.variables.x_area_by_l_c_t),
+            "x_lc": len(ctx.variables.x_area_by_l_c),
+            "z_lc": len(ctx.variables.z_use_by_l_c),
+            "r_et": len(ctx.variables.r_event_by_e_t),
+            "h_wet": len(ctx.variables.h_time_by_w_e_t),
+            "assign_wet": len(ctx.variables.assign_by_w_e_t),
+            "u_ret": len(ctx.variables.u_time_by_r_e_t),
+            "idle_lt": len(ctx.variables.idle_by_l_t),
+            "occ_ct": len(ctx.variables.occ_by_c_t),
+            "occ_lct": len(ctx.variables.occ_by_l_c_t),
+        }
+        stage_summaries.append(
+            {
+                "name": name,
+                "sense": sense,
+                "value": val,
+                "vars": vars_count,
+                "build_ms": (t_build1 - t_build0) * 1000.0,
+                "solve_ms": res.solve_ms,
+            }
+        )
 
     feasible = bool(last_res and last_res.status in ("FEASIBLE", "OPTIMAL"))
     diagnostics = PlanDiagnostics(

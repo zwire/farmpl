@@ -15,22 +15,25 @@ class ResourcesConstraint(Constraint):
         model = ctx.model
         H = ctx.request.horizon.num_days
 
-        # Capacity per resource per day
+        # Capacity per resource per day (sparse by event allowed days)
         for res in ctx.request.resources:
             cap = int(round(res.capacity_per_day or 0))
             for t in range(1, H + 1):
                 day_terms = []
                 for ev in ctx.request.events:
+                    allowed = ctx.allowed_days_by_event.get(ev.id)
+                    if allowed is not None and t not in allowed:
+                        continue
                     key = (res.id, ev.id, t)
+                    # Create only if day is not resource-blocked
+                    if res.blocked_days and t in res.blocked_days:
+                        continue
                     if key not in ctx.variables.u_time_by_r_e_t:
                         name = f"u_{res.id}_{ev.id}_{t}"
                         ctx.variables.u_time_by_r_e_t[key] = model.NewIntVar(
                             0, cap, name
                         )
-                    u = ctx.variables.u_time_by_r_e_t[key]
-                    day_terms.append(u)
-                    if res.blocked_days and t in res.blocked_days:
-                        model.Add(u == 0)
+                    day_terms.append(ctx.variables.u_time_by_r_e_t[key])
                 if day_terms and cap > 0:
                     model.Add(sum(day_terms) <= cap)
 
@@ -44,9 +47,13 @@ class ResourcesConstraint(Constraint):
                 for res in ctx.request.resources:
                     if ev.required_resources and res.id in ev.required_resources:
                         key = (res.id, ev.id, t)
-                        lhs_terms.append(ctx.variables.u_time_by_r_e_t[key])
+                        u = ctx.variables.u_time_by_r_e_t.get(key)
+                        if u is not None:
+                            lhs_terms.append(u)
                 rhs_terms = []
                 for w in ctx.request.workers:
-                    rhs_terms.append(ctx.variables.h_time_by_w_e_t[(w.id, ev.id, t)])
+                    h = ctx.variables.h_time_by_w_e_t.get((w.id, ev.id, t))
+                    if h is not None:
+                        rhs_terms.append(h)
                 if lhs_terms and rhs_terms:
                     ctx.model.Add(sum(lhs_terms) >= sum(rhs_terms))

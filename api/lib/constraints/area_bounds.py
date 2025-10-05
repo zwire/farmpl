@@ -30,13 +30,13 @@ class AreaBoundsConstraint(Constraint):
                 day_terms = []
                 available_any = False
                 for land in ctx.request.lands:
-                    day_terms.append(
-                        ctx.variables.x_area_by_l_c_t[(land.id, b.crop_id, t)]
-                    )
+                    v = ctx.variables.x_area_by_l_c_t.get((land.id, b.crop_id, t))
+                    if v is not None:
+                        day_terms.append(v)
                     blocked = land.blocked_days or set()
                     if t not in blocked:
                         available_any = True
-                day_sum = sum(day_terms)
+                day_sum = sum(day_terms) if day_terms else 0
                 if lo is not None and available_any:
                     # Enforce lower bound only when crop occupancy is active at day t
                     occ = ctx.variables.occ_by_c_t.get((b.crop_id, t))
@@ -46,4 +46,5 @@ class AreaBoundsConstraint(Constraint):
                         # If occupancy is not modeled, keep legacy behavior
                         model.Add(day_sum >= lo)
                 if hi is not None:
-                    model.Add(day_sum <= hi)
+                    if day_terms:
+                        model.Add(day_sum <= hi)

@@ -33,7 +33,8 @@ class RolesConstraint(Constraint):
             if not ev.required_roles:
                 continue
 
-            for t in range(1, H + 1):
+            allowed_days = ctx.allowed_days_by_event.get(ev.id, set(range(1, H + 1)))
+            for t in sorted(allowed_days):
                 # Ensure r[e,t] exists
                 r = ctx.variables.r_event_by_e_t.get((ev.id, t))
                 if r is None:
@@ -42,23 +43,25 @@ class RolesConstraint(Constraint):
 
                 # Build assigns per worker (create if missing and link to r)
                 assigns_all: list[tuple[str, cp_model.BoolVarT]] = []
+                req_roles = set(ev.required_roles)
                 for w in ctx.request.workers:
                     key = (w.id, ev.id, t)
                     assign = ctx.variables.assign_by_w_e_t.get(key)
                     if assign is None:
                         assign = model.NewBoolVar(f"assign_{w.id}_{ev.id}_{t}")
                         ctx.variables.assign_by_w_e_t[key] = assign
-                        # assignment can happen only if event active
                         model.Add(assign <= r)
-                    assigns_all.append((w.id, assign))
+                    # Exclusivity: if worker blocked or lacks any required role -> forbid
+                    if (w.blocked_days and t in w.blocked_days) or not (
+                        (w.roles or set()) & req_roles
+                    ):
+                        model.Add(assign == 0)
+                    else:
+                        assigns_all.append((w.id, assign))
 
                 # Exclusivity: Only workers with any of the required roles
                 # may be assigned
-                req_roles = set(ev.required_roles)
-                for wid, assign in assigns_all:
-                    has_any = bool(worker_roles.get(wid, set()) & req_roles)
-                    if not has_any:
-                        model.Add(assign == 0)
+                # assigns_all already filtered to eligible workers
 
                 # For each required role, require at least one assigned worker
                 # having that role

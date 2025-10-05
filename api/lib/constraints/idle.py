@@ -31,5 +31,10 @@ class IdleConstraint(Constraint):
                     continue
                 terms: list[cp_model.LinearExpr] = []
                 for crop in ctx.request.crops:
-                    terms.append(ctx.variables.x_area_by_l_c_t[(land.id, crop.id, t)])
-                model.Add(sum(terms) + idle == cap)
+                    v = ctx.variables.x_area_by_l_c_t.get((land.id, crop.id, t))
+                    if v is not None:
+                        terms.append(v)
+                if terms:
+                    model.Add(sum(terms) + idle == cap)
+                else:
+                    model.Add(idle == cap)

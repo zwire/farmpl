@@ -52,7 +52,8 @@ class LaborConstraint(Constraint):
                 continue
             total_need_num_expr = p * sum_x_units
 
-            for t in range(1, H + 1):
+            allowed_days = ctx.allowed_days_by_event.get(ev.id, set(range(1, H + 1)))
+            for t in sorted(allowed_days):
                 # r[e,t]
                 r = ctx.variables.r_event_by_e_t.get((ev.id, t))
                 if r is None:
@@ -62,11 +63,14 @@ class LaborConstraint(Constraint):
                 # Build h[w,e,t]
                 daily_sum_terms: list[cp_model.LinearExpr] = []
                 for w in ctx.request.workers:
+                    # Skip creation on blocked days for sparsity
+                    if w.blocked_days and t in w.blocked_days:
+                        continue
                     key = (w.id, ev.id, t)
+                    cap_w = int(round(w.capacity_per_day))
                     if key not in ctx.variables.h_time_by_w_e_t:
-                        cap = int(round(w.capacity_per_day))
                         ctx.variables.h_time_by_w_e_t[key] = model.NewIntVar(
-                            0, cap, f"h_{w.id}_{ev.id}_{t}"
+                            0, cap_w, f"h_{w.id}_{ev.id}_{t}"
                         )
                     h = ctx.variables.h_time_by_w_e_t[key]
                     # Create assign[w,e,t] for headcount linkage
@@ -76,17 +80,10 @@ class LaborConstraint(Constraint):
                             f"assign_{w.id}_{ev.id}_{t}"
                         )
                     assign = ctx.variables.assign_by_w_e_t[assign_key]
-                    # Worker blocked day => 0
-                    if w.blocked_days and t in w.blocked_days:
-                        model.Add(h == 0)
-                        model.Add(assign == 0)
-                    else:
-                        # Only allow work if event is active: h <= cap_w * r
-                        cap_w = int(round(w.capacity_per_day))
-                        if cap_w > 0:
-                            model.Add(h <= cap_w * r)
-                            # Link hours to assignment: h <= cap_w * assign
-                            model.Add(h <= cap_w * assign)
+                    if cap_w > 0:
+                        model.Add(h <= cap_w * r)
+                        # Link hours to assignment: h <= cap_w * assign
+                        model.Add(h <= cap_w * assign)
                     # Assignment only when event is taken that day
                     model.Add(assign <= r)
                     daily_sum_terms.append(h)
@@ -99,7 +96,7 @@ class LaborConstraint(Constraint):
 
             # People requirement per active day: sum(assign) >= people_required
             if ev.people_required is not None and ev.people_required > 0:
-                for t in range(1, H + 1):
+                for t in sorted(allowed_days):
                     r = ctx.variables.r_event_by_e_t.get((ev.id, t))
                     if r is None:
                         # Should not happen because r was created above; be safe.
@@ -108,6 +105,8 @@ class LaborConstraint(Constraint):
                     assigns = [
                         ctx.variables.assign_by_w_e_t[(w.id, ev.id, t)]
                         for w in ctx.request.workers
+                        if (w.blocked_days is None or t not in w.blocked_days)
+                        and (w.id, ev.id, t) in ctx.variables.assign_by_w_e_t
                     ]
                     if assigns:
                         model.Add(
@@ -116,11 +115,11 @@ class LaborConstraint(Constraint):
 
             # Total need over horizon (integer linearization with q * Σh >= p * Σx)
             horizon_sum_terms: list[cp_model.LinearExpr] = []
-            for t in range(1, H + 1):
+            for t in sorted(allowed_days):
                 for w in ctx.request.workers:
-                    horizon_sum_terms.append(
-                        ctx.variables.h_time_by_w_e_t[(w.id, ev.id, t)]
-                    )
+                    v = ctx.variables.h_time_by_w_e_t.get((w.id, ev.id, t))
+                    if v is not None:
+                        horizon_sum_terms.append(v)
             if horizon_sum_terms:
                 model.Add(q * sum(horizon_sum_terms) >= total_need_num_expr)
 
@@ -130,9 +129,8 @@ class LaborConstraint(Constraint):
             for t in range(1, H + 1):
                 day_terms: list[cp_model.LinearExpr] = []
                 for ev in ctx.request.events:
-                    day_terms.append(ctx.variables.h_time_by_w_e_t[(w.id, ev.id, t)])
+                    v = ctx.variables.h_time_by_w_e_t.get((w.id, ev.id, t))
+                    if v is not None:
+                        day_terms.append(v)
                 if day_terms:
                     model.Add(sum(day_terms) <= cap)
-                if w.blocked_days and t in w.blocked_days:
-                    for ev in ctx.request.events:
-                        model.Add(ctx.variables.h_time_by_w_e_t[(w.id, ev.id, t)] == 0)

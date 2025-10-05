@@ -41,6 +41,7 @@
 
 ## 3. 決定変数（Decision Variables）
 - 面積配分（日次）: $x_{l,c,t} \ge 0$
+- 面積の基底（包絡、占有期間で等値となる完成値）: $b_{l,c} \ge 0$
 - 繰り返しイベント実施: $r_{e,t} \in {0,1}$
  - 作付け占有状態（補助）: $occ_{c,t} \in {0,1}$（占有中=1）
 - 作業者割当時間: $h_{w,e,t} \ge 0$
@@ -53,6 +54,11 @@
 
 CP-SAT 実装ノート:
 - $x_{l,c,t}$ を連続にすると CP-SAT ではドメインに実数は直接使えないため、面積を離散単位（例えば 0.1a 刻み）にしたバイナリ多重化、または混合整数線形（MIP）ソルバ（OR-Tools の GLOP/SCIP）を併用する。
+
+### スパース化された定義域（パフォーマンス向上のための工夫）
+- イベント $e$ の実施可能日集合を $T_e \subseteq T$（start/end などから導出）とする。$r_{e,t}, h_{w,e,t}, assign_{w,e,t}, u_{r,e,t}$ は $t\in T_e$ に対してのみ定義（それ以外は暗黙に 0）。
+- 作物 $c$ の占有可能日集合を $T_c \subseteq T$（$uses\_land$ なイベントの可能日を外接する期間）とし、$x_{l,c,t}, occ_{l,c,t}$ は $t\in T_c$ のみ定義（$uses\_land$ が無い作物は全日）。
+- 数理的には、$t\notin T_e, T_c$ の変数を 0 に固定したのと同値で可行領域は不変。実装上の生成量を削減して性能を上げるための工夫である。
 
 ## 4. 制約（Constraints）
 
@@ -103,23 +109,26 @@ CP-SAT 実装ノート:
 - 面積恒常性（占有中）:
   $$x_{l,c,t} = x_{l,c,t-1} \quad (\forall l,c,\; occ_{c,t}=1,\; t\notin blocked(l),\; t-1\notin blocked(l))$$
 
--### 4.5 労働需要と作業者容量
+### 4.5 労働（需要・上限・人数・役割）
 - イベント通算労働需要と日次上限制約（基底面積 b に連動）:
   - $B_c = \sum_{l} b_{l,c}$（作物 c の完成面積の合計）。
-  - $total\_need\_e = labor\_total\_per\_area\_e \cdot B_{crop(e)}$。
-  - 通算充足: $\sum_{t}\sum_{w} h_{w,e,t} \ge total\_need\_e$。
+
+  - 面積刻みを $S$、イベント $e$ の通算係数を $L_e\,[h/a]$ とし、$p_e/q_e = L_e/S$（既約）。
+  - 通算充足（$T_e$ はイベントの実施可能日）:
+    $$q_e\,\sum_{t\in T_e}\sum_{w} h_{w,e,t} \;\ge\; p_e\, B_{crop(e)}$$
   - 日次上限: $\sum_{w} h_{w,e,t} \le labor\_daily\_cap\_e \cdot r_{e,t}\;(\forall t)$。
-- 作業者の一日容量: $\sum_{e} h_{w,e,t} \le worker\_cap_w\;(\forall w,t)$。
-- 作業不可日: $h_{w,e,t} = 0$ if $worker\_blocked_{w,t}=1$。
-- 役割・人数の厳密化は未実装（将来対応）。
+- 作業者の一日容量/不可日:  $$\sum_{e} h_{w,e,t} \le worker\_cap_w\quad(\forall w,t),\qquad h_{w,e,t}=0\;\text{if}\; worker\_blocked_{w,t}=1$$
+
+- 割当リンク:  $$h_{w,e,t} \le worker\_cap_w \cdot r_{e,t},\quad h_{w,e,t} \le worker\_cap_w \cdot assign_{w,e,t}$$
+- 人数要件（実施日にのみ適用）:  $$\sum_{w} assign_{w,e,t} \ge people\_{req,e} \quad \text{only if } r_{e,t}=1$$
+- 役割要件/排他:  各必須ロールごとに $$\sum_{w:\; role\in roles(w)} assign_{w,e,t} \ge 1 \quad \text{only if } r_{e,t}=1$$、かつ 役割非保持・不可日は $$assign_{w,e,t}=0$$
 
 ### 4.6 共有リソース容量
-- リソース使用時間充足と容量上限（容量 $cap_r$ を仮定）:
+- 容量上限（容量 $cap_r$ を仮定）:
   $$\sum_{e} u_{r,e,t} \le cap_r \quad (\forall r,t)$$
-- リソース必要イベントへの供給:
-  $resources\_req_e$ に含まれる場合、実施日における作業時間に比例して供給されるよう、
-  $$\sum_{r \in resources\_req_e} u_{r,e,t} \ge \alpha \cdot \sum_{w} h_{w,e,t} \quad (\forall t)$$
-  係数 $\alpha$ は時間換算比率。禁止日は $u_{r,e,t}=0$。
+- 必要資源イベントの供給（必要集合が空でない場合）:
+  $$\sum_{r \in resources\_req_e} u_{r,e,t} \ge \sum_{w} h_{w,e,t} \quad (\forall t)$$
+  禁止日は $u_{r,e,t}=0$。
 
 ### 4.7 作物と圃場の分散・集約リンク
 - 二値 $z_{l,c}$ と面積のリンク:
@@ -152,7 +161,8 @@ CP-SAT 実装ノート:
 多目的は加重和で単一目的に縮約する。
 
 - 収益最大化（作付け面積 × 作物単価）:
-  $$Profit = \sum_{c} (price_c \cdot \sum_{l,t} x_{l,c,t})$$
+  $$Profit = \sum_{c} \sum_{l} price_c \cdot b_{l,c}$$
+  備考: 占有中は $x_{l,c,t}=b_{l,c}$ となるため、基底変数で正確に表現できる。
 - 労働時間最小化:
   $$Labor = \sum_{w,e,t} h_{w,e,t}$$
 - 土地遊休の最小化:
@@ -171,9 +181,10 @@ $$\max \; w_{profit}\,Profit - w_{labor}\,Labor - w_{idle}\,Idle - w_{dispersion
 - 推奨ソルバ: CP-SAT（`cp_model.CpModel`）。面積など連続量は刻み幅を設けて整数化（例: 0.1a を 1 ユニット）し、`IntVar`/`BoolVar` で表現。連続が必要なら MIP（SCIP）で `NumVar` を使用。
 - インジケータ制約: `model.Add(var <= K).OnlyEnforceIf(boolVar)` を多用し、大$M$を避ける。
 - 周期・持続の表現: スライディングウィンドウで $active_{e,t}$ を表し、`Add(sum(s_e,tau) == active)` 等で連結。
-- 役割要件（排他）: 必須ロール以外は当該イベント日に割当不可（assign=0）。各必須ロールごとに $\sum assign \ge 1$、さらに $\sum assign \ge people\_req_e$。
-- 労働需要は小数でも厳密化（$L/S=p/q$ として $q\,\sum h \ge p\,\sum x$）。
+- 役割要件（排他）: 必須ロールを持たない・またはブロック日の作業者は当該イベント日に割当不可（$assign=0$）。各必須ロールごとに $\sum assign \ge 1$、さらに $\sum assign \ge people\_req_e$。
+- 労働需要は小数でも厳密化（$L/S=p/q$ として $q\,\sum_{t\in T_e,w} h_{w,e,t} \ge p\,\sum_l b_{l,crop(e)}$）。
 - 目的の正規化: 各項目をスケールして桁を揃える（例: 収益を千円単位、時間は時間単位等）。
+- スパース生成とヒント: 変数は $T_e, T_c$ のみに生成し、段階最適化の後段へ `model.AddHint(...)` で初期解のヒントを渡す（環境により未対応なら無視）。探索並列度は `CP_NUM_WORKERS`、時間制限は `SYNC_TIMEOUT_MS` で制御。
 
 ## 7. データ仕様の対応（I/O）
 - 単位は内部で統一（例: 面積[a]→ユニット、時間[h]、金額[千円]）。

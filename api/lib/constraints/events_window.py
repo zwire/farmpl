@@ -156,6 +156,8 @@ class EventsWindowConstraint(Constraint):
                 if vars_at_t:
                     model.Add(occ[(crop.id, t)] <= sum(vars_at_t))
                 else:
+                    # If no land-level occupancy variables exist for this t,
+                    # crop-level occupancy must be 0
                     model.Add(occ[(crop.id, t)] == 0)
 
         # Enforce land-level continuity around blocked intervals

@@ -16,19 +16,20 @@ class LandCapacityConstraint(Constraint):
         model = ctx.model
         scale = ctx.scale_area
 
-        # Ensure variables exist and bounds are set based on land area
+        # Bounds set based on land area (do not force-create per-day variables)
         H = ctx.request.horizon.num_days
         for land in ctx.request.lands:
             cap = int(round(land.area * scale))
             for crop in ctx.request.crops:
                 key = (land.id, crop.id)
-                # z var
                 if key not in ctx.variables.z_use_by_l_c:
                     ctx.variables.z_use_by_l_c[key] = model.NewBoolVar(
                         f"z_{land.id}_{crop.id}"
                     )
-                # per-day vars
-                for t in range(1, H + 1):
+                # Ensure per-day vars exist for relevant days (see LinkAreaUse)
+                occ_days = ctx.occ_days_by_crop.get(crop.id, set())
+                days_iter = range(1, H + 1) if not occ_days else sorted(occ_days)
+                for t in days_iter:
                     key_t = (land.id, crop.id, t)
                     if key_t not in ctx.variables.x_area_by_l_c_t:
                         ctx.variables.x_area_by_l_c_t[key_t] = model.NewIntVar(
@@ -42,15 +43,16 @@ class LandCapacityConstraint(Constraint):
             # Per-day capacity only
             for t in range(1, H + 1):
                 if blocked and t in blocked:
+                    # Force zero on blocked days (ensure vars exist via loop above)
                     for crop in ctx.request.crops:
-                        model.Add(
-                            ctx.variables.x_area_by_l_c_t[(land.id, crop.id, t)] == 0
-                        )
+                        v = ctx.variables.x_area_by_l_c_t.get((land.id, crop.id, t))
+                        if v is not None:
+                            model.Add(v == 0)
                 else:
-                    model.Add(
-                        sum(
-                            ctx.variables.x_area_by_l_c_t[(land.id, crop.id, t)]
-                            for crop in ctx.request.crops
-                        )
-                        <= cap
-                    )
+                    terms = []
+                    for crop in ctx.request.crops:
+                        v = ctx.variables.x_area_by_l_c_t.get((land.id, crop.id, t))
+                        if v is not None:
+                            terms.append(v)
+                    if terms:
+                        model.Add(sum(terms) <= cap)
