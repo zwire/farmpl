@@ -11,6 +11,7 @@ from core import rate_limit as rate_limit_mw
 from core.errors import install_exception_handlers
 from core.logging import configure_root_logger, request_logging_middleware
 from core.metrics import metrics
+from routers.metrics import router as metrics_router
 from routers.optimize import router as optimize_router
 from routers.system import router as system_router
 from routers.templates import router as templates_router
@@ -79,6 +80,7 @@ def create_app() -> FastAPI:
     app.include_router(optimize_router)
     app.include_router(templates_router)
     app.include_router(system_router)
+    app.include_router(metrics_router)
 
     @app.get("/healthz")
     def healthz() -> dict[str, str]:

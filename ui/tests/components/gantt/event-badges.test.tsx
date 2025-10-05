@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { EventBadges } from "@/app/(planning)/components/gantt/event-badges";
-import type { GanttEventMarker } from "@/app/(planning)/components/gantt/useGanttData";
+import { EventBadges } from "@/app/(planning)/components/metrics/gantt/event-badges";
+import type { GanttEventMarker } from "@/app/(planning)/components/metrics/gantt/useGanttData";
 
 const mockEvents: GanttEventMarker[] = [
   { id: "e1", day: 1, cropId: "C1", label: "播種", dateIso: "2024-01-02" },

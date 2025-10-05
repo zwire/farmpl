@@ -1,161 +1,146 @@
 import type {
   ApiOptimizationResult,
+  ApiOptimizationTimeline,
+  MetricsDayRecord,
+  MetricsEventMetric,
+  MetricsInterval,
+  MetricsLandMetric,
+  MetricsTimelineResponse,
+  MetricsWorkerMetric,
   OptimizationResultView,
-} from "@/lib/types/planning";
+  OptimizationTimelineView,
+} from "./planning";
 
-const normalizeStageOrder = (stats: ApiOptimizationResult["stats"]) => {
-  if (!stats) return [];
-  const order = (stats as Record<string, unknown>).stage_order;
-  if (Array.isArray(order)) return order as string[];
-  const camel = (stats as Record<string, unknown>).stageOrder;
-  return Array.isArray(camel) ? (camel as string[]) : [];
-};
+function isInterval(v: unknown): v is MetricsInterval {
+  return v === "day" || v === "decade";
+}
 
-const normalizeStages = (
-  stats: ApiOptimizationResult["stats"],
-): { name: string; value: number; locked?: boolean }[] => {
-  if (!stats) return [];
-  const raw = (stats as Record<string, unknown>).stages;
-  if (!Array.isArray(raw)) return [];
-  const result: { name: string; value: number; locked?: boolean }[] = [];
-  for (const stage of raw) {
-    if (typeof stage !== "object" || stage === null) continue;
-    const record = stage as Record<string, unknown>;
-    const name = (record.name ?? record.stage ?? "") as string;
-    if (!name) continue;
-    const value = Number(record.value ?? 0);
-    const locked = Boolean(record.locked ?? record.is_locked ?? false);
-    result.push({ name, value, locked });
-  }
-  return result;
-};
+function asNumber(x: any, def = 0): number {
+  const n = typeof x === "number" ? x : Number(x);
+  return Number.isFinite(n) ? n : def;
+}
 
-const normalizeConstraintHints = (api: ApiOptimizationResult) => {
-  const hints: unknown = api.solution?.constraint_hints;
-  if (!Array.isArray(hints)) return [];
-  return hints.map((hint, index) => {
-    if (typeof hint === "string") {
-      return {
-        id: String(index),
-        priority: index + 1,
-        message: hint,
-      };
-    }
-    const record = hint as Record<string, unknown>;
-    return {
-      id: (record.id as string) ?? String(index),
-      priority: Number(record.priority ?? index + 1) || index + 1,
-      message: (record.message as string) ?? JSON.stringify(record),
-      targetSection:
-        (record.targetSection as string) ??
-        (record.target_section as string) ??
-        undefined,
-    };
-  });
-};
-
-type RawTimeline = {
-  entity_names?: {
-    lands?: Record<string, string>;
-    crops?: Record<string, string>;
-    workers?: Record<string, string>;
-    resources?: Record<string, string>;
-    events?: Record<string, string>;
+function mapEvent(e: any): MetricsEventMetric {
+  return {
+    id: String(e?.id ?? ""),
+    label: String(e?.label ?? ""),
+    start_day: asNumber(e?.start_day, 0),
+    end_day: e?.end_day == null ? null : asNumber(e.end_day),
+    type: e?.type == null ? null : String(e.type),
   };
-  land_spans?: Array<{
-    land_id: string;
-    crop_id: string;
-    start_day: number;
-    end_day: number;
-    area_a: number;
-  }>;
-  events?: Array<{
-    day: number;
-    event_id: string;
-    crop_id: string;
-    land_ids?: unknown;
-    land_id?: string;
-    worker_ids?: string[];
-    resource_ids?: string[];
-  }>;
-};
+}
 
-const normalizeTimeline = (
-  timeline: ApiOptimizationResult["timeline"],
-): OptimizationResultView["timeline"] => {
-  if (!timeline) return undefined;
-  const raw = timeline as RawTimeline;
-  const entityNames = raw.entity_names;
-  const landSpans = Array.isArray(raw.land_spans)
-    ? raw.land_spans.map((span) => ({
-        landId: span.land_id,
-        cropId: span.crop_id,
-        startDay: span.start_day,
-        endDay: span.end_day,
-        areaA: span.area_a,
-        // 追加の名前情報（存在すれば）
-        landName: entityNames?.lands?.[span.land_id],
-        cropName: entityNames?.crops?.[span.crop_id],
-      }))
-    : [];
-  const events = Array.isArray(raw.events)
-    ? raw.events.map((event) => {
-        const rawLandIds = Array.isArray(event.land_ids)
-          ? (event.land_ids as unknown[])
-          : [];
-        const normalizedLandIds = rawLandIds.filter(
-          (id): id is string => typeof id === "string" && id.length > 0,
-        );
-        if (
-          normalizedLandIds.length === 0 &&
-          typeof event.land_id === "string" &&
-          event.land_id.length > 0
-        ) {
-          normalizedLandIds.push(event.land_id);
-        }
+function mapWorker(w: any): MetricsWorkerMetric {
+  return {
+    worker_id: String(w?.worker_id ?? ""),
+    name: String(w?.name ?? ""),
+    utilization: asNumber(w?.utilization, 0),
+    capacity: asNumber(w?.capacity, 0),
+  };
+}
 
-        return {
-          day: event.day,
-          eventId: event.event_id,
-          cropId: event.crop_id,
-          landIds: normalizedLandIds,
-          workerIds: event.worker_ids ?? [],
-          resourceIds: event.resource_ids ?? [],
-          // 追加の名前情報（存在すれば）
-          eventName: entityNames?.events?.[event.event_id],
-          cropName: entityNames?.crops?.[event.crop_id],
-          landNames:
-            normalizedLandIds.length > 0
-              ? normalizedLandIds.map((id) => entityNames?.lands?.[id])
-              : undefined,
-          workerNames: Array.isArray(event.worker_ids)
-            ? event.worker_ids
-                .map((id) => entityNames?.workers?.[id])
-                .filter(Boolean)
-            : undefined,
-          resourceNames: Array.isArray(event.resource_ids)
-            ? event.resource_ids
-                .map((id) => entityNames?.resources?.[id])
-                .filter(Boolean)
-            : undefined,
-        };
-      })
-    : [];
-  return { landSpans, events };
-};
+function mapLand(l: any): MetricsLandMetric {
+  return {
+    land_id: String(l?.land_id ?? ""),
+    name: String(l?.name ?? ""),
+    utilization: asNumber(l?.utilization, 0),
+    capacity: asNumber(l?.capacity, 0),
+  };
+}
 
-export const mapApiResultToView = (
+function mapRecord(interval: MetricsInterval, r: any): MetricsDayRecord {
+  const rec: MetricsDayRecord = {
+    interval,
+    day_index: r?.day_index ?? null,
+    period_key: r?.period_key ?? null,
+    events: Array.isArray(r?.events) ? r.events.map(mapEvent) : [],
+    workers: Array.isArray(r?.workers) ? r.workers.map(mapWorker) : [],
+    lands: Array.isArray(r?.lands) ? r.lands.map(mapLand) : [],
+    summary: {
+      labor_total_hours: asNumber(r?.summary?.labor_total_hours, 0),
+      labor_capacity_hours: asNumber(r?.summary?.labor_capacity_hours, 0),
+      land_total_area: asNumber(r?.summary?.land_total_area, 0),
+      land_capacity_area: asNumber(r?.summary?.land_capacity_area, 0),
+    },
+  };
+
+  // Sanity: enforce day vs decade invariants
+  if (interval === "day") {
+    rec.day_index = asNumber(rec.day_index, 0);
+    rec.period_key = null;
+  } else {
+    rec.day_index = null;
+    rec.period_key = String(rec.period_key ?? "");
+  }
+  return rec;
+}
+
+export function mapTimelineResponse(json: unknown): MetricsTimelineResponse {
+  const obj: any = json ?? {};
+  const interval: unknown = obj.interval;
+  if (!isInterval(interval)) {
+    throw new Error("metrics timeline: invalid interval");
+  }
+  const recordsSrc: any[] = Array.isArray(obj.records) ? obj.records : [];
+  const records: MetricsDayRecord[] = recordsSrc.map((r) =>
+    mapRecord(interval, r),
+  );
+  return { interval, records };
+}
+
+// ========================= API → View mapper (existing UI path) ========================= //
+
+function mapApiTimeline(
+  tl: ApiOptimizationTimeline | null | undefined,
+): OptimizationTimelineView | undefined {
+  if (!tl) return undefined;
+  return {
+    landSpans: (tl.land_spans ?? []).map((s) => ({
+      landId: s.land_id,
+      cropId: s.crop_id,
+      startDay: s.start_day,
+      endDay: s.end_day,
+      areaA: s.area_a,
+      landName: tl.entity_names?.lands?.[s.land_id],
+      cropName: tl.entity_names?.crops?.[s.crop_id],
+    })),
+    events: (tl.events ?? []).map((e) => {
+      const landIds = e.land_ids ?? (e.land_id ? [e.land_id] : []);
+      return {
+        day: e.day,
+        eventId: e.event_id,
+        cropId: e.crop_id,
+        landIds,
+        workerIds: e.worker_ids ?? [],
+        resourceIds: e.resource_ids ?? [],
+        eventName: tl.entity_names?.events?.[e.event_id],
+        cropName: tl.entity_names?.crops?.[e.crop_id],
+        landNames: landIds.map((id) => tl.entity_names?.lands?.[id]),
+        workerNames: (e.worker_ids ?? []).map(
+          (id) => tl.entity_names?.workers?.[id],
+        ),
+        resourceNames: (e.resource_ids ?? []).map(
+          (id) => tl.entity_names?.resources?.[id],
+        ),
+      };
+    }),
+  };
+}
+
+export function mapApiResultToView(
   api: ApiOptimizationResult,
-): OptimizationResultView => ({
-  status: api.status,
-  objectiveValue: api.objective_value ?? undefined,
-  summary: (api.solution?.summary as Record<string, unknown>) ?? {},
-  stats: {
-    ...api.stats,
-    stageOrder: normalizeStageOrder(api.stats ?? {}),
-    stages: normalizeStages(api.stats ?? {}),
-  },
-  constraintHints: normalizeConstraintHints(api),
-  warnings: api.warnings ?? [],
-  timeline: normalizeTimeline(api.timeline ?? undefined),
-});
+): OptimizationResultView {
+  return {
+    status: api.status,
+    objectiveValue: api.objective_value ?? undefined,
+    stats: {
+      ...(api.stats ?? {}),
+      stages: (api.stats as any)?.stages ?? undefined,
+      stageOrder: (api.stats as any)?.stage_order ?? undefined,
+    },
+    summary: (api as any).summary ?? undefined,
+    constraintHints: (api as any).constraint_hints ?? undefined,
+    warnings: api.warnings ?? [],
+    timeline: mapApiTimeline(api.timeline ?? undefined),
+  };
+}

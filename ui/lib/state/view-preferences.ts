@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-import type { TimelineScaleType } from "@/app/(planning)/components/gantt/timeline-scale";
+import type { TimelineScaleType } from "@/app/(planning)/components/metrics/gantt/timeline-scale";
 
 export type GanttViewMode = "land" | "crop";
 

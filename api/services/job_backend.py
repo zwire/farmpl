@@ -6,6 +6,8 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import UTC, datetime
 from typing import Protocol, runtime_checkable
 
+from pydantic import BaseModel
+
 from schemas import JobInfo, OptimizationRequest, OptimizationResult
 
 from .optimizer_adapter import solve_sync as _solve_sync
@@ -16,7 +18,14 @@ class JobBackend(Protocol):
     def enqueue(self, req: OptimizationRequest) -> JobInfo: ...
     def get(self, job_id: str) -> JobInfo: ...
     def cancel(self, job_id: str) -> bool: ...
+    def snapshot(self, job_id: str) -> JobSnapshot: ...
     def shutdown(self, wait: bool = False) -> None: ...
+
+
+class JobSnapshot(BaseModel):
+    job: JobInfo
+    req: OptimizationRequest | None
+    result: OptimizationResult | None
 
 
 class InMemoryJobBackend:
@@ -113,6 +122,15 @@ class InMemoryJobBackend:
                 return False
             st.cancel_flag = True
         return True
+
+    def snapshot(self, job_id: str) -> JobSnapshot:
+        with self._lock:
+            st = self._jobs.get(job_id)
+            if st is None:
+                raise KeyError(job_id)
+            return JobSnapshot(
+                job=self._to_model(job_id, st), req=st.req, result=st.result
+            )
 
     def shutdown(self, wait: bool = False) -> None:
         with self._lock:

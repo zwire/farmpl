@@ -4,9 +4,8 @@ import { useMemo } from "react";
 
 import { usePlanningStore } from "@/lib/state/planning-store";
 import type { OptimizationResultView } from "@/lib/types/planning";
-import { GanttChart } from "../gantt/GanttChart";
 import { MetricsCharts } from "../metrics/MetricsCharts";
-import { ConstraintHints, MetricsCards } from "./index";
+import { ConstraintHints } from "./index";
 
 interface ResultDashboardProps {
   onNavigateToSection?: (sectionId: string) => void;
@@ -14,6 +13,7 @@ interface ResultDashboardProps {
 
 export function ResultDashboard({ onNavigateToSection }: ResultDashboardProps) {
   const result = usePlanningStore((state) => state.lastResult);
+  const jobId = usePlanningStore((state) => state.lastJobId);
   const isSubmitting = usePlanningStore((state) => state.isSubmitting);
 
   const summary = useMemo(() => buildSummary(result), [result]);
@@ -35,9 +35,10 @@ export function ResultDashboard({ onNavigateToSection }: ResultDashboardProps) {
         </div>
       )}
 
-      <MetricsCards result={result} />
-
-      <MetricsCharts result={result} />
+      <MetricsCharts
+        result={isSubmitting ? null : result}
+        jobId={jobId ?? undefined}
+      />
 
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
         {summary}
@@ -47,8 +48,6 @@ export function ResultDashboard({ onNavigateToSection }: ResultDashboardProps) {
         hints={result?.constraintHints}
         onNavigate={onNavigateToSection}
       />
-
-      <GanttChart />
     </section>
   );
 }

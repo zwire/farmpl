@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { GanttViewModel } from "@/app/(planning)/components/gantt/useGanttData";
-import { useGanttViewModel } from "@/app/(planning)/components/gantt/useGanttViewModel";
+import type { GanttViewModel } from "@/app/(planning)/components/metrics/gantt/useGanttData";
+import { useGanttViewModel } from "@/app/(planning)/components/metrics/gantt/useGanttViewModel";
 
 const mockBaseData: GanttViewModel = {
   spans: [

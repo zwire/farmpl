@@ -1,4 +1,12 @@
-import type { PlanningStoreState } from "@/lib/state/planning-store";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, it, vi } from "vitest";
+import { create } from "zustand";
+import { GanttChart } from "@/app/(planning)/components/metrics/gantt/GanttChart";
+import {
+  type PlanningStoreState,
+  usePlanningStore,
+} from "@/lib/state/planning-store";
+import { useViewPreferencesStore } from "@/lib/state/view-preferences";
 
 // Mock the actual hooks
 vi.mock("@/lib/state/planning-store");
@@ -31,6 +39,15 @@ const mockPlan = {
 };
 
 // Create a temporary store for testing that mirrors the real one
+interface ViewPreferencesState {
+  gantt: {
+    mode: "land" | "crop";
+    scale: "third" | "day";
+    detailExpanded: boolean;
+  };
+  setGantt: (prefs: Partial<ViewPreferencesState["gantt"]>) => void;
+}
+
 const createTestViewStore = () =>
   create<ViewPreferencesState>((set) => ({
     gantt: {
@@ -93,11 +110,12 @@ describe("GanttChart with View Preferences", () => {
     expect(screen.getByText(/土地 \/ 日付/)).toBeInTheDocument();
   });
 
-  it("should switch scale when control is clicked", () => {
+  it("should switch scale when a header tick is clicked (drill-down)", () => {
     render(<GanttChart />);
     act(() => {
-      fireEvent.click(screen.getByRole("radio", { name: "日" }));
+      fireEvent.click(screen.getByRole("button", { name: /1月 上旬/ }));
     });
+    // Day-scale label appears (first day of 上旬)
     expect(screen.getByText("1/1")).toBeInTheDocument();
   });
 
