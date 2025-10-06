@@ -12,3 +12,11 @@ export const createUniqueId = (prefix: string, existing: Iterable<string>) => {
   }
   return candidate;
 };
+
+export const toNumberList = (value: string) =>
+  value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => Number(item))
+    .filter((item) => Number.isFinite(item));
