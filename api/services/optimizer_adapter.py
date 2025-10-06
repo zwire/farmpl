@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeout
 
@@ -243,7 +244,9 @@ def _build_timeline(resp: PlanResponse, req: PlanRequest) -> OptimizationTimelin
     )
 
 
-def solve_sync(req: OptimizationRequest) -> OptimizationResult:
+def solve_sync(
+    req: OptimizationRequest, progress_cb: Callable[[float, str], None] | None = None
+) -> OptimizationResult:
     if req.plan is None and (req.params is None or req.params == {}):
         return OptimizationResult(
             status="error",
@@ -276,6 +279,7 @@ def solve_sync(req: OptimizationRequest) -> OptimizationResult:
         stage_order=stage_order,
         lock_tolerance_pct=None,
         lock_tolerance_by=lock_by,
+        progress_cb=progress_cb,
     )
 
     status = "ok" if resp.diagnostics.feasible else "infeasible"
@@ -289,7 +293,11 @@ def solve_sync(req: OptimizationRequest) -> OptimizationResult:
         },
         warnings=[],
     )
+    if progress_cb:
+        progress_cb(0.95, "post:timeline_build")
     result.timeline = _build_timeline(resp, domain_req)
+    if progress_cb:
+        progress_cb(1.0, "done")
     return result
 
 

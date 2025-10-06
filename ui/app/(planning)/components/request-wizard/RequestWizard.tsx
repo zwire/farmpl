@@ -4,10 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import type { ZodIssue } from "zod";
 import { PlanningCalendarService } from "@/lib/domain/planning-calendar";
 import {
+  getPlanningState,
   planningDraftStorage,
   usePlanningStore,
 } from "@/lib/state/planning-store";
-import type { PlanFormState } from "@/lib/types/planning";
+import type {
+  ApiOptimizationResult,
+  JobStatus,
+  PlanFormState,
+} from "@/lib/types/planning";
 import { mapApiResultToView } from "@/lib/types/result-mapper";
 import { buildApiPlanPayload } from "@/lib/validation/plan-schema";
 import { EventPlanningSection } from "../events/EventPlanningSection";
@@ -41,6 +46,8 @@ export function RequestWizard() {
   );
   const setLastResult = usePlanningStore((state) => state.setLastResult);
   const setLastJobId = usePlanningStore((state) => state.setLastJobId);
+  const setJobProgress = usePlanningStore((state) => state.setJobProgress);
+  const setJobStatus = usePlanningStore((state) => state.setJobStatus);
 
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
@@ -151,6 +158,8 @@ export function RequestWizard() {
 
     setIsSubmitting(true);
     setSubmissionError(null);
+    setJobProgress(0);
+    setJobStatus("pending");
 
     try {
       // Use async optimize to obtain job_id, then poll and set result.
@@ -191,15 +200,25 @@ export function RequestWizard() {
       let attempts = 0;
       const maxAttempts = 60; // ~60 * 2000ms = 120s
       while (attempts++ < maxAttempts) {
+        // Allow cooperative cancel from UI
+        if (!getPlanningState().isSubmitting) break;
         const jr = await fetch(jobUrl, { headers: pollHeaders });
         if (!jr.ok)
           throw new Error(`ジョブ取得に失敗しました (status ${jr.status})`);
         const info = (await jr.json()) as {
           status: string;
+          progress?: number;
           result?: unknown | null;
         };
+        if (typeof info.progress === "number") setJobProgress(info.progress);
+        if (typeof info.status === "string")
+          setJobStatus(info.status as JobStatus);
         if (info.status === "succeeded" && info.result) {
-          setLastResult(mapApiResultToView(info.result as any));
+          setJobProgress(1);
+          setJobStatus("succeeded");
+          setLastResult(
+            mapApiResultToView(info.result as ApiOptimizationResult),
+          );
           break;
         }
         if (
@@ -207,6 +226,7 @@ export function RequestWizard() {
           info.status === "timeout" ||
           info.status === "canceled"
         ) {
+          setJobStatus(info.status as JobStatus);
           throw new Error(`ジョブが失敗しました: ${info.status}`);
         }
         await new Promise((r) => setTimeout(r, 2000));
@@ -217,6 +237,8 @@ export function RequestWizard() {
       setSubmissionError(message);
     } finally {
       setIsSubmitting(false);
+      setJobStatus(null);
+      setJobProgress(0);
     }
   };
 

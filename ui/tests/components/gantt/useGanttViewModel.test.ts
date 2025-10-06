@@ -86,8 +86,12 @@ describe("useGanttViewModel", () => {
       useGanttViewModel(mockBaseData, "land"),
     );
 
-    expect(result.current.rowOrder).toEqual(["L1", "L2"]);
-    expect(result.current.rowLabelById).toEqual({ L1: "Land 1", L2: "Land 2" });
+    const rows = result.current.rowOrder;
+    // special capacity rows may be appended; only assert the primary rows first
+    expect(rows.slice(0, 2)).toEqual(["L1", "L2"]);
+    // primary labels should be correct
+    expect(result.current.rowLabelById.L1).toEqual("Land 1");
+    expect(result.current.rowLabelById.L2).toEqual("Land 2");
     expect(result.current.cellsByRow).toBe(mockBaseData.landDayCells);
   });
 
@@ -96,11 +100,15 @@ describe("useGanttViewModel", () => {
       useGanttViewModel(mockBaseData, "crop"),
     );
 
-    expect(result.current.rowOrder).toEqual(["C1", "C2"]);
-    expect(result.current.rowLabelById).toEqual({ C1: "Crop 1", C2: "Crop 2" });
+    const rows = result.current.rowOrder;
+    expect(rows.slice(0, 2)).toEqual(["C1", "C2"]);
+    expect(result.current.rowLabelById.C1).toEqual("Crop 1");
+    expect(result.current.rowLabelById.C2).toEqual("Crop 2");
 
     const cells = result.current.cellsByRow;
-    expect(Object.keys(cells)).toEqual(["C1", "C2"]);
+    // filter out special rows
+    const normalKeys = Object.keys(cells).filter((k) => !k.startsWith("__"));
+    expect(normalKeys).toEqual(["C1", "C2"]);
 
     // Check C1 row
     const c1Cells = cells.C1;

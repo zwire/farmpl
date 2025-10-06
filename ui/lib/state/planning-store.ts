@@ -14,6 +14,7 @@ import type {
   PlanUiWorker,
 } from "@/lib/domain/planning-ui-types";
 import type {
+  JobStatus,
   OptimizationResultView,
   PlanFormState,
 } from "@/lib/types/planning";
@@ -434,6 +435,8 @@ export interface PlanningStoreState {
   submissionError: string | null;
   lastResult: OptimizationResultView | null;
   lastJobId: string | null;
+  jobProgress: number; // 0..1
+  jobStatus: JobStatus | null;
   setPlan: (plan: PlanUiState) => void;
   updatePlan: (updater: (prev: PlanUiState) => PlanUiState) => void;
   setCurrentStep: (step: WizardStepId) => void;
@@ -445,6 +448,8 @@ export interface PlanningStoreState {
   setSubmissionError: (message: string | null) => void;
   setLastResult: (result: OptimizationResultView | null) => void;
   setLastJobId: (jobId: string | null) => void;
+  setJobProgress: (p: number) => void;
+  setJobStatus: (s: JobStatus | null) => void;
 }
 
 const STEP_IDS = new Set(WIZARD_STEP_IDS);
@@ -461,6 +466,8 @@ export const usePlanningStore = create<PlanningStoreState>((set) => ({
   submissionError: null,
   lastResult: null,
   lastJobId: null,
+  jobProgress: 0,
+  jobStatus: null,
   setPlan: (plan) => set({ plan: sanitizePlan(plan), isDirty: true }),
   updatePlan: (updater) =>
     set((state) => ({
@@ -489,6 +496,8 @@ export const usePlanningStore = create<PlanningStoreState>((set) => ({
   setSubmissionError: (message) => set({ submissionError: message }),
   setLastResult: (result) => set({ lastResult: result }),
   setLastJobId: (jobId) => set({ lastJobId: jobId }),
+  setJobProgress: (p) => set({ jobProgress: Math.min(1, Math.max(0, p)) }),
+  setJobStatus: (s) => set({ jobStatus: s }),
 }));
 
 const toDraftData = (

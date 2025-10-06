@@ -33,9 +33,11 @@ def test_sync_timeout_returns_timeout_status(monkeypatch):
     monkeypatch.setenv("AUTH_MODE", "none")
     monkeypatch.setenv("SYNC_TIMEOUT_MS", "50")
 
-    def slow_solve(req: OptimizationRequest) -> OptimizationResult:
+    def slow_solve(req: OptimizationRequest, *, progress_cb=None) -> OptimizationResult:
         time.sleep(0.2)
-        return OptimizationResult(status="ok", objective_value=1.0, solution={}, stats={}, warnings=[])
+        return OptimizationResult(
+            status="ok", objective_value=1.0, solution={}, stats={}, warnings=[]
+        )
 
     monkeypatch.setattr("services.optimizer_adapter.solve_sync", slow_solve)
 

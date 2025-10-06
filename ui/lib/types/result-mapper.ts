@@ -1,6 +1,7 @@
 import type {
   ApiOptimizationResult,
   ApiOptimizationTimeline,
+  ConstraintHintView,
   MetricsDayRecord,
   MetricsEventMetric,
   MetricsInterval,
@@ -8,6 +9,7 @@ import type {
   MetricsTimelineResponse,
   MetricsWorkerMetric,
   OptimizationResultView,
+  OptimizationStageMetric,
   OptimizationTimelineView,
 } from "./planning";
 
@@ -15,52 +17,77 @@ function isInterval(v: unknown): v is MetricsInterval {
   return v === "day" || v === "decade";
 }
 
-function asNumber(x: any, def = 0): number {
+function asNumber(x: unknown, def = 0): number {
   const n = typeof x === "number" ? x : Number(x);
   return Number.isFinite(n) ? n : def;
 }
 
-function mapEvent(e: any): MetricsEventMetric {
+function mapEvent(e: unknown): MetricsEventMetric {
+  const obj = e && typeof e === "object" ? (e as Record<string, unknown>) : {};
   return {
-    id: String(e?.id ?? ""),
-    label: String(e?.label ?? ""),
-    start_day: asNumber(e?.start_day, 0),
-    end_day: e?.end_day == null ? null : asNumber(e.end_day),
-    type: e?.type == null ? null : String(e.type),
+    id: String(obj.id ?? ""),
+    label: String(obj.label ?? ""),
+    start_day: asNumber(obj.start_day, 0),
+    end_day: obj.end_day == null ? null : asNumber(obj.end_day),
+    type: obj.type == null ? null : String(obj.type),
   };
 }
 
-function mapWorker(w: any): MetricsWorkerMetric {
+function mapWorker(w: unknown): MetricsWorkerMetric {
+  const obj = w && typeof w === "object" ? (w as Record<string, unknown>) : {};
   return {
-    worker_id: String(w?.worker_id ?? ""),
-    name: String(w?.name ?? ""),
-    utilization: asNumber(w?.utilization, 0),
-    capacity: asNumber(w?.capacity, 0),
+    worker_id: String(obj.worker_id ?? ""),
+    name: String(obj.name ?? ""),
+    utilization: asNumber(obj.utilization, 0),
+    capacity: asNumber(obj.capacity, 0),
   };
 }
 
-function mapLand(l: any): MetricsLandMetric {
+function mapLand(l: unknown): MetricsLandMetric {
+  const obj = l && typeof l === "object" ? (l as Record<string, unknown>) : {};
   return {
-    land_id: String(l?.land_id ?? ""),
-    name: String(l?.name ?? ""),
-    utilization: asNumber(l?.utilization, 0),
-    capacity: asNumber(l?.capacity, 0),
+    land_id: String(obj.land_id ?? ""),
+    name: String(obj.name ?? ""),
+    utilization: asNumber(obj.utilization, 0),
+    capacity: asNumber(obj.capacity, 0),
   };
 }
 
-function mapRecord(interval: MetricsInterval, r: any): MetricsDayRecord {
+function mapRecord(interval: MetricsInterval, r: unknown): MetricsDayRecord {
+  const obj = r && typeof r === "object" ? (r as Record<string, unknown>) : {};
+  const dayIndexRaw = (obj as { day_index?: unknown }).day_index;
+  const periodKeyRaw = (obj as { period_key?: unknown }).period_key;
   const rec: MetricsDayRecord = {
     interval,
-    day_index: r?.day_index ?? null,
-    period_key: r?.period_key ?? null,
-    events: Array.isArray(r?.events) ? r.events.map(mapEvent) : [],
-    workers: Array.isArray(r?.workers) ? r.workers.map(mapWorker) : [],
-    lands: Array.isArray(r?.lands) ? r.lands.map(mapLand) : [],
+    day_index:
+      dayIndexRaw == null
+        ? null
+        : typeof dayIndexRaw === "number"
+          ? dayIndexRaw
+          : asNumber(dayIndexRaw, 0),
+    period_key: periodKeyRaw == null ? null : String(periodKeyRaw),
+    events: Array.isArray(obj.events) ? obj.events.map(mapEvent) : [],
+    workers: Array.isArray(obj.workers) ? obj.workers.map(mapWorker) : [],
+    lands: Array.isArray(obj.lands) ? obj.lands.map(mapLand) : [],
     summary: {
-      labor_total_hours: asNumber(r?.summary?.labor_total_hours, 0),
-      labor_capacity_hours: asNumber(r?.summary?.labor_capacity_hours, 0),
-      land_total_area: asNumber(r?.summary?.land_total_area, 0),
-      land_capacity_area: asNumber(r?.summary?.land_capacity_area, 0),
+      labor_total_hours: asNumber(
+        (obj.summary as Record<string, unknown> | undefined)?.labor_total_hours,
+        0,
+      ),
+      labor_capacity_hours: asNumber(
+        (obj.summary as Record<string, unknown> | undefined)
+          ?.labor_capacity_hours,
+        0,
+      ),
+      land_total_area: asNumber(
+        (obj.summary as Record<string, unknown> | undefined)?.land_total_area,
+        0,
+      ),
+      land_capacity_area: asNumber(
+        (obj.summary as Record<string, unknown> | undefined)
+          ?.land_capacity_area,
+        0,
+      ),
     },
   };
 
@@ -76,12 +103,13 @@ function mapRecord(interval: MetricsInterval, r: any): MetricsDayRecord {
 }
 
 export function mapTimelineResponse(json: unknown): MetricsTimelineResponse {
-  const obj: any = json ?? {};
+  const obj =
+    json && typeof json === "object" ? (json as Record<string, unknown>) : {};
   const interval: unknown = obj.interval;
   if (!isInterval(interval)) {
     throw new Error("metrics timeline: invalid interval");
   }
-  const recordsSrc: any[] = Array.isArray(obj.records) ? obj.records : [];
+  const recordsSrc: unknown[] = Array.isArray(obj.records) ? obj.records : [];
   const records: MetricsDayRecord[] = recordsSrc.map((r) =>
     mapRecord(interval, r),
   );
@@ -130,16 +158,52 @@ function mapApiTimeline(
 export function mapApiResultToView(
   api: ApiOptimizationResult,
 ): OptimizationResultView {
+  const statsRaw = api.stats ?? {};
+  const statsRec = statsRaw as Record<string, unknown> & {
+    stages?: unknown;
+    stage_order?: unknown;
+  };
+  const stagesUnknown = statsRec.stages;
+  const stageOrderUnknown = statsRec.stage_order;
+  let stages: OptimizationStageMetric[] | undefined;
+  if (Array.isArray(stagesUnknown)) {
+    stages = stagesUnknown.map((s): OptimizationStageMetric => {
+      const o =
+        s && typeof s === "object" ? (s as Record<string, unknown>) : {};
+      const out: OptimizationStageMetric = {
+        name: String(o.name ?? ""),
+        value: asNumber(o.value, 0),
+      };
+      if (typeof o.locked === "boolean") out.locked = o.locked;
+      return out;
+    });
+  }
+  const stageOrder = Array.isArray(stageOrderUnknown)
+    ? (stageOrderUnknown.filter((x) => typeof x === "string") as string[])
+    : undefined;
+
+  const solution = api.solution as Record<string, unknown> | null | undefined;
+  const summary =
+    solution && typeof solution === "object"
+      ? ((solution as { summary?: Record<string, unknown> }).summary ??
+        undefined)
+      : undefined;
+  const constraintHints =
+    solution && typeof solution === "object"
+      ? ((solution as { constraint_hints?: ConstraintHintView[] })
+          .constraint_hints ?? undefined)
+      : undefined;
+
   return {
     status: api.status,
     objectiveValue: api.objective_value ?? undefined,
     stats: {
       ...(api.stats ?? {}),
-      stages: (api.stats as any)?.stages ?? undefined,
-      stageOrder: (api.stats as any)?.stage_order ?? undefined,
+      stages,
+      stageOrder,
     },
-    summary: (api as any).summary ?? undefined,
-    constraintHints: (api as any).constraint_hints ?? undefined,
+    summary,
+    constraintHints,
     warnings: api.warnings ?? [],
     timeline: mapApiTimeline(api.timeline ?? undefined),
   };

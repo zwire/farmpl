@@ -39,7 +39,15 @@ def make_request_body() -> OptimizationRequest:
 def test_optimize_async_happy_path(monkeypatch):
     monkeypatch.setenv("AUTH_MODE", "none")
 
-    def fake_solve_sync(_req: OptimizationRequest) -> OptimizationResult:
+    def fake_solve_sync(
+        _req: OptimizationRequest, *, progress_cb=None
+    ) -> OptimizationResult:
+        # optionally report immediate completion
+        if callable(progress_cb):
+            try:
+                progress_cb(1.0, "done")
+            except Exception:
+                pass
         return OptimizationResult(
             status="ok", objective_value=1.0, solution={}, stats={}, warnings=[]
         )

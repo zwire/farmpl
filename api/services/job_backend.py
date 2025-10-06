@@ -13,6 +13,12 @@ from schemas import JobInfo, OptimizationRequest, OptimizationResult
 from . import optimizer_adapter as _oa
 
 
+class JobCanceled(Exception):
+    """Raised to cooperatively cancel a running optimization job."""
+
+    pass
+
+
 @runtime_checkable
 class JobBackend(Protocol):
     def enqueue(self, req: OptimizationRequest) -> JobInfo: ...
@@ -89,11 +95,25 @@ class InMemoryJobBackend:
                         st.progress = 1.0
                         st.completed_at = datetime.now(UTC)
                     return
+
+                # progress callback updates shared state and checks cancel flag
+                def _progress_cb(pct: float, phase: str) -> None:
+                    with self._lock:
+                        if st.cancel_flag:
+                            raise JobCanceled()
+                        st.progress = max(0.0, min(1.0, float(pct)))
+
                 # Resolve at call time so test monkeypatching works
-                res = _oa.solve_sync(st.req)
+                # Call adapter with progress callback
+                res = _oa.solve_sync(st.req, progress_cb=_progress_cb)
                 with self._lock:
                     st.result = res
                     st.status = "succeeded" if res.status == "ok" else res.status  # type: ignore[assignment]
+                    st.progress = 1.0
+                    st.completed_at = datetime.now(UTC)
+            except JobCanceled:
+                with self._lock:
+                    st.status = "canceled"  # type: ignore[assignment]
                     st.progress = 1.0
                     st.completed_at = datetime.now(UTC)
             except Exception:

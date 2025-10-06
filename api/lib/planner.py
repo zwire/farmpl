@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import math
+import time
+from collections.abc import Callable
 
 from .constraints import (
     AreaBoundsConstraint,
@@ -32,7 +34,6 @@ from .schemas import (
     ResourceUsageRef,
     WorkerRef,
 )
-import time
 from .solver import solve
 
 
@@ -45,7 +46,14 @@ def plan(
     stage_order: list[str] | None = None,
     lock_tolerance_pct: float | None = None,
     lock_tolerance_by: dict[str, float] | None = None,
+    progress_cb: Callable[[float, str], None] | None = None,
 ) -> PlanResponse:
+    def _report(p: float, phase: str) -> None:
+        if progress_cb is None:
+            return
+        # Allow raising to bubble up for cancellation
+        progress_cb(max(0.0, min(1.0, float(p))), phase)
+
     # Default constraints (partial time-axis introduced)
     base_constraints: list[Constraint] = [
         LandCapacityConstraint(),
@@ -91,7 +99,8 @@ def plan(
     last_res = None
     reason = None
     tol = float(lock_tolerance_pct or 0.0)
-    for name, sense in stage_defs:
+    n_stages = max(1, len(stage_defs))
+    for i, (name, sense) in enumerate(stage_defs):
         t_build0 = time.perf_counter()
         ctx = build_model(request, base_constraints, [])
         t_build1 = time.perf_counter()
@@ -172,6 +181,8 @@ def plan(
                 "solve_ms": res.solve_ms,
             }
         )
+        # Report stage progress up to 80%
+        _report(0.8 * (i + 1) / n_stages, f"stage:{name}")
 
     feasible = bool(last_res and last_res.status in ("FEASIBLE", "OPTIMAL"))
     diagnostics = PlanDiagnostics(
@@ -215,6 +226,7 @@ def plan(
     assignment = PlanAssignment(
         crop_area_by_land_day=crop_area_by_land_day, idle_by_land_day=idle_by_land_day
     )
+    _report(0.86, "post:assignment")
 
     # Build event assignments with workers, resources, and areas
     event_assignments: list[EventAssignment] = []
@@ -292,6 +304,7 @@ def plan(
                     land_ids=land_ids,
                 )
             )
+        _report(0.9, "post:event_assignments")
 
     # Build objective summaries and simple hints
     objectives: dict[str, float] = {}
@@ -374,6 +387,7 @@ def plan(
                     f"fixed area {fa.area} for {fa.land_id}/{fa.crop_id} > land area {land.area}"
                 )
 
+    _report(0.92, "post:summary")
     return PlanResponse(
         diagnostics=diagnostics,
         assignment=assignment,
