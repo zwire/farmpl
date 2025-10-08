@@ -124,6 +124,29 @@ export function CropsStepSection({
           id={crop.id}
           onRemove={() => handleRemove(index)}
         >
+          <div className="md:col-span-3 grid grid-cols-1 gap-2">
+            <Field label="テンプレートから作物を選択（任意）">
+              <ComboBox
+                value=""
+                onChange={(value) => {
+                  if (!catalog) return;
+                  const item = catalog.find((it) => it.crop_name === value);
+                  if (!item) return;
+                  const v0 = item.variants[0];
+                  handleUpdate(index, {
+                    name: item.crop_name,
+                    category: item.category ?? "",
+                    price: v0?.price_per_a
+                      ? { unit: "a", value: v0.price_per_a }
+                      : crop.price,
+                  });
+                }}
+                options={buildCatalogOptions()}
+                disabled={!catalog || catalog.length === 0}
+                placeholder={catalogError ?? "テンプレートの作物名を選択"}
+              />
+            </Field>
+          </div>
           <div className="grid gap-3 md:grid-cols-3">
             <Field label="名称">
               <input
@@ -177,29 +200,6 @@ export function CropsStepSection({
                 </select>
               </div>
             </Field>
-            <div className="md:col-span-3 grid grid-cols-1 gap-2">
-              <Field label="テンプレから作物を選択（任意）">
-                <ComboBox
-                  value=""
-                  onChange={(value) => {
-                    if (!catalog) return;
-                    const item = catalog.find((it) => it.crop_name === value);
-                    if (!item) return;
-                    const v0 = item.variants[0];
-                    handleUpdate(index, {
-                      name: item.crop_name,
-                      category: item.category ?? "",
-                      price: v0?.price_per_a
-                        ? { unit: "a", value: v0.price_per_a }
-                        : crop.price,
-                    });
-                  }}
-                  options={buildCatalogOptions()}
-                  disabled={!catalog || catalog.length === 0}
-                  placeholder={catalogError ?? "テンプレの作物名を選択"}
-                />
-              </Field>
-            </div>
           </div>
         </EntityCard>
       ))}

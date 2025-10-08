@@ -33,7 +33,6 @@ const buildValidPlan = (): PlanFormState => ({
   resources: [],
   cropAreaBounds: [],
   fixedAreas: [],
-  preferences: undefined,
   stages: undefined,
 });
 

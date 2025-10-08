@@ -6,15 +6,15 @@ import type {
   PlanUiState,
   PlanUiWorker,
 } from "@/lib/domain/planning-ui-types";
-import { ChipInput } from "./inputs/ChipInput";
-import { DateRangeInput } from "./inputs/DateRangeInput";
+import { ChipInput } from "../inputs/ChipInput";
+import { DateRangeInput } from "../inputs/DateRangeInput";
 import {
   EntityCard,
   Field,
   MeasurementInput,
   SectionCard,
-} from "./SectionElements";
-import { createUniqueId } from "./utils";
+} from "../SectionElements";
+import { createUniqueId } from "../utils";
 
 interface AvailabilitySectionProps {
   step: "lands" | "workers" | "resources";
@@ -31,7 +31,7 @@ export function AvailabilitySection({
     return (
       <SectionCard
         title="圃場"
-        description="圃場ごとの面積・タグ・封鎖期間を管理します"
+        description="圃場ごとの面積・タグ・利用不可期間を管理します"
         actionLabel="圃場を追加"
         onAction={() =>
           onPlanChange((prev) => ({
@@ -75,7 +75,7 @@ export function AvailabilitySection({
                       name: event.target.value,
                     })
                   }
-                  className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                 />
               </Field>
               <Field label="タグ">
@@ -84,8 +84,7 @@ export function AvailabilitySection({
                   onChange={(next) =>
                     updateLand(onPlanChange, index, { tags: next })
                   }
-                  placeholder="タグを入力してEnter"
-                  emptyMessage="タグがありません"
+                  placeholder="タグを入力"
                 />
               </Field>
             </div>
@@ -100,7 +99,7 @@ export function AvailabilitySection({
                   }
                 />
               </Field>
-              <Field label="封鎖期間">
+              <Field label="利用不可期間">
                 <DateRangeInput
                   ranges={land.blocked}
                   onChange={(next) =>
@@ -120,7 +119,7 @@ export function AvailabilitySection({
     return (
       <SectionCard
         title="作業者"
-        description="作業者のロールと稼働可能期間を管理します"
+        description="作業者の役割と稼働可能期間を管理します"
         actionLabel="作業者を追加"
         onAction={() =>
           onPlanChange((prev) => ({
@@ -164,17 +163,16 @@ export function AvailabilitySection({
                       name: event.target.value,
                     })
                   }
-                  className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                 />
               </Field>
-              <Field label="ロール">
+              <Field label="役割">
                 <ChipInput
                   value={worker.roles ?? []}
                   onChange={(next) =>
                     updateWorker(onPlanChange, index, { roles: next })
                   }
-                  placeholder="ロールを入力してEnter"
-                  emptyMessage="ロールがありません"
+                  placeholder="役割を入力"
                 />
               </Field>
               <Field label="日あたり工数 (h)">
@@ -187,11 +185,11 @@ export function AvailabilitySection({
                       capacityPerDay: Number(event.target.value || 0),
                     })
                   }
-                  className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                 />
               </Field>
             </div>
-            <Field label="封鎖期間">
+            <Field label="利用不可期間">
               <DateRangeInput
                 ranges={worker.blocked}
                 onChange={(next) =>
@@ -209,7 +207,7 @@ export function AvailabilitySection({
   return (
     <SectionCard
       title="共有リソース"
-      description="共有リソースと使用不可期間を管理します"
+      description="共有リソースと利用不可期間を管理します"
       actionLabel="共有リソースを追加"
       onAction={() =>
         onPlanChange((prev) => ({
@@ -253,7 +251,7 @@ export function AvailabilitySection({
                     name: event.target.value,
                   })
                 }
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
               />
             </Field>
             <Field label="カテゴリ">
@@ -265,7 +263,7 @@ export function AvailabilitySection({
                   })
                 }
                 placeholder="例: 機械"
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
               />
             </Field>
             <Field label="日あたり使用可能数">
@@ -281,11 +279,11 @@ export function AvailabilitySection({
                         : Number(event.target.value || 0),
                   })
                 }
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
               />
             </Field>
           </div>
-          <Field label="封鎖期間">
+          <Field label="利用不可期間">
             <DateRangeInput
               ranges={resource.blocked}
               onChange={(next) =>

@@ -33,7 +33,8 @@
 - 作業者上限作業時間（h/日）: $worker\_cap_w (w \in W)$
 - イベント実施可能期間/条件:
   - 繰り返し: $start\_cond_e \subseteq T, end\_cond_e \subseteq T, freq_e \in Z_{\gt0}$
-- 多様性・嗜好の重み（ユーザー設定）: $w_{profit}, w_{labor}, w_{idle}, w_{dispersion}, w_{peak}, w_{diversity}$（正の重み）
+  
+備考: 目的は段階（レキシコ）最適化で組み合わせます。
 
 補助パラメータ：
 - 面積→通算労働時間換算: $total\_labor\_e(a) = labor\_total\_per\_area\_e * a$
@@ -158,7 +159,7 @@ CP-SAT 実装ノート:
   $$\sum_{c} x_{l,c,t} + idle_{l,t} = area_l \quad (\forall l,t \text{ with } land\_blocked_{l,t}=0)$$
 
 ## 5. 目的関数（Objectives）
-多目的は加重和で単一目的に縮約する。
+多目的はレキシコグラフィック（段階）最適化で扱う（例: profit を最大化→その水準をロック→dispersion を最小化）。
 
 - 収益最大化（作付け面積 × 作物単価）:
   $$Profit = \sum_{c} \sum_{l} price_c \cdot b_{l,c}$$
@@ -174,8 +175,7 @@ CP-SAT 実装ノート:
   - 多品目志向: 作付品目数を増やす（$\sum_c [\sum_{l,t} x_{l,c,t} > 0]$ を最大化、CP-SAT では二値 $use_c$ で線形化）。
   - 単一作物志向: 上記の逆（品目数ペナルティ）。
 
-統合目的（最大化形に変換する場合は符号調整）:
-$$\max \; w_{profit}\,Profit - w_{labor}\,Labor - w_{idle}\,Idle - w_{dispersion}\,Disp + w_{diversity}\,Diversity$$
+統合の方法: 現実装では「加重和」は用いず、profit→dispersion（+任意の追加ステージ）という段階最適化で達成します。
 
 ## 6. OR-Tools 実装メモ
 - 推奨ソルバ: CP-SAT（`cp_model.CpModel`）。面積など連続量は刻み幅を設けて整数化（例: 0.1a を 1 ユニット）し、`IntVar`/`BoolVar` で表現。連続が必要なら MIP（SCIP）で `NumVar` を使用。

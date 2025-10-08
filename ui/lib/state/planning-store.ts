@@ -7,17 +7,9 @@ import { PlanningCalendarService } from "@/lib/domain/planning-calendar";
 import type {
   DateRange,
   IsoDateString,
-  PlanUiEvent,
-  PlanUiLand,
-  PlanUiResource,
   PlanUiState,
-  PlanUiWorker,
 } from "@/lib/domain/planning-ui-types";
-import type {
-  JobStatus,
-  OptimizationResultView,
-  PlanFormState,
-} from "@/lib/types/planning";
+import type { JobStatus, OptimizationResultView } from "@/lib/types/planning";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -41,7 +33,6 @@ const WIZARD_STEP_IDS: WizardStepId[] = [
 ];
 
 export const DRAFT_STORAGE_KEY = "farmpl-planning-draft-v2";
-export const LEGACY_DRAFT_STORAGE_KEY = "farmpl-planning-draft-v1";
 
 const DEFAULT_PLAN_LENGTH_DAYS = 30;
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -269,125 +260,8 @@ const sanitizePlan = (plan: PlanUiState): PlanUiState => {
     })),
     cropAreaBounds: plan.cropAreaBounds.map((bound) => ({ ...bound })),
     fixedAreas: plan.fixedAreas.map((fixed) => ({ ...fixed })),
-    preferences: plan.preferences ? { ...plan.preferences } : undefined,
     stages: plan.stages ? { ...plan.stages } : undefined,
   };
-};
-
-const indicesToRanges = (
-  indices: number[] | undefined,
-  horizon: PlanUiState["horizon"],
-): DateRange[] => {
-  if (!indices || indices.length === 0) return [];
-  const startDate = parseIsoDate(horizon.startDate);
-  if (!startDate) return [];
-  const sorted = Array.from(new Set(indices)).sort((a, b) => a - b);
-  const ranges: DateRange[] = [];
-  let currentStart = sorted[0];
-  let previous = sorted[0];
-
-  for (let i = 1; i < sorted.length; i += 1) {
-    const value = sorted[i];
-    if (value === previous + 1) {
-      previous = value;
-      continue;
-    }
-    const rangeStart = PlanningCalendarService.dayIndexToDate(
-      horizon.startDate,
-      currentStart,
-    );
-    const rangeEnd = PlanningCalendarService.dayIndexToDate(
-      horizon.startDate,
-      previous,
-    );
-    ranges.push({ start: rangeStart, end: rangeEnd });
-    currentStart = value;
-    previous = value;
-  }
-
-  const finalRange: DateRange = {
-    start: PlanningCalendarService.dayIndexToDate(
-      horizon.startDate,
-      currentStart,
-    ),
-    end: PlanningCalendarService.dayIndexToDate(horizon.startDate, previous),
-  };
-  ranges.push(finalRange);
-  return ranges;
-};
-
-const legacyEventToUi = (
-  event: PlanFormState["events"][number],
-  horizon: PlanUiState["horizon"],
-): PlanUiEvent => ({
-  id: event.id,
-  cropId: event.cropId,
-  name: event.name,
-  category: event.category,
-  startDates: event.startCond?.map((day) =>
-    PlanningCalendarService.dayIndexToDate(horizon.startDate, day),
-  ),
-  endDates: event.endCond?.map((day) =>
-    PlanningCalendarService.dayIndexToDate(horizon.startDate, day),
-  ),
-  frequencyDays: event.frequencyDays ?? undefined,
-  precedingEventId: event.precedingEventId ?? undefined,
-  lag: event.lag ?? undefined,
-  labor: event.labor ?? undefined,
-  requiredRoles: event.requiredRoles ?? undefined,
-  requiredResources: event.requiredResources ?? undefined,
-  usesLand: event.usesLand,
-});
-
-const legacyLandToUi = (
-  land: PlanFormState["lands"][number],
-  horizon: PlanUiState["horizon"],
-): PlanUiLand => ({
-  id: land.id,
-  name: land.name,
-  area: land.area,
-  tags: land.tags ?? [],
-  blocked: indicesToRanges(land.blockedDays ?? [], horizon),
-});
-
-const legacyWorkerToUi = (
-  worker: PlanFormState["workers"][number],
-  horizon: PlanUiState["horizon"],
-): PlanUiWorker => ({
-  id: worker.id,
-  name: worker.name,
-  roles: worker.roles,
-  capacityPerDay: worker.capacityPerDay,
-  blocked: indicesToRanges(worker.blockedDays ?? [], horizon),
-});
-
-const legacyResourceToUi = (
-  resource: PlanFormState["resources"][number],
-  horizon: PlanUiState["horizon"],
-): PlanUiResource => ({
-  id: resource.id,
-  name: resource.name,
-  category: resource.category ?? undefined,
-  capacityPerDay: resource.capacityPerDay ?? undefined,
-  blocked: indicesToRanges(resource.blockedDays ?? [], horizon),
-});
-
-const migrateLegacyPlan = (plan: PlanFormState): PlanUiState => {
-  const horizon = buildHorizonFromLength(plan.horizon.numDays);
-  return sanitizePlan({
-    horizon,
-    crops: plan.crops.map((crop) => ({ ...crop })),
-    lands: plan.lands.map((land) => legacyLandToUi(land, horizon)),
-    workers: plan.workers.map((worker) => legacyWorkerToUi(worker, horizon)),
-    resources: plan.resources.map((resource) =>
-      legacyResourceToUi(resource, horizon),
-    ),
-    events: plan.events.map((event) => legacyEventToUi(event, horizon)),
-    cropAreaBounds: plan.cropAreaBounds.map((bound) => ({ ...bound })),
-    fixedAreas: plan.fixedAreas.map((fixed) => ({ ...fixed })),
-    preferences: plan.preferences ? { ...plan.preferences } : undefined,
-    stages: plan.stages ? { ...plan.stages } : undefined,
-  });
 };
 
 export const createEmptyPlan = (): PlanUiState =>
@@ -400,17 +274,8 @@ export const createEmptyPlan = (): PlanUiState =>
     events: [],
     cropAreaBounds: [],
     fixedAreas: [],
-    preferences: {
-      wProfit: 1,
-      wLabor: 1,
-      wIdle: 1,
-      wDispersion: 1,
-      wPeak: 1,
-      wDiversity: 1,
-    },
     stages: {
       stageOrder: DEFAULT_STAGE_ORDER,
-      toleranceByStage: {},
       stepToleranceBy: {},
     },
   });
@@ -419,11 +284,6 @@ export interface PlanningDraftData {
   version: "ui-v1";
   plan: PlanUiState;
   savedAt: string;
-}
-
-interface LegacyPlanningDraftData {
-  plan: PlanFormState;
-  savedAt?: string;
 }
 
 export interface PlanningStoreState {
@@ -512,9 +372,7 @@ const toDraftData = (
 const parseDraftEnvelope = (value: string | null): PlanningDraftData | null => {
   if (!value) return null;
   try {
-    const parsed = JSON.parse(value) as
-      | PlanningDraftData
-      | LegacyPlanningDraftData;
+    const parsed = JSON.parse(value) as PlanningDraftData;
     if (!parsed || typeof parsed !== "object") {
       throw new Error("Invalid draft payload");
     }
@@ -522,11 +380,6 @@ const parseDraftEnvelope = (value: string | null): PlanningDraftData | null => {
       const typed = parsed as PlanningDraftData;
       if (!typed.plan) throw new Error("Missing plan");
       return toDraftData(typed.plan, typed.savedAt);
-    }
-    if ((parsed as LegacyPlanningDraftData).plan) {
-      const legacy = parsed as LegacyPlanningDraftData;
-      const migrated = migrateLegacyPlan(legacy.plan);
-      return toDraftData(migrated, legacy.savedAt);
     }
     throw new Error("Unsupported draft format");
   } catch (error) {
@@ -551,12 +404,6 @@ export const planningDraftStorage = {
     const current = loadFromStorageKey(DRAFT_STORAGE_KEY);
     if (current) {
       return current;
-    }
-    const legacy = loadFromStorageKey(LEGACY_DRAFT_STORAGE_KEY);
-    if (legacy) {
-      this.save(legacy);
-      window.localStorage.removeItem(LEGACY_DRAFT_STORAGE_KEY);
-      return legacy;
     }
     return null;
   },

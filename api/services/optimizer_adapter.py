@@ -14,7 +14,6 @@ from lib.schemas import (
     Land,
     PlanRequest,
     PlanResponse,
-    Preferences,
     Resource,
     Worker,
 )
@@ -147,18 +146,6 @@ def to_domain_plan(api: ApiPlan) -> PlanRequest:
             for f in api.fixed_areas
         ]
 
-    prefs = None
-    if api.preferences is not None:
-        p = api.preferences
-        prefs = Preferences(
-            w_profit=p.w_profit,
-            w_labor=p.w_labor,
-            w_idle=p.w_idle,
-            w_dispersion=p.w_dispersion,
-            w_peak=p.w_peak,
-            w_diversity=p.w_diversity,
-        )
-
     return PlanRequest(
         horizon=Horizon(num_days=api.horizon.num_days),
         crops=crops,
@@ -168,7 +155,6 @@ def to_domain_plan(api: ApiPlan) -> PlanRequest:
         resources=resources,
         crop_area_bounds=bounds,
         fixed_areas=fixed,
-        preferences=prefs,
     )
 
 

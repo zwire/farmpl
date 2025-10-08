@@ -38,11 +38,8 @@ class LinkAreaUseConstraint(Constraint):
                 # Per-day creation:
                 # - If crop has uses_land events, restrict to possible occupancy span
                 # - Otherwise (no occupancy model), create for all days to keep
-                #   legacy behavior and allow bounds/idle objectives to operate.
                 occ_days = ctx.occ_days_by_crop.get(crop.id, set())
-                days_iter = (
-                    range(1, H + 1) if not occ_days else sorted(occ_days)
-                )
+                days_iter = range(1, H + 1) if not occ_days else sorted(occ_days)
                 for t in days_iter:
                     key_t = (land.id, crop.id, t)
                     if key_t not in ctx.variables.x_area_by_l_c_t:
@@ -66,9 +63,7 @@ class LinkAreaUseConstraint(Constraint):
                     # Tie to base:
                     # - If occupancy is modeled: equality only when occ=1 and not blocked
                     if occ_l is not None:
-                        model.Add(
-                            ctx.variables.x_area_by_l_c_t[key_t] <= cap * occ_l
-                        )
+                        model.Add(ctx.variables.x_area_by_l_c_t[key_t] <= cap * occ_l)
                     if t not in blocked:
                         if occ_l is not None:
                             model.Add(

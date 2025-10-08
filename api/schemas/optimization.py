@@ -276,17 +276,6 @@ class ApiFixedArea(BaseModel):
         )
 
 
-class ApiPreferences(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    w_profit: float = Field(default=1.0, ge=0)
-    w_labor: float = Field(default=1.0, ge=0)
-    w_idle: float = Field(default=1.0, ge=0)
-    w_dispersion: float = Field(default=1.0, ge=0)
-    w_peak: float = Field(default=1.0, ge=0)
-    w_diversity: float = Field(default=1.0, ge=0)
-
-
 class ApiHorizon(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -306,9 +295,6 @@ class OptimizationStagesConfig(BaseModel):
             "diversity",
         ]
     )
-    tolerance_by_stage: dict[str, float] | None = Field(
-        default=None, description="各ステージの許容率（0..1）"
-    )
     step_tolerance_by: dict[str, float] | None = Field(
         default=None, description="段（サブステップ）ごとの許容率（0..1）"
     )
@@ -322,7 +308,6 @@ class OptimizationStagesConfig(BaseModel):
                 if not (0.0 <= v <= 1.0):
                     raise ValueError("tolerance は 0..1 の範囲で指定してください")
 
-        check_map(self.tolerance_by_stage, "tolerance_by_stage")
         check_map(self.step_tolerance_by, "step_tolerance_by")
         return self
 
@@ -338,7 +323,6 @@ class ApiPlan(BaseModel):
     resources: list[ApiResource]
     crop_area_bounds: list[ApiCropAreaBound] | None = None
     fixed_areas: list[ApiFixedArea] | None = None
-    preferences: ApiPreferences | None = None
     stages: OptimizationStagesConfig | None = None
 
     @model_validator(mode="after")

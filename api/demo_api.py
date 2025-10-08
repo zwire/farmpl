@@ -133,16 +133,6 @@ def _plan_to_api(plan: PlanRequest) -> dict[str, Any]:
             }
             for b in plan.crop_area_bounds
         ]
-    if plan.preferences:
-        p = plan.preferences
-        api_plan["preferences"] = {
-            "w_profit": p.w_profit,
-            "w_labor": p.w_labor,
-            "w_idle": p.w_idle,
-            "w_dispersion": p.w_dispersion,
-            "w_peak": p.w_peak,
-            "w_diversity": p.w_diversity,
-        }
     return api_plan
 
 

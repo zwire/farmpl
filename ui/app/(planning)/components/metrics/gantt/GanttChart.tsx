@@ -92,7 +92,7 @@ export function GanttChart({
         type: "day",
         startDateIso: drillDownStartDate.toISOString(),
         totalDays: drillDownRange.endDay - drillDownRange.startDay + 1,
-        minUnitWidth: 28, // Unify cell width
+        minUnitWidth: 32, // Unify cell width
       });
     }
 
@@ -100,7 +100,7 @@ export function GanttChart({
       type: timeline?.interval === "day" ? "day" : "third",
       startDateIso: baseViewModel.startDateIso,
       totalDays: baseViewModel.totalDays,
-      minUnitWidth: 28, // Unify cell width
+      minUnitWidth: 32, // Unify cell width
     });
   }, [baseViewModel, drillDownRange, timeline?.interval]);
 
@@ -166,7 +166,7 @@ export function GanttChart({
   const headerCells = [
     <div
       key="header-label"
-      className="sticky left-0 z-30 flex items-center justify-center border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+      className="sticky left-0 z-30 flex items-center justify-center border-b border-r border-slate-200 bg-slate-100/80 text-sm font-semibold text-slate-600 backdrop-blur-sm dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300"
       style={{ height: HEADER_HEIGHT }}
     >
       {viewPrefs.mode === "land" ? "土地" : "作物"} / 日付
@@ -344,8 +344,8 @@ export function GanttChart({
 
   return (
     <div className={`flex flex-col gap-6 ${className ?? ""}`}>
-      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <header className="flex flex-col gap-2">
+      <div className={`flex flex-col gap-4 ${className ?? ""}`}>
+        <header className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
               タイムライン
@@ -363,14 +363,14 @@ export function GanttChart({
           <ViewControls />
           <CategoryLegend items={allCategories} />
         </header>
-        <div className="relative overflow-x-auto">
+        <div className="relative overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
           <div className="grid text-xs" style={gridStyle}>
             {headerCells}
             {rowCells}
           </div>
         </div>
       </div>
-      <div>
+      <div className="mt-2">
         <DetailsPane
           item={selectedItem}
           landNameById={baseViewModel?.landNameById ?? {}}

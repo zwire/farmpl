@@ -1,15 +1,17 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { PlanningCalendarService } from "@/lib/domain/planning-calendar";
-import type { DateRange, PlanUiState } from "@/lib/domain/planning-ui-types";
+import type {
+  DateRange,
+  IsoDateString,
+  PlanUiState,
+} from "@/lib/domain/planning-ui-types";
 import {
   createEmptyPlan,
   DRAFT_STORAGE_KEY,
-  LEGACY_DRAFT_STORAGE_KEY,
   PlanningEventDateUtils,
   planningDraftStorage,
   usePlanningStore,
 } from "@/lib/state/planning-store";
-import type { PlanFormState } from "@/lib/types/planning";
 
 const createSamplePlan = (): PlanUiState => {
   const empty = createEmptyPlan();
@@ -36,18 +38,6 @@ const createSamplePlan = (): PlanUiState => {
     ],
   };
 };
-
-const clearDraftStorage = () => {
-  planningDraftStorage.clear();
-  if (typeof window !== "undefined") {
-    window.localStorage.removeItem(LEGACY_DRAFT_STORAGE_KEY);
-  }
-};
-
-beforeEach(() => {
-  usePlanningStore.getState().reset();
-  clearDraftStorage();
-});
 
 describe("planning-store basic behaviour", () => {
   it("updates plan and marks dirty", () => {
@@ -107,62 +97,6 @@ describe("planningDraftStorage", () => {
       expect(window.localStorage.getItem(DRAFT_STORAGE_KEY)).toBeTruthy();
     }
   });
-
-  it("migrates legacy plan data to the UI format", () => {
-    if (typeof window === "undefined") {
-      expect(true).toBe(true);
-      return;
-    }
-
-    const legacyPlan: PlanFormState = {
-      horizon: { numDays: 10 },
-      crops: [
-        {
-          id: "legacy-crop",
-          name: "小松菜",
-          category: "葉菜",
-          price: { unit: "a", value: 600 },
-        },
-      ],
-      events: [
-        {
-          id: "legacy-event",
-          cropId: "legacy-crop",
-          name: "播種",
-          startCond: [0, 1],
-          endCond: [3],
-          usesLand: true,
-        },
-      ],
-      lands: [
-        {
-          id: "land-1",
-          name: "旧第1圃場",
-          area: { unit: "a", value: 5 },
-          tags: [],
-          blockedDays: [0, 1, 5],
-        },
-      ],
-      workers: [],
-      resources: [],
-      cropAreaBounds: [],
-      fixedAreas: [],
-      preferences: undefined,
-      stages: undefined,
-    };
-
-    window.localStorage.setItem(
-      LEGACY_DRAFT_STORAGE_KEY,
-      JSON.stringify({ plan: legacyPlan, savedAt: "2025-01-02T00:00:00Z" }),
-    );
-
-    const migrated = planningDraftStorage.load();
-    expect(migrated).not.toBeNull();
-    expect(migrated?.plan.horizon.totalDays).toBe(legacyPlan.horizon.numDays);
-    expect(migrated?.plan.crops[0].id).toBe("legacy-crop");
-    expect(migrated?.plan.events[0].startDates?.length).toBe(2);
-    expect(migrated?.plan.lands[0].blocked.length).toBeGreaterThan(0);
-  });
 });
 
 describe("PlanningEventDateUtils", () => {
@@ -213,7 +147,10 @@ describe("PlanningEventDateUtils", () => {
       "2025-03-07",
     ];
 
-    const ranges = PlanningEventDateUtils.collapseDatesToRanges(dates, horizon);
+    const ranges = PlanningEventDateUtils.collapseDatesToRanges(
+      dates as IsoDateString[],
+      horizon,
+    );
 
     expect(ranges).toEqual([
       { start: "2025-03-01", end: "2025-03-02" },

@@ -13,23 +13,36 @@ import {
 } from "../SectionElements";
 import type { PlanFormUpdater } from "./types";
 
-type Preferences = NonNullable<PlanFormState["preferences"]>;
-type PreferenceKey = keyof Preferences;
-
 const STAGE_DEFINITIONS = [
-  { key: "profit", label: "利益", preferenceKey: "wProfit" as PreferenceKey },
-  { key: "labor", label: "労働", preferenceKey: "wLabor" as PreferenceKey },
-  { key: "idle", label: "遊休", preferenceKey: "wIdle" as PreferenceKey },
+  {
+    key: "profit",
+    label: "収益性",
+    description: "全体の収益が最大になるようにします。",
+  },
+  {
+    key: "labor",
+    label: "総労働時間",
+    description: "全体の労働時間が最小になるようにします。",
+  },
+  {
+    key: "idle",
+    label: "遊休農地",
+    description: "使われない農地が最小になるようにします。",
+  },
   {
     key: "dispersion",
-    label: "分散",
-    preferenceKey: "wDispersion" as PreferenceKey,
+    label: "作付けの集約",
+    description: "同じ作物をなるべく近くの畑にまとめます。",
   },
-  { key: "peak", label: "ピーク", preferenceKey: "wPeak" as PreferenceKey },
+  {
+    key: "peak",
+    label: "作業の平準化",
+    description: "特定の日への作業集中を避けます。",
+  },
   {
     key: "diversity",
-    label: "多様性",
-    preferenceKey: "wDiversity" as PreferenceKey,
+    label: "品目の多様性",
+    description: "なるべく多くの種類の作物を育てるようにします。",
   },
 ] as const;
 
@@ -44,7 +57,6 @@ export function ConstraintsStepSection({
   plan,
   onPlanChange,
 }: ConstraintsStepSectionProps) {
-  const stagePreferences = useMemo(() => ensurePreferences(plan), [plan]);
   const stageConfig = useMemo(() => ensureStageConfig(plan), [plan]);
 
   const cropOptions = useMemo<ComboBoxOption[]>(
@@ -133,42 +145,20 @@ export function ConstraintsStepSection({
     }));
   };
 
-  const updateStageWeight = (key: PreferenceKey, value: number) => {
-    onPlanChange((prev) => ({
-      ...prev,
-      preferences: {
-        ...stagePreferences,
-        [key]: value,
-      },
-    }));
-  };
-
   const updateTolerance = (stageKey: string, value: number) => {
-    onPlanChange((prev) => ({
-      ...prev,
-      stages: {
-        stageOrder: STAGE_ORDER,
-        toleranceByStage: {
-          ...stageConfig.toleranceByStage,
-          [stageKey]: value,
+    onPlanChange((prev) => {
+      const currentStages = prev.stages ?? { stageOrder: STAGE_ORDER };
+      return {
+        ...prev,
+        stages: {
+          ...currentStages,
+          stepToleranceBy: {
+            ...(currentStages.stepToleranceBy ?? {}),
+            [stageKey]: value,
+          },
         },
-        stepToleranceBy: stageConfig.stepToleranceBy,
-      },
-    }));
-  };
-
-  const updateStepTolerance = (stageKey: string, value: number) => {
-    onPlanChange((prev) => ({
-      ...prev,
-      stages: {
-        stageOrder: STAGE_ORDER,
-        toleranceByStage: stageConfig.toleranceByStage,
-        stepToleranceBy: {
-          ...stageConfig.stepToleranceBy,
-          [stageKey]: value,
-        },
-      },
-    }));
+      };
+    });
   };
 
   return (
@@ -291,49 +281,32 @@ export function ConstraintsStepSection({
       </SectionCard>
 
       <SectionCard
-        title="目的関数ウェイトと許容設定"
-        description="各ステージのウェイトと許容率を設定します"
+        title="最適化の優先順位"
+        description="どの目標を優先して計画を作成するかを設定します。優先順位はリストの上から順に適用されます。"
       >
-        <div className="grid gap-3">
-          <div className="grid grid-cols-[1.5fr_repeat(2,_1fr)] gap-3 text-xs font-semibold text-slate-500">
-            <span>ステージ</span>
-            <span>ウェイト</span>
-            <span>許容率 (%)</span>
-            <span>サブステップ許容率 (%)</span>
+        <div className="grid gap-4">
+          <div className="grid grid-cols-[2fr_1fr] gap-4 text-xs font-semibold text-slate-500 dark:text-slate-400">
+            <span>優先目標</span>
+            <div className="flex flex-col">
+              <span>柔軟性 (%)</span>
+              <span className="font-normal">
+                後の目標のために、この目標値をどれだけ妥協できるか
+              </span>
+            </div>
           </div>
           {STAGE_DEFINITIONS.map((stage) => (
             <div
               key={stage.key}
-              className="grid grid-cols-[1.5fr_repeat(2,_1fr)] items-center gap-3 text-sm"
+              className="grid grid-cols-[2fr_1fr] items-start gap-4"
             >
-              <span>{stage.label}</span>
-              <input
-                type="number"
-                min={0}
-                step={0.1}
-                value={stagePreferences[stage.preferenceKey]}
-                onChange={(event) =>
-                  updateStageWeight(
-                    stage.preferenceKey,
-                    Number(event.target.value || 0),
-                  )
-                }
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-              />
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step={0.1}
-                value={(stageConfig.toleranceByStage?.[stage.key] ?? 0) * 100}
-                onChange={(event) =>
-                  updateTolerance(
-                    stage.key,
-                    Number(event.target.value || 0) / 100,
-                  )
-                }
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-              />
+              <div className="flex flex-col">
+                <span className="font-medium text-slate-800 dark:text-slate-200">
+                  {stage.label}
+                </span>
+                <span className="text-xs text-slate-600 dark:text-slate-400">
+                  {stage.description}
+                </span>
+              </div>
               <input
                 type="number"
                 min={0}
@@ -341,12 +314,12 @@ export function ConstraintsStepSection({
                 step={0.1}
                 value={(stageConfig.stepToleranceBy?.[stage.key] ?? 0) * 100}
                 onChange={(event) =>
-                  updateStepTolerance(
+                  updateTolerance(
                     stage.key,
                     Number(event.target.value || 0) / 100,
                   )
                 }
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className="w-full rounded-md border-slate-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300 dark:focus:border-sky-500"
               />
             </div>
           ))}
@@ -356,25 +329,11 @@ export function ConstraintsStepSection({
   );
 }
 
-const ensurePreferences = (plan: PlanFormState): Preferences => {
-  const defaults: Preferences = {
-    wProfit: 1,
-    wLabor: 1,
-    wIdle: 1,
-    wDispersion: 1,
-    wPeak: 1,
-    wDiversity: 1,
-  };
-  return { ...defaults, ...(plan.preferences ?? {}) } as Preferences;
-};
-
 const ensureStageConfig = (plan: PlanFormState) => {
   const incoming: Partial<PlanFormState["stages"]> = plan.stages ?? {};
-  const tolerance = incoming.toleranceByStage ?? {};
   const stepTolerance = incoming.stepToleranceBy ?? {};
   return {
     stageOrder: STAGE_ORDER,
-    toleranceByStage: tolerance,
     stepToleranceBy: stepTolerance,
   };
 };

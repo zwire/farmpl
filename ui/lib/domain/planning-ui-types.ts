@@ -4,7 +4,6 @@ import type {
   PlanFormCrop,
   PlanFormCropAreaBound,
   PlanFormFixedArea,
-  PlanFormPreferences,
   PlanFormResource,
   PlanFormStagesConfig,
   PlanFormState,
@@ -28,7 +27,6 @@ export interface PlanUiHorizon {
 }
 
 export type PlanUiCrop = PlanFormCrop;
-export type PlanUiPreferences = PlanFormPreferences;
 export type PlanUiStagesConfig = PlanFormStagesConfig;
 export type PlanUiCropAreaBound = PlanFormCropAreaBound;
 export type PlanUiFixedArea = PlanFormFixedArea;
@@ -60,7 +58,6 @@ export interface PlanUiState {
   events: PlanUiEvent[];
   cropAreaBounds: PlanUiCropAreaBound[];
   fixedAreas: PlanUiFixedArea[];
-  preferences?: PlanUiPreferences;
   stages?: PlanUiStagesConfig;
 }
 

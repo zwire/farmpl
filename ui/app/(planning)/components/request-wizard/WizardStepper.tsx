@@ -13,7 +13,14 @@ export function WizardStepper({
   onStepSelect,
 }: WizardStepperProps) {
   return (
-    <nav aria-label="計画ウィザードのステップ" className="flex flex-col gap-2">
+    <nav
+      aria-label="計画ウィザードのステップ"
+      className="relative flex flex-col gap-3"
+    >
+      <div
+        aria-hidden
+        className="absolute left-5 top-2.5 h-[calc(100%-1.75rem)] w-px bg-slate-300 dark:bg-slate-700"
+      />
       {WIZARD_STEPS.map((step, index) => {
         const isActive = step.id === currentStep;
         return (
@@ -22,32 +29,52 @@ export function WizardStepper({
             type="button"
             onClick={() => onStepSelect?.(step.id)}
             className={clsx(
-              "flex w-full items-start gap-3 rounded-md border px-3 py-2 text-left transition-colors",
+              "group relative flex w-full items-start gap-4 rounded-lg p-2 text-left transition-colors",
               isActive
-                ? "border-sky-500 bg-sky-50 dark:border-sky-400 dark:bg-sky-900/30"
-                : "border-transparent bg-transparent hover:border-slate-200 hover:bg-slate-50 dark:hover:border-slate-700 dark:hover:bg-slate-800/40",
-              { "opacity-80": !isActive },
+                ? "bg-sky-50 dark:bg-sky-900/30"
+                : "hover:bg-slate-200/50 dark:hover:bg-slate-800/50",
             )}
           >
-            <span
-              aria-hidden
+            <div
               className={clsx(
-                "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold",
+                "relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
                 isActive
-                  ? "border-sky-500 text-sky-600 dark:border-sky-400 dark:text-sky-300"
-                  : "border-slate-300 text-slate-500 dark:border-slate-700 dark:text-slate-400",
+                  ? "bg-sky-500 text-white"
+                  : "border-2 border-slate-300 bg-slate-50 text-slate-500 group-hover:border-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:border-slate-600",
               )}
             >
-              {index + 1}
-            </span>
-            <span className="flex flex-col gap-1">
-              <span className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+              {isActive ? (
+                <svg
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <title>ステップが選択されています</title>
+                  <path
+                    fillRule="evenodd"
+                    d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              ) : (
+                index + 1
+              )}
+            </div>
+            <div className="flex flex-col pt-0.5">
+              <span
+                className={clsx(
+                  "text-base font-semibold",
+                  isActive
+                    ? "text-sky-800 dark:text-sky-200"
+                    : "text-slate-800 dark:text-slate-200",
+                )}
+              >
                 {step.title}
               </span>
-              <span className="text-xs text-slate-600 dark:text-slate-400">
+              <span className="text-xs text-slate-500 dark:text-slate-400">
                 {step.description}
               </span>
-            </span>
+            </div>
           </button>
         );
       })}

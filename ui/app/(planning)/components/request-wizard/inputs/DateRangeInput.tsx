@@ -24,7 +24,7 @@ export function DateRangeInput({
   ranges,
   onChange,
   horizon,
-  emptyMessage = "まだ封鎖期間がありません。下の「期間を追加」を押してください。",
+  emptyMessage = "まだ利用不可期間がありません。下の「期間を追加」を押してください。",
 }: DateRangeInputProps) {
   const updateRange = (index: number, patch: Partial<DateRange>) => {
     const next = [...ranges];

@@ -13,18 +13,20 @@ export const ViewControls = () => {
   const { gantt, setGantt } = useViewPreferencesStore();
 
   return (
-    <div className="flex items-center gap-4 p-2 bg-gray-50 rounded-lg">
+    <div className="flex items-center gap-4 rounded-lg bg-slate-100 p-1.5 dark:bg-slate-800">
       <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-gray-700">表示モード</span>
-        <div className="flex items-center bg-gray-200 rounded-md p-0.5">
+        <span className="pl-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+          表示モード
+        </span>
+        <div className="flex items-center rounded-md bg-slate-200/80 p-0.5 dark:bg-slate-900/70">
           {viewModeOptions.map((option) => (
             <label
               key={option.value}
               className={clsx(
-                "relative flex cursor-pointer items-center justify-center px-3 py-1 text-sm rounded-md transition-colors",
+                "relative flex cursor-pointer items-center justify-center rounded-[5px] px-3 py-1 text-sm transition-colors",
                 gantt.mode === option.value
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "bg-transparent text-gray-600 hover:bg-gray-100",
+                  ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
+                  : "bg-transparent text-slate-600 hover:bg-white/50 dark:text-slate-400 dark:hover:bg-slate-700/50",
               )}
             >
               <input

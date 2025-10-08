@@ -27,12 +27,12 @@ export const WIZARD_STEPS: WizardStep[] = [
   {
     id: "lands",
     title: "圃場",
-    description: "土地面積や封鎖日を設定します",
+    description: "土地面積や利用不可日を設定します",
   },
   {
     id: "workers",
     title: "労働力",
-    description: "作業者のロールと稼働制約を登録します",
+    description: "作業者の役割と稼働制約を登録します",
   },
   {
     id: "resources",

@@ -51,7 +51,6 @@ def _make_snapshot() -> JobSnapshot:
         resources=[],
         crop_area_bounds=None,
         fixed_areas=None,
-        preferences=None,
         stages=None,
     )
 

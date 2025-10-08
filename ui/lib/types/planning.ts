@@ -92,18 +92,8 @@ export interface ApiFixedArea {
   area_10a?: number | null;
 }
 
-export interface ApiPreferences {
-  w_profit?: number;
-  w_labor?: number;
-  w_idle?: number;
-  w_dispersion?: number;
-  w_peak?: number;
-  w_diversity?: number;
-}
-
 export interface ApiOptimizationStagesConfig {
   stage_order?: string[];
-  tolerance_by_stage?: Record<string, number> | null;
   step_tolerance_by?: Record<string, number> | null;
 }
 
@@ -116,7 +106,6 @@ export interface ApiPlan {
   resources: ApiResource[];
   crop_area_bounds?: ApiCropAreaBound[] | null;
   fixed_areas?: ApiFixedArea[] | null;
-  preferences?: ApiPreferences | null;
   stages?: ApiOptimizationStagesConfig | null;
 }
 
@@ -258,18 +247,8 @@ export interface PlanFormFixedArea {
   area: AreaMeasurement;
 }
 
-export interface PlanFormPreferences {
-  wProfit: number;
-  wLabor: number;
-  wIdle: number;
-  wDispersion: number;
-  wPeak: number;
-  wDiversity: number;
-}
-
 export interface PlanFormStagesConfig {
   stageOrder: string[];
-  toleranceByStage?: Record<string, number>;
   stepToleranceBy?: Record<string, number>;
 }
 
@@ -284,7 +263,6 @@ export interface PlanFormState {
   resources: PlanFormResource[];
   cropAreaBounds: PlanFormCropAreaBound[];
   fixedAreas: PlanFormFixedArea[];
-  preferences?: PlanFormPreferences;
   stages?: PlanFormStagesConfig;
 }
 

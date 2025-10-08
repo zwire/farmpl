@@ -105,14 +105,6 @@ describe("PlanningCalendarService", () => {
       ],
       cropAreaBounds: [],
       fixedAreas: [],
-      preferences: {
-        wProfit: 1,
-        wLabor: 1,
-        wIdle: 1,
-        wDispersion: 1,
-        wPeak: 1,
-        wDiversity: 1,
-      },
       stages: {
         stageOrder: ["profit", "labor"],
       },

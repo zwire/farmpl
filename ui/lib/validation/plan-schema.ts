@@ -153,39 +153,15 @@ const fixedAreaSchema = z
   })
   .strict();
 
-const preferencesSchema = z
-  .object({
-    wProfit: z.number().min(0),
-    wLabor: z.number().min(0),
-    wIdle: z.number().min(0),
-    wDispersion: z.number().min(0),
-    wPeak: z.number().min(0),
-    wDiversity: z.number().min(0),
-  })
-  .strict();
-
 const stagesSchema = z
   .object({
     stageOrder: z
       .array(nonEmptyString)
       .min(1, "stageOrder を1件以上指定してください"),
-    toleranceByStage: z.record(z.number().min(0).max(1)).optional(),
     stepToleranceBy: z.record(z.number().min(0).max(1)).optional(),
   })
   .strict()
   .superRefine((cfg, ctx) => {
-    if (cfg.toleranceByStage) {
-      for (const stage of Object.keys(cfg.toleranceByStage)) {
-        if (!cfg.stageOrder.includes(stage)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message:
-              "toleranceByStage に含まれるキーは stageOrder に含めてください",
-            path: ["toleranceByStage", stage],
-          });
-        }
-      }
-    }
     if (cfg.stepToleranceBy) {
       for (const stage of Object.keys(cfg.stepToleranceBy)) {
         if (!cfg.stageOrder.includes(stage)) {
@@ -214,7 +190,6 @@ export const planFormSchema = z
     resources: z.array(resourceSchema),
     cropAreaBounds: z.array(cropAreaBoundSchema).default([]),
     fixedAreas: z.array(fixedAreaSchema).default([]),
-    preferences: preferencesSchema.optional(),
     stages: stagesSchema.optional(),
   })
   .strict()
@@ -435,20 +410,9 @@ export const buildApiPlanPayload = (plan: PlanFormState): ApiPlan => {
             area_10a: fixed.area.unit === "10a" ? fixed.area.value : null,
           }))
         : null,
-    preferences: parsed.preferences
-      ? {
-          w_profit: parsed.preferences.wProfit,
-          w_labor: parsed.preferences.wLabor,
-          w_idle: parsed.preferences.wIdle,
-          w_dispersion: parsed.preferences.wDispersion,
-          w_peak: parsed.preferences.wPeak,
-          w_diversity: parsed.preferences.wDiversity,
-        }
-      : null,
     stages: parsed.stages
       ? {
           stage_order: parsed.stages.stageOrder,
-          tolerance_by_stage: parsed.stages.toleranceByStage ?? null,
           step_tolerance_by: parsed.stages.stepToleranceBy ?? null,
         }
       : null,

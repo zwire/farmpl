@@ -50,9 +50,7 @@ export function ChipInput({
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2 rounded-md border border-slate-300 px-2 py-2">
         {value.length === 0 && (
-          <span className="text-xs text-slate-400">
-            {emptyMessage ?? "値を追加してください"}
-          </span>
+          <span className="text-xs text-slate-400">{emptyMessage}</span>
         )}
         {value.map((chip) => (
           <span

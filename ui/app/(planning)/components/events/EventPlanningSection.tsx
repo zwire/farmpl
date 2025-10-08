@@ -300,18 +300,18 @@ export function EventPlanningSection({
   return (
     <div className="flex flex-col gap-6">
       <SectionCard
-        title="テンプレからイベント初期化"
+        title="テンプレートからイベント初期化"
         description="選択中の作物に対して、作型テンプレートと開始日を指定してイベントを初期化します"
-        actionLabel={selectedTemplateId ? "テンプレで初期化" : undefined}
+        actionLabel={selectedTemplateId ? "テンプレートで初期化" : undefined}
         onAction={selectedTemplateId ? initializeFromTemplate : undefined}
       >
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-col text-sm text-slate-600">
-            <span className="mb-1">作型（近い名前をサジェスト）</span>
+        <div className="flex flex-wrap items-end gap-4">
+          <label className="flex flex-col gap-1.5 text-sm text-slate-600 dark:text-slate-300">
+            <span className="font-medium">作型（近い名前を提案）</span>
             <select
               value={selectedTemplateId}
               onChange={(e) => setSelectedTemplateId(e.target.value)}
-              className="min-w-[260px] rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="min-w-[260px] rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             >
               {variants.map((v) => (
                 <option key={v.template_id} value={v.template_id}>
@@ -320,19 +320,19 @@ export function EventPlanningSection({
               ))}
             </select>
           </label>
-          <label className="flex flex-col text-sm text-slate-600">
-            <span className="mb-1">開始日</span>
+          <label className="flex flex-col gap-1.5 text-sm text-slate-600 dark:text-slate-300">
+            <span className="font-medium">開始日</span>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             />
           </label>
           <button
             type="button"
             onClick={refreshSuggestions}
-            className="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            className="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
           >
             サジェスト更新
           </button>

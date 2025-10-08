@@ -6,12 +6,7 @@ import type { PlanFormState } from "@/lib/types/planning";
 import {
   ConstraintsStepSection,
   CropsStepSection,
-  EventsStepSection,
-  HorizonStepSection,
-  LandsStepSection,
   type PlanFormUpdater,
-  ResourcesStepSection,
-  WorkersStepSection,
 } from "./step-sections";
 
 interface StepSectionsProps {
@@ -29,22 +24,12 @@ export function StepSections({
 }: StepSectionsProps) {
   const renderSection = () => {
     switch (step) {
-      case "horizon":
-        return <HorizonStepSection plan={plan} onPlanChange={onPlanChange} />;
       case "crops":
         return <CropsStepSection plan={plan} onPlanChange={onPlanChange} />;
-      case "lands":
-        return <LandsStepSection plan={plan} onPlanChange={onPlanChange} />;
-      case "workers":
-        return <WorkersStepSection plan={plan} onPlanChange={onPlanChange} />;
-      case "resources":
-        return <ResourcesStepSection plan={plan} onPlanChange={onPlanChange} />;
       case "constraints":
         return (
           <ConstraintsStepSection plan={plan} onPlanChange={onPlanChange} />
         );
-      case "events":
-        return <EventsStepSection plan={plan} />;
       default:
         return null;
     }

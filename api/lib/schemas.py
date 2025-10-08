@@ -66,17 +66,6 @@ class FixedArea(BaseModel):
     area: float
 
 
-class Preferences(BaseModel):
-    # Weights are non-negative; see tech.md for stage-wise/hybrid notes.
-    # Keep as simple weights for now.
-    w_profit: float = 1.0
-    w_labor: float = 1.0
-    w_idle: float = 1.0
-    w_dispersion: float = 1.0
-    w_peak: float = 1.0
-    w_diversity: float = 1.0
-
-
 class Horizon(BaseModel):
     # Period is represented as discrete days; see tech.md.
     # We use day index, extendable.
@@ -92,7 +81,6 @@ class PlanRequest(BaseModel):
     resources: list[Resource]
     crop_area_bounds: list[CropAreaBound] | None = None
     fixed_areas: list[FixedArea] | None = None
-    preferences: Preferences | None = None
 
 
 class PlanDiagnostics(BaseModel):

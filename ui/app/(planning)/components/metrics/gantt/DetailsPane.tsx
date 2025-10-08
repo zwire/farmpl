@@ -29,8 +29,9 @@ export const DetailsPane = ({
 }: DetailsPaneProps) => {
   if (!item) {
     return (
-      <div className="p-4 text-sm text-slate-500 h-full flex items-center justify-center bg-slate-50 rounded-lg dark:bg-slate-800/50 dark:text-slate-400">
-        <p className="text-center">
+      <div className="flex h-full min-h-[300px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/80 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/20 dark:text-slate-400">
+        <p className="font-semibold">詳細がありません</p>
+        <p className="mt-1 text-xs">
           ガントチャートのマーカーや
           <br />
           キャパシティセルをクリックすると、
@@ -41,28 +42,25 @@ export const DetailsPane = ({
     );
   }
 
-  if (item.type === "event_category") {
-    return (
-      <EventCategoryDetails
-        category={item.category}
-        events={item.events}
-        landNameById={landNameById}
-        cropNameById={cropNameById}
-      />
-    );
-  }
-
-  if (item.type === "capacity") {
-    return (
-      <CapacityDetails
-        mode={item.mode}
-        interval={item.interval}
-        record={item.record}
-      />
-    );
-  }
-
-  return null;
+  return (
+    <div className="h-full min-h-[300px] rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      {item.type === "event_category" && (
+        <EventCategoryDetails
+          category={item.category}
+          events={item.events}
+          landNameById={landNameById}
+          cropNameById={cropNameById}
+        />
+      )}
+      {item.type === "capacity" && (
+        <CapacityDetails
+          mode={item.mode}
+          interval={item.interval}
+          record={item.record}
+        />
+      )}
+    </div>
+  );
 };
 
 // --- Sub-components for different detail types ---
@@ -81,28 +79,37 @@ const EventCategoryDetails = ({
   const categoryColor = colorForCategory(category);
 
   return (
-    <div className="p-4 bg-slate-50 h-full rounded-lg dark:bg-slate-800/50">
-      <h4 className="text-lg font-semibold text-slate-800 mb-3 border-b pb-2 dark:text-slate-200 dark:border-slate-700">
-        {category} イベント詳細
-      </h4>
-      <ul className="space-y-3 max-h-[250px] overflow-y-auto pr-2">
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-3 border-b border-slate-200 pb-3 dark:border-slate-700">
+        <div
+          className="h-4 w-4 rounded-full"
+          style={{ backgroundColor: categoryColor.background }}
+        />
+        <h4 className="text-base font-semibold text-slate-800 dark:text-slate-200">
+          {category} イベント詳細 ({events.length}件)
+        </h4>
+      </div>
+      <ul className="mt-4 flex-1 space-y-2 overflow-y-auto pr-2">
         {events.map((event) => (
           <li
             key={event.id}
-            className="text-sm border-l-4 pl-3 py-1 bg-white rounded-r-md shadow-sm dark:bg-slate-900"
-            style={{ borderColor: categoryColor.background }}
+            className="rounded-md border border-slate-200 bg-slate-50/80 p-3 text-sm dark:border-slate-800 dark:bg-slate-800/50"
           >
             <div className="font-semibold text-slate-700 dark:text-slate-300">
               {event.label}
             </div>
-            <div className="text-xs text-slate-500 flex items-center gap-x-2 dark:text-slate-400">
-              <span>日付: {event.dateIso}</span>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+              <span>
+                <span className="font-medium">日付:</span> {event.dateIso}
+              </span>
               <span className="truncate">
-                作物: {cropNameById[event.cropId] ?? event.cropId}
+                <span className="font-medium">作物:</span>{" "}
+                {cropNameById[event.cropId] ?? event.cropId}
               </span>
               {event.landId && (
                 <span className="truncate">
-                  土地: {landNameById[event.landId] ?? event.landId}
+                  <span className="font-medium">土地:</span>{" "}
+                  {landNameById[event.landId] ?? event.landId}
                 </span>
               )}
             </div>
@@ -130,32 +137,43 @@ const CapacityDetails = ({
   const totalCap = items.reduce((sum, item) => sum + item.capacity, 0);
 
   return (
-    <div className="p-4 bg-slate-50 h-full rounded-lg dark:bg-slate-800/50">
-      <h4 className="text-lg font-semibold text-slate-800 mb-1 dark:text-slate-200">
-        {title}
-      </h4>
-      <p className="text-sm text-slate-500 mb-3 border-b pb-2 dark:text-slate-400 dark:border-slate-700">
-        期間: {periodLabel}
-      </p>
-      <div className="flex items-baseline justify-between mb-3">
-        <span className="text-xs text-slate-500 dark:text-slate-400">
-          合計使用量 / 合計キャパシティ
-        </span>
-        <span className="font-bold text-slate-700 dark:text-slate-300">
-          {totalUtil.toFixed(1)} / {totalCap.toFixed(1)}
-        </span>
+    <div className="flex h-full flex-col">
+      <div className="border-b border-slate-200 pb-3 dark:border-slate-700">
+        <h4 className="text-base font-semibold text-slate-800 dark:text-slate-200">
+          {title}
+        </h4>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          期間: {periodLabel}
+        </p>
       </div>
-      <ul className="space-y-2 max-h-[200px] overflow-y-auto pr-2 text-xs">
+
+      <div className="my-4 rounded-lg bg-slate-50 p-3 dark:bg-slate-800">
+        <div className="flex items-baseline justify-between">
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            合計使用量 / 合計キャパシティ
+          </span>
+          <span className="font-bold text-slate-700 dark:text-slate-300">
+            {totalUtil.toFixed(1)} / {totalCap.toFixed(1)}
+          </span>
+        </div>
+        <ProgressBar
+          value={totalUtil}
+          max={Math.max(totalCap, totalUtil, 1)}
+          className="mt-2"
+        />
+      </div>
+
+      <ul className="flex-1 space-y-2 overflow-y-auto pr-2 text-xs">
         {items.map((item) => (
           <li
             key={item.name}
-            className="flex items-center justify-between p-2 rounded-md bg-white dark:bg-slate-900"
+            className="flex items-center justify-between rounded-md p-2 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
           >
             <span className="font-medium text-slate-600 dark:text-slate-300">
               {item.name}
             </span>
             <div className="flex flex-col items-end">
-              <span className="text-slate-700 dark:text-slate-300">
+              <span className="font-mono text-slate-700 dark:text-slate-300">
                 {item.utilization.toFixed(1)} / {item.capacity.toFixed(1)}
               </span>
               <ProgressBar
@@ -170,10 +188,20 @@ const CapacityDetails = ({
   );
 };
 
-const ProgressBar = ({ value, max }: { value: number; max: number }) => {
+const ProgressBar = ({
+  value,
+  max,
+  className,
+}: {
+  value: number;
+  max: number;
+  className?: string;
+}) => {
   const percent = max > 0 ? (value / max) * 100 : 0;
   return (
-    <div className="mt-1 h-1 w-24 rounded-full bg-slate-200 dark:bg-slate-700">
+    <div
+      className={`mt-1 h-1 w-24 rounded-full bg-slate-200 dark:bg-slate-700 ${className}`}
+    >
       <div
         className="h-full rounded-full bg-sky-500"
         style={{ width: `${percent}%` }}

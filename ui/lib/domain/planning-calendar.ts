@@ -6,7 +6,6 @@ import type {
   PlanFormEvent,
   PlanFormFixedArea,
   PlanFormLand,
-  PlanFormPreferences,
   PlanFormResource,
   PlanFormStagesConfig,
   PlanFormState,
@@ -404,9 +403,6 @@ const constructPlanForm = (
     fixedAreas: uiPlan.fixedAreas.map<PlanFormFixedArea>((fixed) => ({
       ...fixed,
     })),
-    preferences: uiPlan.preferences
-      ? ({ ...uiPlan.preferences } satisfies PlanFormPreferences)
-      : undefined,
     stages: uiPlan.stages
       ? ({ ...uiPlan.stages } satisfies PlanFormStagesConfig)
       : undefined,
@@ -563,7 +559,6 @@ export const PlanningCalendarService = {
       })),
       cropAreaBounds: apiPlan.cropAreaBounds.map((bound) => ({ ...bound })),
       fixedAreas: apiPlan.fixedAreas.map((fixed) => ({ ...fixed })),
-      preferences: apiPlan.preferences ? { ...apiPlan.preferences } : undefined,
       stages: apiPlan.stages ? { ...apiPlan.stages } : undefined,
     };
   },

@@ -48,43 +48,64 @@ export function PlannerShell({ children }: PlannerShellProps) {
   };
 
   return (
-    <section className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 lg:px-8">
+    <main className="relative mx-auto flex w-full max-w-screen-2xl flex-col gap-8 px-4 py-10 sm:px-6 lg:px-8">
       {isSubmitting && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur">
-          <div className="w-[min(28rem,92%)] rounded-xl border border-slate-200 bg-white p-4 shadow-xl">
-            <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-700">
-              <span className="h-3 w-3 animate-ping rounded-full bg-sky-500" />
-              <span>最適化を実行中です…</span>
-            </div>
-            <div className="flex items-center justify-between text-xs text-slate-500">
-              <span>状態: {jobStatus ?? "running"}</span>
-              <span>{Math.round((jobProgress ?? 0) * 100)}%</span>
-            </div>
-            <div className="mt-1 h-2 w-full overflow-hidden rounded bg-slate-100">
-              <div
-                className="h-full bg-sky-500 transition-[width] duration-300"
-                style={{
-                  width: `${Math.max(3, Math.round((jobProgress ?? 0) * 100))}%`,
-                }}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={handleCancel}
-              disabled={isCancelling}
-              className="mt-4 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-sm">
+          <div className="flex items-center gap-3 text-lg font-medium text-white">
+            <svg
+              className="h-5 w-5 animate-spin text-sky-400"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
             >
-              {isCancelling ? "キャンセル中…" : "キャンセル"}
-            </button>
+              <title>最適化を実行中です</title>
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            <span>最適化を実行中です…</span>
           </div>
+          <div className="mt-4 w-80 text-center text-sm text-slate-300">
+            状態: {jobStatus ?? "running"} (
+            {Math.round((jobProgress ?? 0) * 100)}%)
+          </div>
+          <div className="mt-2 h-2 w-80 overflow-hidden rounded-full bg-slate-700">
+            <div
+              className="h-full bg-sky-400 transition-[width] duration-300"
+              style={{
+                width: `${Math.max(3, Math.round((jobProgress ?? 0) * 100))}%`,
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={isCancelling}
+            className="mt-6 rounded-md border border-slate-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
+          >
+            {isCancelling ? "キャンセル中…" : "キャンセル"}
+          </button>
         </div>
       )}
-      <header className="flex flex-col gap-2 text-slate-700">
-        <h1 className="text-3xl font-semibold text-slate-900">
-          FarmPL 営農プランニング
+      <header className="border-b border-slate-300/80 pb-6 dark:border-slate-700/80">
+        <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+          営農計画プランナー
         </h1>
+        <p className="mt-2 text-base text-slate-600 dark:text-slate-400">
+          FarmPLエンジンを使って、最適な営農計画を作成します。
+        </p>
       </header>
-      <div className="flex flex-col gap-6">{children}</div>
-    </section>
+      <div className="flex flex-col gap-10">{children}</div>
+    </main>
   );
 }

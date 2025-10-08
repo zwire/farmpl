@@ -34,7 +34,9 @@ class Constraint(ABC):
 class Objective(ABC):
     """An objective contributes a term to the global objective function.
 
-    Weighting is handled by the builder using user preferences.
+    Note: The current planner composes objectives via lexicographic (stage-wise)
+    optimization. Implementations should register a single expression; any
+    weighting/combination is orchestrated by the planner, not by objectives.
     """
 
     enabled: bool = True

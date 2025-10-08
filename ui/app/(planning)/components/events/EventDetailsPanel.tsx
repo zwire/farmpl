@@ -35,11 +35,26 @@ const Section = ({
   title: string;
   children: React.ReactNode;
 }) => (
-  <details className="rounded-lg border border-slate-200 bg-white/80">
-    <summary className="cursor-pointer select-none rounded-lg px-4 py-2 text-sm font-semibold text-slate-700">
+  <details
+    className="group rounded-lg border bg-white/50 border-slate-300 dark:border-slate-800 dark:bg-slate-900/30"
+    open
+  >
+    <summary className="flex cursor-pointer list-none items-center justify-between p-4 font-semibold text-slate-800 dark:text-slate-200">
       {title}
+      <svg
+        className="h-5 w-5 text-slate-500 transition-transform group-open:rotate-180"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+      >
+        <title>詳細を切り替え</title>
+        <path
+          fillRule="evenodd"
+          d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+          clipRule="evenodd"
+        />
+      </svg>
     </summary>
-    <div className="flex flex-col gap-3 border-t border-slate-100 px-4 py-4 text-xs text-slate-600">
+    <div className="flex flex-col gap-4 border-t border-slate-200/80 p-4 text-xs text-slate-600 dark:border-slate-800/80 dark:text-slate-400">
       {children}
     </div>
   </details>
@@ -111,8 +126,13 @@ export function EventDetailsPanel({
 
   if (!selectedEvent) {
     return (
-      <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
-        イベントを選択すると詳細を編集できます。
+      <div className="flex h-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/80 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/20 dark:text-slate-400">
+        <p className="font-semibold">イベントが選択されていません</p>
+        <p className="mt-1 text-xs">
+          左のグラフからノードを選択すると、
+          <br />
+          ここで詳細を編集できます。
+        </p>
       </div>
     );
   }
@@ -195,26 +215,30 @@ export function EventDetailsPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
+      <div className="flex items-start justify-between rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/70">
         <div className="flex flex-col">
-          <span className="text-sm font-semibold text-slate-800">
+          <span className="text-base font-semibold text-slate-800 dark:text-slate-100">
             {selectedEvent.name || selectedEvent.id}
           </span>
-          <span className="text-xs text-slate-400">ID: {selectedEvent.id}</span>
+          <span className="text-xs text-slate-400 dark:text-slate-500">
+            ID: {selectedEvent.id}
+          </span>
         </div>
         <button
           type="button"
           onClick={() => setShowDeleteConfirm(true)}
-          className="text-xs text-red-500 transition hover:underline"
+          className="rounded-md px-2 py-1 text-xs text-red-600 transition-colors hover:bg-red-500/10 dark:text-red-500"
         >
-          このイベントを削除
+          削除
         </button>
       </div>
 
       <Section title="基本情報">
-        <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">
+        <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
           対象作物:{" "}
-          <span className="font-medium text-slate-700">{cropDisplayName}</span>
+          <span className="font-medium text-slate-700 dark:text-slate-300">
+            {cropDisplayName}
+          </span>
         </p>
         <Field label="カテゴリ">
           <input
@@ -228,7 +252,7 @@ export function EventDetailsPanel({
                 name: !prev.name ? (newCategory ?? prev.name) : prev.name,
               }));
             }}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           />
           <datalist id={categoryOptionsId}>
             {categoryOptions.map((opt) => (
@@ -242,7 +266,7 @@ export function EventDetailsPanel({
             onChange={(event) =>
               update((prev) => ({ ...prev, name: event.target.value }))
             }
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           />
         </Field>
         <Field label="土地を使用">
@@ -254,7 +278,7 @@ export function EventDetailsPanel({
                 usesLand: event.target.value === "true",
               }))
             }
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           >
             <option value="true">使用する</option>
             <option value="false">使用しない</option>
@@ -329,7 +353,7 @@ export function EventDetailsPanel({
                         : Number(event.target.value || 0),
                   })
                 }
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
               />
             </Field>
             <Field label="ラグ最大 (日前)">
@@ -348,7 +372,7 @@ export function EventDetailsPanel({
                         : Number(event.target.value || 0),
                   })
                 }
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
               />
             </Field>
           </div>
@@ -371,7 +395,7 @@ export function EventDetailsPanel({
                     : Number(event.target.value || 0),
               }))
             }
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           />
         </Field>
       </Section>
@@ -391,7 +415,7 @@ export function EventDetailsPanel({
                       : Number(event.target.value || 0),
                 })
               }
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             />
           </Field>
           <Field label="総工数 (h/a)">
@@ -407,7 +431,7 @@ export function EventDetailsPanel({
                       : Number(event.target.value || 0),
                 })
               }
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             />
           </Field>
           <Field label="日最大工数 (h)">
@@ -423,11 +447,11 @@ export function EventDetailsPanel({
                       : Number(event.target.value || 0),
                 })
               }
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             />
           </Field>
         </div>
-        <Field label="必要ロール">
+        <Field label="必要役割">
           <ChipInput
             value={selectedEvent.requiredRoles ?? []}
             onChange={(next) =>
@@ -436,8 +460,8 @@ export function EventDetailsPanel({
                 requiredRoles: next.length ? next : undefined,
               }))
             }
-            placeholder="ロールを入力"
-            emptyMessage="ロールが未指定です"
+            placeholder="役割を入力"
+            emptyMessage="役割が未指定です"
           />
         </Field>
         <Field label="必要リソース">
@@ -461,20 +485,25 @@ export function EventDetailsPanel({
       </Section>
 
       {showDeleteConfirm && (
-        <div className="flex items-center justify-between rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
-          <span>本当に削除しますか？この操作は取り消せません。</span>
-          <div className="flex gap-2">
+        <div className="flex flex-col gap-3 rounded-lg border-2 border-red-500/50 bg-red-50/50 p-4 text-sm dark:bg-red-900/20">
+          <p className="font-semibold text-red-800 dark:text-red-200">
+            本当にこのイベントを削除しますか？
+          </p>
+          <p className="text-xs text-red-700 dark:text-red-300">
+            この操作は取り消せません。関連する依存関係もリセットされます。
+          </p>
+          <div className="flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={() => setShowDeleteConfirm(false)}
-              className="rounded-md border border-red-200 px-3 py-1"
+              className="rounded-md border border-slate-300 px-4 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               キャンセル
             </button>
             <button
               type="button"
               onClick={() => onRemove(selectedEvent.id)}
-              className="rounded-md bg-red-500 px-3 py-1 text-white"
+              className="rounded-md bg-red-600 px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600"
             >
               削除する
             </button>

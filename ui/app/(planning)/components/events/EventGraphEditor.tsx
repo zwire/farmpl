@@ -44,12 +44,8 @@ export function EventGraphEditor({
     generateNodes(events, selectedEventId ?? null),
   );
   const [edges, setEdges] = useState<Edge[]>(() => generateEdges(events));
-  const lastSelectedRef = useRef<string | null>(selectedEventId ?? null);
 
   useEffect(() => {
-    if (lastSelectedRef.current === selectedEventId) {
-      return;
-    }
     if (!containerRef.current) {
       return;
     }
@@ -101,18 +97,18 @@ export function EventGraphEditor({
 
   const handleSelectionChange = useCallback(
     (selection: { nodes?: Node[] } | null) => {
-      const newSelectedId = selection?.nodes?.[0]?.id ?? null;
-      if (lastSelectedRef.current !== newSelectedId) {
-        lastSelectedRef.current = newSelectedId;
+      const newSelectedId = selection?.nodes?.[0]?.id;
+      if (!newSelectedId) return;
+      if (selectedEventId !== newSelectedId) {
         onSelectEvent?.(newSelectedId);
       }
     },
-    [onSelectEvent],
+    [onSelectEvent, selectedEventId],
   );
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-      <div ref={containerRef} className="h-[320px] w-full">
+    <div className="rounded-xl border border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900/20">
+      <div ref={containerRef} className="h-[320px] w-full rounded-xl">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -143,6 +139,7 @@ const generateNodes = (
   events.map((event, index) => {
     const row = Math.floor(index / STAGE_WIDTH);
     const column = index % STAGE_WIDTH;
+    const isSelected = event.id === selectedId;
     return {
       id: event.id,
       data: { label: event.name || event.id },
@@ -150,7 +147,15 @@ const generateNodes = (
         x: column * NODE_HORIZONTAL_GAP,
         y: row * NODE_VERTICAL_GAP,
       },
-      selected: event.id === selectedId,
+      selected: isSelected,
+      style: {
+        borderRadius: "0.5rem",
+        borderWidth: 2,
+        borderColor: isSelected ? "#0ea5e9" : "transparent",
+        background: "white",
+        boxShadow:
+          "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+      },
     } satisfies Node;
   });
 
@@ -162,16 +167,22 @@ const generateEdges = (events: PlanUiEvent[]): Edge[] =>
       source: event.precedingEventId as string,
       target: event.id,
       animated: true,
+      style: { stroke: "#94a3b8", strokeWidth: 1.5 },
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        width: 18,
-        height: 18,
+        width: 16,
+        height: 16,
+        color: "#94a3b8",
       },
       label: createLagLabel(event.lag),
-      labelBgPadding: [6, 2],
-      labelBgBorderRadius: 4,
-      labelBgStyle: { fill: "#ffffff", stroke: "#cbd5f5" },
-      labelStyle: { fontSize: 11, fill: "#0f172a" },
+      labelBgPadding: [6, 3],
+      labelBgBorderRadius: 6,
+      labelBgStyle: {
+        fill: "#f1f5f9",
+        stroke: "#e2e8f0",
+        fillOpacity: 0.9,
+      },
+      labelStyle: { fontSize: 11, fill: "#475569", fontWeight: 600 },
     }));
 
 const syncNodes = (
@@ -184,11 +195,16 @@ const syncNodes = (
 
   return events.map((event, index) => {
     const existing = byId.get(event.id);
+    const isSelected = event.id === selectedId;
     if (existing) {
       return {
         ...existing,
         data: { label: event.name || event.id },
-        selected: event.id === selectedId,
+        selected: isSelected,
+        style: {
+          ...existing.style,
+          borderColor: isSelected ? "#0ea5e9" : "transparent",
+        },
       } satisfies Node;
     }
     const row = Math.floor(index / STAGE_WIDTH);
@@ -200,7 +216,15 @@ const syncNodes = (
         x: column * NODE_HORIZONTAL_GAP,
         y: row * NODE_VERTICAL_GAP,
       },
-      selected: event.id === selectedId,
+      selected: isSelected,
+      style: {
+        borderRadius: "0.5rem",
+        borderWidth: 2,
+        borderColor: isSelected ? "#0ea5e9" : "transparent",
+        background: "white",
+        boxShadow:
+          "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+      },
     } satisfies Node;
   });
 };
