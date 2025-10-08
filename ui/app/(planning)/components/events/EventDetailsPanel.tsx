@@ -127,7 +127,7 @@ export function EventDetailsPanel({
   if (!selectedEvent) {
     return (
       <div className="flex h-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/80 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/20 dark:text-slate-400">
-        <p className="font-semibold">イベントが選択されていません</p>
+        <p className="font-semibold">作業が選択されていません</p>
         <p className="mt-1 text-xs">
           左のグラフからノードを選択すると、
           <br />
@@ -287,9 +287,9 @@ export function EventDetailsPanel({
       </Section>
 
       <Section title="スケジュール">
-        <Field label="先行イベント">
+        <Field label="先行作業">
           <small className="block text-[11px] text-slate-400">
-            先に完了しておくべきイベントを選択してください。未指定の場合は日付で実行期間を限定します。
+            この作業の開始条件が先行作業に依存する場合は選択してください。未指定の場合は日付で実行期間を限定します。
           </small>
           <ComboBox
             value={selectedEvent.precedingEventId ?? ""}
@@ -303,16 +303,16 @@ export function EventDetailsPanel({
               }))
             }
             options={precedingEventOptions}
-            placeholder="先行イベントを選択"
+            placeholder="先行作業を選択"
             allowClear
           />
         </Field>
 
         {!selectedEvent.precedingEventId && (
           <div className="flex flex-col gap-3">
-            <Field label="開始条件 (許可される期間)">
+            <Field label="開始可能期間">
               <small className="block text-[11px] text-slate-400">
-                指定した期間に含まれる各日付が開始可能日として保存されます。未設定の場合は制約なしです。
+                開始可能期間を指定します。未設定の場合は制約なしです。
               </small>
               <DateRangeInput
                 ranges={startRanges}
@@ -321,9 +321,9 @@ export function EventDetailsPanel({
                 emptyMessage="開始可能な期間が登録されていません"
               />
             </Field>
-            <Field label="終了条件 (締切期間)">
+            <Field label="締切期間">
               <small className="block text-[11px] text-slate-400">
-                指定した期間に含まれる各日付が締切日として保存されます。未設定の場合は制約なしです。
+                締切期間を指定します。未設定の場合は制約なしです。
               </small>
               <DateRangeInput
                 ranges={endRanges}
@@ -337,9 +337,9 @@ export function EventDetailsPanel({
 
         {selectedEvent.precedingEventId && (
           <div className="grid gap-3 md:grid-cols-2">
-            <Field label="ラグ最小 (日前)">
+            <Field label="先行作業との最小間隔 (日前)">
               <small className="block text-[11px] text-slate-400">
-                先行イベント終了から何日後に開始できるかの下限です。
+                先行作業終了から何日後に開始できるかの下限です。
               </small>
               <input
                 type="number"
@@ -356,9 +356,9 @@ export function EventDetailsPanel({
                 className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
               />
             </Field>
-            <Field label="ラグ最大 (日前)">
+            <Field label="先行作業との最大間隔 (日前)">
               <small className="block text-[11px] text-slate-400">
-                先行イベント終了から何日以内に開始すべきかの上限です。
+                先行作業終了から何日以内に開始すべきかの上限です。
               </small>
               <input
                 type="number"
@@ -380,7 +380,8 @@ export function EventDetailsPanel({
 
         <Field label="繰り返し頻度 (日)">
           <small className="block text-[11px] text-slate-400">
-            同じイベントを周期的に実施する場合の間隔です。
+            この作業を周期的に実施する場合に最低限設ける間隔日数です。
+            未指定の場合は制約なしです。
           </small>
           <input
             type="number"
@@ -461,7 +462,6 @@ export function EventDetailsPanel({
               }))
             }
             placeholder="役割を入力"
-            emptyMessage="役割が未指定です"
           />
         </Field>
         <Field label="必要リソース">
@@ -487,7 +487,7 @@ export function EventDetailsPanel({
       {showDeleteConfirm && (
         <div className="flex flex-col gap-3 rounded-lg border-2 border-red-500/50 bg-red-50/50 p-4 text-sm dark:bg-red-900/20">
           <p className="font-semibold text-red-800 dark:text-red-200">
-            本当にこのイベントを削除しますか？
+            本当にこの作業を削除しますか？
           </p>
           <p className="text-xs text-red-700 dark:text-red-300">
             この操作は取り消せません。関連する依存関係もリセットされます。

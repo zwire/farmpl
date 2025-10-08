@@ -32,7 +32,20 @@ const WIZARD_STEP_IDS: WizardStepId[] = [
   "events",
 ];
 
-export const DRAFT_STORAGE_KEY = "farmpl-planning-draft-v2";
+export const DRAFT_STORAGE_KEY = "farmpl-planning-draft-v1";
+
+let draftTtlMs =
+  Number(process.env.NEXT_PUBLIC_PLANNING_DRAFT_TTL_DAYS ?? "0") > 0
+    ? Number(process.env.NEXT_PUBLIC_PLANNING_DRAFT_TTL_DAYS) * MS_PER_DAY
+    : null;
+
+const isDraftExpired = (savedAt: string | null | undefined): boolean => {
+  if (draftTtlMs == null) return false;
+  if (!savedAt) return true;
+  const timestamp = Date.parse(savedAt);
+  if (Number.isNaN(timestamp)) return true;
+  return Date.now() - timestamp > draftTtlMs;
+};
 
 const DEFAULT_PLAN_LENGTH_DAYS = 30;
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -281,7 +294,7 @@ export const createEmptyPlan = (): PlanUiState =>
   });
 
 export interface PlanningDraftData {
-  version: "ui-v1";
+  version: "v1";
   plan: PlanUiState;
   savedAt: string;
 }
@@ -364,7 +377,7 @@ const toDraftData = (
   plan: PlanUiState,
   savedAt?: string | null,
 ): PlanningDraftData => ({
-  version: "ui-v1",
+  version: "v1",
   plan: sanitizePlan(plan),
   savedAt: savedAt ?? new Date().toISOString(),
 });
@@ -376,7 +389,7 @@ const parseDraftEnvelope = (value: string | null): PlanningDraftData | null => {
     if (!parsed || typeof parsed !== "object") {
       throw new Error("Invalid draft payload");
     }
-    if ((parsed as PlanningDraftData).version === "ui-v1") {
+    if ((parsed as PlanningDraftData).version === "v1") {
       const typed = parsed as PlanningDraftData;
       if (!typed.plan) throw new Error("Missing plan");
       return toDraftData(typed.plan, typed.savedAt);
@@ -394,6 +407,10 @@ const loadFromStorageKey = (key: string): PlanningDraftData | null => {
   const parsed = parseDraftEnvelope(raw);
   if (!parsed && raw) {
     window.localStorage.removeItem(key);
+  }
+  if (parsed && isDraftExpired(parsed.savedAt)) {
+    window.localStorage.removeItem(key);
+    return null;
   }
   return parsed;
 };
@@ -415,6 +432,13 @@ export const planningDraftStorage = {
   clear() {
     if (typeof window === "undefined") return;
     window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+  },
+  setTtlDays(days: number | null | undefined) {
+    if (days == null || Number(days) <= 0) {
+      draftTtlMs = null;
+      return;
+    }
+    draftTtlMs = Number(days) * MS_PER_DAY;
   },
 };
 

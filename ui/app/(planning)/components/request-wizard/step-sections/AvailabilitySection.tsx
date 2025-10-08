@@ -14,7 +14,7 @@ import {
   MeasurementInput,
   SectionCard,
 } from "../SectionElements";
-import { createUniqueId } from "../utils";
+import { createUniqueId, roundToInt } from "../utils";
 
 interface AvailabilitySectionProps {
   step: "lands" | "workers" | "resources";
@@ -44,7 +44,7 @@ export function AvailabilitySection({
                   prev.lands.map((land) => land.id),
                 ),
                 name: "",
-                area: { unit: "a", value: 0 },
+                area: { unit: "a", value: 1 },
                 tags: [],
                 blocked: [],
               },
@@ -99,6 +99,8 @@ export function AvailabilitySection({
                   }
                 />
               </Field>
+            </div>
+            <div className="grid gap-3 md:grid-cols-[auto_minmax(0,1fr)]">
               <Field label="利用不可期間">
                 <DateRangeInput
                   ranges={land.blocked}
@@ -179,10 +181,17 @@ export function AvailabilitySection({
                 <input
                   type="number"
                   min={0}
+                  max={24}
                   value={worker.capacityPerDay}
                   onChange={(event) =>
                     updateWorker(onPlanChange, index, {
-                      capacityPerDay: Number(event.target.value || 0),
+                      capacityPerDay: Math.max(
+                        0,
+                        Math.min(
+                          24,
+                          roundToInt(Number(event.target.value || 0)),
+                        ),
+                      ),
                     })
                   }
                   className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
@@ -221,7 +230,7 @@ export function AvailabilitySection({
               ),
               name: "",
               category: undefined,
-              capacityPerDay: undefined,
+              capacityPerDay: 24,
               blocked: [],
             },
           ],
@@ -266,17 +275,24 @@ export function AvailabilitySection({
                 className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
               />
             </Field>
-            <Field label="日あたり使用可能数">
+            <Field label="日あたり使用可能時間 (h)">
               <input
                 type="number"
                 min={0}
+                max={24}
                 value={resource.capacityPerDay ?? ""}
                 onChange={(event) =>
                   updateResource(onPlanChange, index, {
                     capacityPerDay:
                       event.target.value === ""
                         ? undefined
-                        : Number(event.target.value || 0),
+                        : Math.max(
+                            0,
+                            Math.min(
+                              24,
+                              roundToInt(Number(event.target.value || 0)),
+                            ),
+                          ),
                   })
                 }
                 className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"

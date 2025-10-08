@@ -221,7 +221,7 @@ export function ConstraintsStepSection({
 
       <SectionCard
         title="固定割当"
-        description="土地に固定で割り当てる作付け面積を設定します"
+        description="土地に固定で割り当てる作付け面積の下限値を設定します"
         actionLabel="固定割当を追加"
         onAction={handleAddFixedArea}
         emptyMessage="固定割当は設定されていません。"

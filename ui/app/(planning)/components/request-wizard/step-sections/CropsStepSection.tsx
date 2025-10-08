@@ -6,7 +6,7 @@ import type { PlanFormCrop, PlanFormState } from "@/lib/types/planning";
 
 import { ComboBox, type ComboBoxOption } from "../ComboBox";
 import { EntityCard, Field, SectionCard } from "../SectionElements";
-import { createUniqueId } from "../utils";
+import { createUniqueId, roundToInt } from "../utils";
 import type { PlanFormUpdater } from "./types";
 
 type CropsStepSectionProps = {
@@ -111,7 +111,7 @@ export function CropsStepSection({
   return (
     <SectionCard
       title="作物"
-      description="計画に含める作物と価格を登録します。テンプレからも選べます"
+      description="計画に含める作物と価格を登録します。テンプレートからも選べます。"
       actionLabel="作物を追加"
       onAction={handleAdd}
       emptyMessage="作物が登録されていません。追加ボタンから作成してください。"
@@ -176,7 +176,7 @@ export function CropsStepSection({
                     handleUpdate(index, {
                       price: {
                         unit: crop.price?.unit ?? "a",
-                        value: Number(event.target.value || 0),
+                        value: roundToInt(Number(event.target.value || 0)),
                       },
                     })
                   }
@@ -189,7 +189,7 @@ export function CropsStepSection({
                     handleUpdate(index, {
                       price: {
                         unit: nextUnit,
-                        value: crop.price?.value ?? 0,
+                        value: roundToInt(crop.price?.value ?? 0),
                       },
                     });
                   }}

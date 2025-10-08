@@ -115,7 +115,7 @@ export function DateRangeInput({
                   )}
                 </div>
                 <span className="text-[11px] text-slate-400">
-                  未入力の場合は計画終了日({horizon.endDate})まで継続します。
+                  未入力の場合は計画終了日({horizon.endDate})までとみなします。
                 </span>
               </label>
               <div className="flex items-center justify-end">

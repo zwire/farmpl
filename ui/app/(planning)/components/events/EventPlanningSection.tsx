@@ -225,7 +225,7 @@ export function EventPlanningSection({
       const newEvent: PlanUiEvent = {
         id: newId,
         cropId,
-        name: "新しいイベント",
+        name: "新規作業",
         category: undefined,
         startDates: undefined,
         endDates: undefined,
@@ -300,8 +300,8 @@ export function EventPlanningSection({
   return (
     <div className="flex flex-col gap-6">
       <SectionCard
-        title="テンプレートからイベント初期化"
-        description="選択中の作物に対して、作型テンプレートと開始日を指定してイベントを初期化します"
+        title="テンプレートから作業計画初期化"
+        description="選択中の作物に対して、作型テンプレートと開始日を指定して作業計画を初期化します"
         actionLabel={selectedTemplateId ? "テンプレートで初期化" : undefined}
         onAction={selectedTemplateId ? initializeFromTemplate : undefined}
       >
@@ -334,7 +334,7 @@ export function EventPlanningSection({
             onClick={refreshSuggestions}
             className="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
           >
-            サジェスト更新
+            候補更新
           </button>
           {variantLoading && (
             <span className="text-xs text-slate-500">読み込み中…</span>
@@ -361,16 +361,16 @@ export function EventPlanningSection({
           </select>
         </label>
         <p className="text-xs text-slate-500">
-          作物を選んでからイベントの依存関係と詳細を編集します。
+          作物を選んでから作業間の依存関係と詳細を編集します。
         </p>
       </div>
 
       <SectionCard
-        title="イベント依存関係"
-        description="ノードを選択してイベント詳細を編集し、エッジで依存関係を定義します"
-        actionLabel="イベントを追加"
+        title="作業間の依存関係"
+        description="パネルを選択して作業詳細を編集し、コネクタで依存関係を指定します"
+        actionLabel="作業を追加"
         onAction={handleAddEvent}
-        emptyMessage="この作物にはイベントが登録されていません。"
+        emptyMessage="この作物には作業計画が登録されていません。"
         hasItems={cropEvents.length > 0}
       >
         <EventGraphEditor
@@ -383,8 +383,8 @@ export function EventPlanningSection({
       </SectionCard>
 
       <SectionCard
-        title="イベント詳細"
-        description="選択したイベントの条件やリソースを調整します"
+        title="作業詳細"
+        description="選択した作業の実行条件を調整します"
         hasItems={cropEvents.length > 0}
       >
         <EventDetailsPanel

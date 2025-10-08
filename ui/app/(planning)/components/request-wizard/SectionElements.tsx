@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import type { AreaMeasurement } from "@/lib/types/planning";
+import { roundTo1Decimal } from "./utils";
 
 interface SectionCardProps {
   title: string;
@@ -121,14 +122,20 @@ export function MeasurementInput({
       <input
         type="number"
         min={0}
+        max={10000}
         value={value}
-        onChange={(event) => onChange(unit, Number(event.target.value || "0"))}
+        onChange={(event) =>
+          onChange(unit, roundTo1Decimal(Number(event.target.value || "0")))
+        }
         className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
       />
       <select
         value={unit}
         onChange={(event) =>
-          onChange(event.target.value as AreaMeasurement["unit"], value)
+          onChange(
+            event.target.value as AreaMeasurement["unit"],
+            roundTo1Decimal(value),
+          )
         }
         className="rounded-md border border-slate-300 px-2 py-2 text-sm"
       >

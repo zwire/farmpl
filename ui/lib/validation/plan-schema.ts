@@ -184,7 +184,9 @@ export const planFormSchema = z
       })
       .strict(),
     crops: z.array(cropSchema).min(1, "作物を1件以上追加してください"),
-    events: z.array(eventSchema).min(1, "イベントを1件以上追加してください"),
+    events: z
+      .array(eventSchema)
+      .min(1, "各作物に対する作業を1件以上追加してください"),
     lands: z.array(landSchema).min(1, "土地を1件以上追加してください"),
     workers: z.array(workerSchema),
     resources: z.array(resourceSchema),
@@ -276,8 +278,7 @@ export const planFormSchema = z
           if (preceding && preceding.cropId !== event.cropId) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              message:
-                "precedingEventId は同じ作物のイベントを参照してください",
+              message: "precedingEventId は同じ作物の作業を参照してください",
               path: ["events", index, "precedingEventId"],
             });
           }

@@ -16,7 +16,7 @@ export interface WizardStep {
 export const WIZARD_STEPS: WizardStep[] = [
   {
     id: "horizon",
-    title: "計画期間",
+    title: "期間",
     description: "日数と全体設定を入力します",
   },
   {
@@ -41,13 +41,13 @@ export const WIZARD_STEPS: WizardStep[] = [
   },
   {
     id: "constraints",
-    title: "制約設定",
-    description: "面積上下限や固定割当、ステージ設定を調整します",
+    title: "制約",
+    description: "面積上下限や固定割当、最適化パラメータを調整します",
   },
   {
     id: "events",
-    title: "イベント",
-    description: "依存関係を可視化しながらイベントを設計します",
+    title: "作業計画",
+    description: "依存関係を可視化しながら作業計画を設計します",
   },
 ];
 

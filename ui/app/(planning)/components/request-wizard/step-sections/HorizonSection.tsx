@@ -70,7 +70,7 @@ export function HorizonSection({
       <header className="flex flex-col gap-2">
         <h3 className="text-lg font-semibold text-slate-900">計画期間</h3>
         <p className="text-sm text-slate-600">
-          プランの開始日と終了日をカレンダーから選び、全体の期間を決めます。
+          計画の開始日と終了日をカレンダーから選び、全体の期間を決めます。
         </p>
       </header>
       <div className="grid gap-4 md:grid-cols-2">
