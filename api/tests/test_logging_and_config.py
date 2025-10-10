@@ -8,6 +8,7 @@ from core import config
 
 def test_request_id_header_present(monkeypatch):
     monkeypatch.setenv("AUTH_MODE", "none")
+    config.reload_settings()
     app = create_app()
     client = TestClient(app)
     r = client.get("/healthz")
@@ -25,6 +26,7 @@ def test_config_defaults_and_parsing(monkeypatch):
     ]:
         monkeypatch.delenv(k, raising=False)
 
+    config.reload_settings()
     assert config.max_json_mb() >= 1
     assert config.sync_timeout_ms() >= 100
     assert config.async_timeout_s() >= 10
@@ -36,6 +38,7 @@ def test_config_defaults_and_parsing(monkeypatch):
     monkeypatch.setenv("ASYNC_TIMEOUT_S", "600")
     monkeypatch.setenv("JOB_BACKEND", "redis")
     monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
+    config.reload_settings()
 
     assert config.max_json_mb() == 8
     assert config.sync_timeout_ms() == 15000

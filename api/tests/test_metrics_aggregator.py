@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from core import config
 from schemas import (
     ApiCrop,
     ApiEvent,
@@ -98,7 +99,10 @@ def _make_snapshot() -> JobSnapshot:
     return JobSnapshot(job=job, req=req, result=res)
 
 
-def test_aggregate_day_and_decade(monkeypatch):
+def test_aggregate_day_and_third(monkeypatch):
+    monkeypatch.setenv("AUTH_MODE", "none")
+    config.reload_settings()
+
     snap = _make_snapshot()
 
     def fake_snapshot(job_id: str) -> JobSnapshot:
@@ -126,13 +130,15 @@ def test_aggregate_day_and_decade(monkeypatch):
     # Land usage per day equals spans
     assert round(d3.summary.land_total_area, 4) == 1.5 + 2.0
 
-    # Decade bucket 0..14 → two groups: 000:U (0..9) and 000:M (10..14)
-    resp_dec = metrics_aggregator.aggregate("jid", 0, 14, "decade")
-    assert resp_dec.interval == "decade"
+    # Third bucket 0..14 → two groups: 2024-01:U (0..9) and 2024-01:M (10..14)
+    resp_dec = metrics_aggregator.aggregate(
+        "jid", 0, 14, "third", base_date_iso="2024-01-01"
+    )
+    assert resp_dec.interval == "third"
     keys = {r.period_key for r in resp_dec.records}
-    assert keys == {"000:U", "000:M"}
+    assert keys == {"2024-01:U", "2024-01:M"}
     # Totals add up: land capacity per group = (1.5+2.0)*days
-    u = next(r for r in resp_dec.records if r.period_key == "000:U")
-    m = next(r for r in resp_dec.records if r.period_key == "000:M")
+    u = next(r for r in resp_dec.records if r.period_key == "2024-01:U")
+    m = next(r for r in resp_dec.records if r.period_key == "2024-01:M")
     assert round(u.summary.land_capacity_area, 4) == (1.5 + 2.0) * 10
     assert round(m.summary.land_capacity_area, 4) == (1.5 + 2.0) * 5

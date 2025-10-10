@@ -37,6 +37,9 @@ class Land(BaseModel):
     tags: set[str] | None = None
     blocked_days: set[int] | None = None
 
+    def normalized_area_a(self) -> float:
+        return float(self.area)
+
 
 class Worker(BaseModel):
     id: str

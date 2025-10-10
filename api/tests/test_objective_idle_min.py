@@ -12,7 +12,8 @@ from lib.solver import solve
 
 
 def test_idle_minimization_reduces_total_idle() -> None:
-    # Horizon=1, one land (1.0a), one crop. Dispersion minimizes z -> leads to x=0, idle=cap.
+    # Horizon=1, one land (1.0a), one crop.
+    # Dispersion minimizes z -> leads to x=0, idle=cap.
     # Idle-min should push idle to 0 by filling area.
     req = PlanRequest(
         horizon=Horizon(num_days=1),

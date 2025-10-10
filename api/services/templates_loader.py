@@ -21,6 +21,7 @@ metadata for listing as well as full templates for instantiation.
 
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = ROOT / "templates" / "crops"
+_CACHE: list[LoadedTemplate] | None = None
 
 
 @dataclass(frozen=True)
@@ -36,6 +37,10 @@ def _iter_template_files() -> Iterable[Path]:
 
 
 def load_all() -> list[LoadedTemplate]:
+    global _CACHE
+    if _CACHE is not None:
+        return _CACHE
+
     out: list[LoadedTemplate] = []
     for p in sorted(_iter_template_files()):
         try:
@@ -52,7 +57,13 @@ def load_all() -> list[LoadedTemplate]:
             out.append(LoadedTemplate(path=p, data=data))
         except Exception as e:
             raise RuntimeError(f"Failed to load template: {p}: {e}") from e
+    _CACHE = out
     return out
+
+
+def reset_cache() -> None:
+    global _CACHE
+    _CACHE = None
 
 
 def list_items() -> list[TemplateListItem]:

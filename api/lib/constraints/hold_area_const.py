@@ -27,9 +27,7 @@ class HoldAreaConstConstraint(Constraint):
                     key_prev = (land.id, crop.id, t - 1)
                     # Enforce constancy only when occupancy is active
                     occ_t = ctx.variables.occ_by_l_c_t.get((land.id, crop.id, t))
-                    occ_prev = ctx.variables.occ_by_l_c_t.get(
-                        (land.id, crop.id, t - 1)
-                    )
+                    occ_prev = ctx.variables.occ_by_l_c_t.get((land.id, crop.id, t - 1))
                     if occ_t is not None and occ_prev is not None:
                         # Enforce constancy only within continuous occupancy:
                         # both previous and current day must be occupied.

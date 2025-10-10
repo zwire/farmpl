@@ -81,16 +81,16 @@ def _plan_to_api(plan: PlanRequest) -> dict[str, Any]:
             d["required_resources"] = sorted(e.required_resources)
         return d
 
-    def land(l) -> dict[str, Any]:
+    def land(land_obj) -> dict[str, Any]:
         d = {
-            "id": l.id,
-            "name": l.name,
-            "area_a": float(l.area),
+            "id": land_obj.id,
+            "name": land_obj.name,
+            "area_a": float(land_obj.area),
         }
-        if getattr(l, "tags", None):
-            d["tags"] = sorted(l.tags)
-        if getattr(l, "blocked_days", None):
-            d["blocked_days"] = sorted(l.blocked_days)
+        if getattr(land_obj, "tags", None):
+            d["tags"] = sorted(land_obj.tags)
+        if getattr(land_obj, "blocked_days", None):
+            d["blocked_days"] = sorted(land_obj.blocked_days)
         return d
 
     def worker(w) -> dict[str, Any]:
@@ -115,7 +115,7 @@ def _plan_to_api(plan: PlanRequest) -> dict[str, Any]:
         "horizon": {"num_days": plan.horizon.num_days},
         "crops": [crop(c) for c in plan.crops],
         "events": [event(e) for e in plan.events],
-        "lands": [land(l) for l in plan.lands],
+        "lands": [land(ld) for ld in plan.lands],
         "workers": [worker(w) for w in plan.workers],
         "resources": [resource(r) for r in plan.resources],
     }

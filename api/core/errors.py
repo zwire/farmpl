@@ -22,9 +22,19 @@ class DomainError(Exception):
 
 
 def _problem(
-    status: int, title: str, detail: str, *, extras: dict[str, Any] | None = None
+    status: int,
+    title: str,
+    detail: str,
+    *,
+    type_: str = "about:blank",
+    extras: dict[str, Any] | None = None,
 ) -> JSONResponse:
-    body: dict[str, Any] = {"status": status, "title": title, "detail": detail}
+    body: dict[str, Any] = {
+        "type": type_,
+        "status": status,
+        "title": title,
+        "detail": detail,
+    }
     if extras:
         body.update(extras)
     return JSONResponse(status_code=status, content=body)
@@ -58,6 +68,7 @@ def install_exception_handlers(app: FastAPI) -> None:
             422,
             "Unprocessable Entity",
             "Request validation failed",
+            type_="https://httpstatuses.com/422",
             extras={"errors": errors},
         )
 
@@ -74,13 +85,18 @@ def install_exception_handlers(app: FastAPI) -> None:
             422,
             "Unprocessable Entity",
             "Payload validation failed",
+            type_="https://httpstatuses.com/422",
             extras={"errors": errors},
         )
 
     @app.exception_handler(DomainError)
     async def _handle_domain(_: Request, exc: DomainError):  # type: ignore[override]
         return _problem(
-            exc.status_code, "Domain Error", exc.message, extras={"code": exc.code}
+            exc.status_code,
+            "Domain Error",
+            exc.message,
+            type_=f"https://httpstatuses.com/{exc.status_code}",
+            extras={"code": exc.code},
         )
 
     @app.exception_handler(HTTPException)
@@ -92,9 +108,21 @@ def install_exception_handlers(app: FastAPI) -> None:
         if isinstance(exc.detail, dict):
             extras = {k: v for k, v in exc.detail.items() if k != "message"}
             detail = exc.detail.get("message", "")
+        status_code = exc.status_code or 500
         title = "HTTP Error"
-        return _problem(exc.status_code or 500, title, detail or title, extras=extras)
+        return _problem(
+            status_code,
+            title,
+            detail or title,
+            type_=f"https://httpstatuses.com/{status_code}",
+            extras=extras,
+        )
 
     @app.exception_handler(Exception)
     async def _handle_generic(_: Request, __: Exception):  # type: ignore[override]
-        return _problem(500, "Internal Server Error", "An unexpected error occurred")
+        return _problem(
+            500,
+            "Internal Server Error",
+            "An unexpected error occurred",
+            type_="https://httpstatuses.com/500",
+        )

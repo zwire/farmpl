@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from app import create_app
+from core import config
 
 
 def test_rate_limit_ip_based(monkeypatch):
@@ -11,6 +12,7 @@ def test_rate_limit_ip_based(monkeypatch):
     monkeypatch.setenv("RATE_LIMIT_WINDOW_S", "60")
     monkeypatch.setenv("RATE_LIMIT_LIMIT", "2")
     monkeypatch.setenv("RATE_LIMIT_KEY_MODE", "ip")
+    config.reload_settings()
 
     app = create_app()
     client = TestClient(app)

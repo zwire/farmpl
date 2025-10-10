@@ -5,6 +5,7 @@ import time
 from fastapi.testclient import TestClient
 
 from app import create_app
+from core import config
 from schemas import (
     ApiCrop,
     ApiEvent,
@@ -32,6 +33,7 @@ def make_request_body() -> OptimizationRequest:
 def test_sync_timeout_returns_timeout_status(monkeypatch):
     monkeypatch.setenv("AUTH_MODE", "none")
     monkeypatch.setenv("SYNC_TIMEOUT_MS", "50")
+    config.reload_settings()
 
     def slow_solve(req: OptimizationRequest, *, progress_cb=None) -> OptimizationResult:
         time.sleep(0.2)

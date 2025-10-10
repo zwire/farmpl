@@ -3,8 +3,15 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from app import create_app
-from lib.schemas import PlanAssignment, PlanDiagnostics, PlanResponse
-from schemas import ApiCrop, ApiEvent, ApiHorizon, ApiLand, ApiPlan, OptimizationRequest
+from core import config
+from schemas import (
+    ApiCrop,
+    ApiEvent,
+    ApiHorizon,
+    ApiLand,
+    ApiPlan,
+    OptimizationRequest,
+)
 
 
 def make_request_body() -> OptimizationRequest:
@@ -27,21 +34,19 @@ def make_request_body() -> OptimizationRequest:
     )
 
 
-def test_optimize_sync_endpoint_smoke(monkeypatch):
+def test_optimize_sync(monkeypatch):
     monkeypatch.setenv("AUTH_MODE", "none")
+    monkeypatch.setenv("SYNC_TIMEOUT_MS", "1234")
+    config.reload_settings()
 
-    def fake_plan(*args, **kwargs):
-        return PlanResponse(
-            diagnostics=PlanDiagnostics(feasible=True),
-            assignment=PlanAssignment(crop_area_by_land_day={}, idle_by_land_day={}),
-            event_assignments=[],
-            objectives={"profit": 1.23},
-            summary={"area_total": 0.0},
-            constraint_hints=[],
-        )
+    def fake_solver(req: OptimizationRequest, timeout_ms: int | None):
+        assert timeout_ms == 1234
+        return {"status": "ok"}
 
-    # Patch planner used by adapter
-    monkeypatch.setattr("services.optimizer_adapter.run_plan", fake_plan)
+    monkeypatch.setattr(
+        "services.optimizer_adapter.solve_sync_with_timeout", fake_solver
+    )
+
     app = create_app()
     client = TestClient(app)
     body = make_request_body().model_dump(mode="json")

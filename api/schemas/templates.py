@@ -4,6 +4,8 @@ from datetime import date
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from schemas.optimization import ApiEvent
+
 """Template schema for crop/event presets (Pydantic v2).
 
 These models represent file-backed presets stored in TOML under
@@ -119,3 +121,23 @@ class CropSuggestResponse(BaseModel):
 
     query: str
     items: list[CropCatalogItem] = Field(default_factory=list)
+
+
+class InstantiateRequest(BaseModel):
+    template_id: str
+    start_date: date
+    horizon_days: int
+    price_per_a_override: float | None = None
+    crop_id_override: str | None = None
+    crop_name_override: str | None = None
+
+
+class InstantiateEventsRequest(BaseModel):
+    template_id: str
+    start_date: date
+    horizon_days: int
+    target_crop_id: str
+
+
+class InstantiateEventsResponse(BaseModel):
+    events: list[ApiEvent]

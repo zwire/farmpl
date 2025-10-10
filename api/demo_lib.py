@@ -94,13 +94,19 @@ def main() -> None:
         "--stages",
         type=str,
         default=None,
-        help='Comma-separated stage order to fully control priority (e.g. "profit,dispersion,labor")',
+        help=(
+            "Comma-separated stage order to fully control priority "
+            '(e.g. "profit,dispersion,labor")'
+        ),
     )
     p_plan.add_argument(
         "--lock-tol",
         type=float,
         default=0.0,
-        help="Tolerance percent for locking previous stages (e.g. 2.0 = allow 2% degradation)",
+        help=(
+            "Tolerance percent for locking previous stages "
+            "(e.g. 2.0 = allow 2% degradation)"
+        ),
     )
     p_plan.add_argument(
         "--lock-tol-by",
@@ -116,19 +122,28 @@ def main() -> None:
         "--stages",
         type=str,
         default=None,
-        help='Comma-separated stage order to run as custom scenario (e.g. "profit,diversity,dispersion")',
+        help=(
+            "Comma-separated stage order to run as custom scenario "
+            '(e.g. "profit,diversity,dispersion")'
+        ),
     )
     p_cmp.add_argument(
         "--lock-tol",
         type=float,
         default=0.0,
-        help="Tolerance percent for locking previous stages (applies only to --stages custom run)",
+        help=(
+            "Tolerance percent for locking previous stages "
+            "(applies only to --stages custom run)"
+        ),
     )
     p_cmp.add_argument(
         "--lock-tol-by",
         type=str,
         default=None,
-        help='Per-stage tolerance percent for custom compare, e.g. "profit=2,dispersion=5"',
+        help=(
+            "Per-stage tolerance percent for custom compare, "
+            '(e.g. "profit=2,dispersion=5")'
+        ),
     )
 
     args = parser.parse_args()
@@ -196,7 +211,8 @@ def main() -> None:
                     isinstance(v, dict) for v in data.values()
                 ):
                     print(
-                        f"{'stage':12} {'status':8} {'value':>8} {'labor(h)':>10} {'areas':>12}"
+                        f"{'stage':12} {'status':8} {'value':>8} "
+                        f"{'labor(h)':>10} {'areas':>12}"
                     )
                     for st, d in data.items():
                         areas = d.get("crop_base_areas") or {}
@@ -204,7 +220,10 @@ def main() -> None:
                             f"{k}:{v:.1f}" for k, v in list(areas.items())[:3]
                         )
                         print(
-                            f"{st:12} {d.get('status', ''):8} {int(d.get('value', 0)):>8} {int(d.get('total_labor_hours', 0)):>10} {areas_str:>12}"
+                            f"{st:12} {d.get('status', ''):8} "
+                            f"{int(d.get('value', 0)):>8} "
+                            f"{int(d.get('total_labor_hours', 0)):>10} "
+                            f"{areas_str:>12}"
                         )
                 else:
                     print(data)

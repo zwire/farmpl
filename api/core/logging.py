@@ -13,6 +13,10 @@ from fastapi import Request, Response
 request_id_ctx: ContextVar[str | None] = ContextVar("request_id", default=None)
 
 
+REQUEST_LOGGER_NAME = "farmpl.api.request"
+ROOT_LOGGER_NAME = "farmpl.api"
+
+
 def get_request_id() -> str | None:
     return request_id_ctx.get()
 
@@ -27,7 +31,7 @@ async def request_logging_middleware(
 ) -> Response:
     rid = request.headers.get("X-Request-ID") or str(uuid.uuid4())
     token = request_id_ctx.set(rid)
-    logger = logging.getLogger("api")
+    logger = logging.getLogger(REQUEST_LOGGER_NAME)
     start = time.perf_counter()
     _json_log(
         logger,
@@ -59,3 +63,5 @@ async def request_logging_middleware(
 
 def configure_root_logger(level: int = logging.INFO) -> None:
     logging.basicConfig(level=level, format="%(message)s")
+    logging.getLogger(ROOT_LOGGER_NAME).setLevel(level)
+    logging.getLogger(REQUEST_LOGGER_NAME).setLevel(level)

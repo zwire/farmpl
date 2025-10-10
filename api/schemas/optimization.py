@@ -10,7 +10,7 @@ Optimization API data models (Pydantic v2).
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -253,6 +253,20 @@ class ApiCropAreaBound(BaseModel):
             raise ValueError("min_area は max_area 以下である必要があります")
         return self
 
+    def normalized_min_area(self) -> float | None:
+        if self.min_area_a is not None:
+            return float(self.min_area_a)
+        if self.min_area_10a is not None:
+            return float(self.min_area_10a) * 10.0
+        return None
+
+    def normalized_max_area(self) -> float | None:
+        if self.max_area_a is not None:
+            return float(self.max_area_a)
+        if self.max_area_10a is not None:
+            return float(self.max_area_10a) * 10.0
+        return None
+
 
 class ApiFixedArea(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -280,6 +294,10 @@ class ApiHorizon(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     num_days: int = Field(gt=0)
+    # Optional plan base date (ISO). If provided, echoed back in timeline.start_date
+    start_date: date | None = Field(
+        default=None, description="計画の基準日 (YYYY-MM-DD)"
+    )
 
 
 class OptimizationStagesConfig(BaseModel):
@@ -304,7 +322,7 @@ class OptimizationStagesConfig(BaseModel):
         def check_map(m: dict[str, float] | None, name: str):
             if m is None:
                 return
-            for k, v in m.items():
+            for _k, v in m.items():
                 if not (0.0 <= v <= 1.0):
                     raise ValueError("tolerance は 0..1 の範囲で指定してください")
 
@@ -359,8 +377,8 @@ class ApiPlan(BaseModel):
             if bad:
                 raise ValueError(f"blocked_days が範囲外です(0..{max_day}): {bad}")
 
-        for l in self.lands:
-            check_days(f"land:{l.id}", l.blocked_days)
+        for land in self.lands:
+            check_days(f"land:{land.id}", land.blocked_days)
         for w in self.workers:
             check_days(f"worker:{w.id}", w.blocked_days)
         for r in self.resources:
@@ -420,3 +438,5 @@ class OptimizationTimeline(BaseModel):
     events: list[GanttEventItem] = Field(default_factory=list)
     # 各エンティティのID→表示名マップ
     entity_names: dict[str, dict[str, str]] = Field(default_factory=dict)
+    # 計画の基準日（0日目が指すISO日付）。クライアントのthirdスケール等で使用。
+    start_date: date | None = Field(default=None)

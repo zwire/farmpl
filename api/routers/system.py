@@ -4,7 +4,7 @@ from fastapi import APIRouter
 
 from core.metrics import metrics_endpoint
 
-router = APIRouter(tags=["system"])
+router = APIRouter(prefix="/system", tags=["system"])
 
 
 @router.get("/readyz")
