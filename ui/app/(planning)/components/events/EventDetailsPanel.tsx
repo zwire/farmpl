@@ -403,22 +403,6 @@ export function EventDetailsPanel({
 
       <Section title="労働・リソース">
         <div className="grid gap-3 md:grid-cols-3">
-          <Field label="必要人数">
-            <input
-              type="number"
-              min={0}
-              value={selectedEvent.labor?.peopleRequired ?? ""}
-              onChange={(event) =>
-                updateLabor({
-                  peopleRequired:
-                    event.target.value === ""
-                      ? undefined
-                      : Number(event.target.value || 0),
-                })
-              }
-              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-            />
-          </Field>
           <Field label="総工数 (h/a)">
             <input
               type="number"
@@ -427,6 +411,22 @@ export function EventDetailsPanel({
               onChange={(event) =>
                 updateLabor({
                   totalPerA:
+                    event.target.value === ""
+                      ? undefined
+                      : Number(event.target.value || 0),
+                })
+              }
+              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            />
+          </Field>
+          <Field label="必要人数">
+            <input
+              type="number"
+              min={0}
+              value={selectedEvent.labor?.peopleRequired ?? ""}
+              onChange={(event) =>
+                updateLabor({
+                  peopleRequired:
                     event.target.value === ""
                       ? undefined
                       : Number(event.target.value || 0),

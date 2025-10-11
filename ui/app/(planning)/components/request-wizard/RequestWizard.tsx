@@ -1,30 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { ZodIssue } from "zod";
 import { PlanningCalendarService } from "@/lib/domain/planning-calendar";
 import {
-  getPlanningState,
   planningDraftStorage,
   usePlanningStore,
 } from "@/lib/state/planning-store";
-import type {
-  ApiOptimizationResult,
-  JobStatus,
-  PlanFormState,
-} from "@/lib/types/planning";
-import { mapApiResultToView } from "@/lib/types/result-mapper";
-import { buildApiPlanPayload } from "@/lib/validation/plan-schema";
+import type { PlanFormState } from "@/lib/types/planning";
 import { EventPlanningSection } from "../events/EventPlanningSection";
 import { StepSections } from "./StepSections";
 import { AvailabilitySection } from "./step-sections/AvailabilitySection";
 import { HorizonSection } from "./step-sections/HorizonSection";
 import { WIZARD_STEPS, type WizardStepId } from "./steps";
+import { useDraftPersistence } from "./useDraftPersistence";
+import { useOptimizationJob } from "./useOptimizationJob";
+import { useValidationSummary } from "./useValidationSummary";
 import { WizardStepper } from "./WizardStepper";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_FARMPL_API_BASE ?? "";
-const API_KEY = process.env.NEXT_PUBLIC_FARMPL_API_KEY ?? "";
-const BEARER_TOKEN = process.env.NEXT_PUBLIC_FARMPL_BEARER_TOKEN ?? "";
 
 export function RequestWizard() {
   const plan = usePlanningStore((state) => state.plan);
@@ -37,33 +29,18 @@ export function RequestWizard() {
   const updatePlan = usePlanningStore((state) => state.updatePlan);
   const setCurrentStep = usePlanningStore((state) => state.setCurrentStep);
   const resetStore = usePlanningStore((state) => state.reset);
-  const setLastSavedAt = usePlanningStore((state) => state.setLastSavedAt);
   const markDirty = usePlanningStore((state) => state.markDirty);
+  const setLastSavedAt = usePlanningStore((state) => state.setLastSavedAt);
   const replacePlan = usePlanningStore((state) => state.replacePlan);
-  const setIsSubmitting = usePlanningStore((state) => state.setIsSubmitting);
   const setSubmissionError = usePlanningStore(
     (state) => state.setSubmissionError,
   );
-  const setLastResult = usePlanningStore((state) => state.setLastResult);
-  const setLastJobId = usePlanningStore((state) => state.setLastJobId);
-  const setJobProgress = usePlanningStore((state) => state.setJobProgress);
-  const setJobStatus = usePlanningStore((state) => state.setJobStatus);
 
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    const draft = planningDraftStorage.load();
-    if (!draft) return;
-    replacePlan(draft.plan);
-    setLastSavedAt(draft.savedAt);
-    markDirty(false);
-  }, [markDirty, replacePlan, setLastSavedAt]);
-
-  useEffect(() => {
-    if (!saveMessage) return;
-    const timer = setTimeout(() => setSaveMessage(null), 3000);
-    return () => clearTimeout(timer);
-  }, [saveMessage]);
+  const { saveMessage, setSaveMessage } = useDraftPersistence({
+    replacePlan,
+    setLastSavedAt,
+    markDirty,
+  });
 
   const conversion = useMemo(
     () => PlanningCalendarService.convertToApiPlan(plan),
@@ -71,48 +48,38 @@ export function RequestWizard() {
   );
   const apiPlan = conversion.plan;
 
-  const blockingWarnings = useMemo(
+  const warningIssues = useMemo<ZodIssue[]>(
     () =>
-      conversion.warnings.filter(
-        (warning) =>
-          warning.type === "INVALID_DATE" || warning.type === "RANGE_EMPTY",
-      ),
+      conversion.warnings
+        .filter(
+          (warning) =>
+            warning.type === "INVALID_DATE" || warning.type === "RANGE_EMPTY",
+        )
+        .map((warning) => ({
+          code: "custom" as const,
+          message: warning.message,
+          path: warning.path,
+        })),
     [conversion.warnings],
   );
 
-  const warningIssues = useMemo<ZodIssue[]>(
-    () =>
-      blockingWarnings.map(
-        (warning): ZodIssue => ({
-          code: "custom",
-          message: warning.message,
-          path: warning.path,
-        }),
-      ),
-    [blockingWarnings],
-  );
-
-  const combinedIssues = useMemo<ZodIssue[]>(
+  const combinedIssues = useMemo(
     () => [...conversion.issues, ...warningIssues],
     [conversion.issues, warningIssues],
   );
 
-  const hasValidationErrors = combinedIssues.length > 0;
+  const {
+    validationMessages,
+    stepErrors,
+    hasValidationErrors,
+    horizonWarnings,
+  } = useValidationSummary({
+    issues: combinedIssues,
+    currentStep,
+    warnings: conversion.warnings,
+  });
 
-  const validationMessages = useMemo(() => {
-    if (combinedIssues.length === 0) return [] as string[];
-    const unique = new Set<string>();
-    combinedIssues.forEach((issue) => {
-      if (issue.message) {
-        unique.add(issue.message);
-      }
-    });
-    return Array.from(unique);
-  }, [combinedIssues]);
-
-  const handleStepSelect = (step: WizardStepId) => {
-    setCurrentStep(step);
-  };
+  const handleStepSelect = (step: WizardStepId) => setCurrentStep(step);
 
   const applyPlanFormUpdate = (
     updater: (prev: PlanFormState) => PlanFormState,
@@ -133,127 +100,25 @@ export function RequestWizard() {
 
   const handleSaveDraft = () => {
     const savedAt = new Date().toISOString();
-    planningDraftStorage.save({
-      version: "ui-v1",
-      plan,
-      savedAt,
-    });
+    planningDraftStorage.save({ version: "v1", plan, savedAt });
     setLastSavedAt(savedAt);
     markDirty(false);
     setSaveMessage("ドラフトを保存しました");
   };
 
+  const { run } = useOptimizationJob({ apiPlan });
+
   const handleRun = async () => {
     if (hasValidationErrors) {
-      const summary =
+      setSubmissionError(
         validationMessages[0] ??
-        "入力内容に不備があります。日付や関連項目を確認してください。";
-      setSubmissionError(summary);
-      return;
-    }
-    if (!API_BASE_URL) {
-      setSubmissionError("NEXT_PUBLIC_FARMPL_API_BASE が設定されていません。");
+          "入力内容に不備があります。日付や関連項目を確認してください。",
+      );
       return;
     }
 
-    setIsSubmitting(true);
-    setSubmissionError(null);
-    setJobProgress(0);
-    setJobStatus("pending");
-
-    try {
-      // Use async optimize to obtain job_id, then poll and set result.
-      const base = API_BASE_URL.replace(/\/$/, "");
-      const endpoint = `${base}/v1/optimize/async`;
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (API_KEY) {
-        headers["X-API-Key"] = API_KEY;
-      }
-      if (BEARER_TOKEN) {
-        headers.Authorization = `Bearer ${BEARER_TOKEN}`;
-      }
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ plan: buildApiPlanPayload(apiPlan) }),
-      });
-      if (!response.ok) {
-        let message = `最適化リクエストが失敗しました (status ${response.status}).`;
-        try {
-          const body = await response.json();
-          if (typeof body?.detail === "string") {
-            message = body.detail;
-          }
-        } catch (_error) {
-          // ignore JSON parse errors
-        }
-        throw new Error(message);
-      }
-      const job = (await response.json()) as { job_id: string };
-      setLastJobId(job.job_id);
-
-      // poll job endpoint until succeeded/failed
-      const jobUrl = `${base}/v1/jobs/${job.job_id}`;
-      const pollHeaders = headers;
-      let attempts = 0;
-      const maxAttempts = 60; // ~60 * 2000ms = 120s
-      while (attempts++ < maxAttempts) {
-        // Allow cooperative cancel from UI
-        if (!getPlanningState().isSubmitting) break;
-        const jr = await fetch(jobUrl, { headers: pollHeaders });
-        if (!jr.ok)
-          throw new Error(`ジョブ取得に失敗しました (status ${jr.status})`);
-        const info = (await jr.json()) as {
-          status: string;
-          progress?: number;
-          result?: unknown | null;
-        };
-        if (typeof info.progress === "number") setJobProgress(info.progress);
-        if (typeof info.status === "string")
-          setJobStatus(info.status as JobStatus);
-        if (info.status === "succeeded" && info.result) {
-          setJobProgress(1);
-          setJobStatus("succeeded");
-          setLastResult(
-            mapApiResultToView(info.result as ApiOptimizationResult),
-          );
-          break;
-        }
-        if (
-          info.status === "failed" ||
-          info.status === "timeout" ||
-          info.status === "canceled"
-        ) {
-          setJobStatus(info.status as JobStatus);
-          throw new Error(`ジョブが失敗しました: ${info.status}`);
-        }
-        await new Promise((r) => setTimeout(r, 2000));
-      }
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "最適化の実行に失敗しました。";
-      setSubmissionError(message);
-    } finally {
-      setIsSubmitting(false);
-      setJobStatus(null);
-      setJobProgress(0);
-    }
+    await run();
   };
-
-  const horizonWarningMessages = useMemo(
-    () =>
-      conversion.warnings
-        .filter((warning) => warning.path[0] === "horizon")
-        .map((warning) => warning.message),
-    [conversion.warnings],
-  );
-
-  const stepErrors = useMemo(() => {
-    if (!combinedIssues.length) return [];
-    return collectStepErrors(combinedIssues, currentStep);
-  }, [combinedIssues, currentStep]);
 
   const stepContent = (() => {
     if (currentStep === "horizon") {
@@ -262,7 +127,7 @@ export function RequestWizard() {
           plan={plan}
           onPlanChange={updatePlan}
           validationErrors={stepErrors}
-          warnings={horizonWarningMessages}
+          warnings={horizonWarnings}
         />
       );
     }
@@ -381,25 +246,4 @@ export function RequestWizard() {
       </div>
     </section>
   );
-}
-
-function collectStepErrors(issues: ZodIssue[], step: WizardStepId): string[] {
-  const relevantPaths: Record<WizardStepId, string[]> = {
-    horizon: ["horizon"],
-    crops: ["crops"],
-    events: ["events"],
-    lands: ["lands"],
-    workers: ["workers"],
-    resources: ["resources"],
-    constraints: ["cropAreaBounds", "fixedAreas", "stages"],
-  };
-
-  const keys = new Set(relevantPaths[step]);
-
-  return issues
-    .filter((issue) => {
-      const pathRoot = issue.path[0];
-      return typeof pathRoot === "string" && keys.has(pathRoot);
-    })
-    .map((issue) => issue.message);
 }

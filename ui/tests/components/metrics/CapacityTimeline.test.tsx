@@ -48,43 +48,35 @@ const dayRecords: MetricsDayRecord[] = [
 ];
 
 describe("CapacityTimeline", () => {
-  it("renders legend and worker totals for day buckets", () => {
+  it("renders worker totals and day buckets", () => {
     render(
       <CapacityTimeline interval="day" records={dayRecords} mode="workers" />,
     );
-    // Legend labels (there can be "Total Used" etc., so allow multiple)
-    expect(screen.getAllByText(/Used/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Capacity/i).length).toBeGreaterThan(0);
-    // Summary totals (5 + 1 = 6 used across two days)
-    expect(screen.getByText("6.0")).toBeInTheDocument();
-    // Keys 0 and 1 present
+    expect(screen.getByText(/作業者稼働サマリ/)).toBeInTheDocument();
+    expect(screen.getByText(/合計 6\.0h \/ 28\.0h/)).toBeInTheDocument();
     expect(screen.getByText("0")).toBeInTheDocument();
     expect(screen.getByText("1")).toBeInTheDocument();
   });
 
-  it("renders decade buckets with period keys", () => {
-    const decadeRecords: MetricsDayRecord[] = [
+  it("renders third buckets with period keys", () => {
+    const thirdRecords: MetricsDayRecord[] = [
       {
         ...dayRecords[0],
-        interval: "decade",
+        interval: "third",
         day_index: null,
-        period_key: "000:U",
+        period_key: "2024-03:U",
       },
       {
         ...dayRecords[1],
-        interval: "decade",
+        interval: "third",
         day_index: null,
-        period_key: "000:M",
+        period_key: "2024-03:M",
       },
     ];
     render(
-      <CapacityTimeline
-        interval="decade"
-        records={decadeRecords}
-        mode="lands"
-      />,
+      <CapacityTimeline interval="third" records={thirdRecords} mode="lands" />,
     );
-    expect(screen.getByText("000:U")).toBeInTheDocument();
-    expect(screen.getByText("000:M")).toBeInTheDocument();
+    expect(screen.getByText("2024-03:U")).toBeInTheDocument();
+    expect(screen.getByText("2024-03:M")).toBeInTheDocument();
   });
 });

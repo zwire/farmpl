@@ -2,26 +2,28 @@
 
 import type { MetricsDayRecord, MetricsInterval } from "@/lib/types/planning";
 
+import { TimelineUsageList } from "./TimelineUsageList";
+
 interface LandsTimelineProps {
   interval: MetricsInterval;
   records: MetricsDayRecord[];
 }
 
 export function LandsTimeline({ interval, records }: LandsTimelineProps) {
-  const total = records.reduce(
-    (sum, r) => sum + Number(r.summary?.land_total_area ?? 0),
-    0,
-  );
   return (
-    <div>
-      <div>{total.toFixed(1)}</div>
-      {records.map((r, i) => (
-        <div key={i.toString()}>
-          {interval === "day"
-            ? String(r.day_index ?? "")
-            : String(r.period_key ?? "")}
-        </div>
-      ))}
-    </div>
+    <TimelineUsageList
+      title="圃場利用状況"
+      interval={interval}
+      records={records}
+      unitLabel="a"
+      extract={(record) => ({
+        used: Number(record.summary?.land_total_area ?? 0),
+        capacity: Number(record.summary?.land_capacity_area ?? 0),
+        description:
+          record.lands.length > 0
+            ? `${record.lands.length}圃場の利用`
+            : undefined,
+      })}
+    />
   );
 }

@@ -131,7 +131,9 @@ const CapacityDetails = ({
 }) => {
   const title = mode === "workers" ? "作業者キャパシティ" : "土地キャパシティ";
   const periodLabel =
-    interval === "day" ? `Day ${record.day_index}` : record.period_key;
+    interval === "day"
+      ? `Day ${(record.day_index as number) + 1}`
+      : record.period_key;
   const items = mode === "workers" ? record.workers : record.lands;
   const totalUtil = items.reduce((sum, item) => sum + item.utilization, 0);
   const totalCap = items.reduce((sum, item) => sum + item.capacity, 0);

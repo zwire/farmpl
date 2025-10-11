@@ -63,7 +63,9 @@ export const useGanttData = (
     if (!timeline) return null;
 
     const startDateIso =
-      plan?.horizon.startDate ?? new Date().toISOString().slice(0, 10);
+      timeline?.startDateIso ??
+      plan?.horizon.startDate ??
+      new Date().toISOString().slice(0, 10);
 
     const dayToIso = (day: number) => addDaysIso(startDateIso, day);
 

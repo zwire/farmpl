@@ -14,7 +14,7 @@ import type {
 } from "./planning";
 
 function isInterval(v: unknown): v is MetricsInterval {
-  return v === "day" || v === "decade";
+  return v === "day" || v === "third";
 }
 
 function asNumber(x: unknown, def = 0): number {
@@ -91,7 +91,7 @@ function mapRecord(interval: MetricsInterval, r: unknown): MetricsDayRecord {
     },
   };
 
-  // Sanity: enforce day vs decade invariants
+  // Sanity: enforce day vs third invariants
   if (interval === "day") {
     rec.day_index = asNumber(rec.day_index, 0);
     rec.period_key = null;
@@ -123,6 +123,9 @@ function mapApiTimeline(
 ): OptimizationTimelineView | undefined {
   if (!tl) return undefined;
   return {
+    startDateIso:
+      (tl.start_date as string | undefined) ??
+      new Date().toISOString().slice(0, 10),
     landSpans: (tl.land_spans ?? []).map((s) => ({
       landId: s.land_id,
       cropId: s.crop_id,

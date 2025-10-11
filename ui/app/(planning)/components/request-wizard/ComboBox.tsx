@@ -3,6 +3,11 @@
 import clsx from "clsx";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import {
+  useCloseOnInteractOutside,
+  useScrollSelectedIntoView,
+} from "./hooks/useCloseOnInteractOutside";
+
 export interface ComboBoxOption {
   value: string;
   label: string;
@@ -31,10 +36,8 @@ export function ComboBox({
   className,
   allowClear = false,
 }: ComboBoxProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-  const [isOpen, setIsOpen] = useState(false);
-  const [query, setQuery] = useState("");
+  const { containerRef, listRef, isOpen, toggleOpen, close, query, setQuery } =
+    useCloseOnInteractOutside();
 
   const selectedOption = useMemo(
     () => options.find((option) => option.value === value),
@@ -52,55 +55,15 @@ export function ComboBox({
     });
   }, [options, query]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!containerRef.current) return;
-      if (!containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setQuery("");
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const list = listRef.current;
-    if (!list) return;
-    const index = filtered.findIndex((option) => option.value === value);
-    if (index >= 0) {
-      const optionEl = list.querySelector<HTMLElement>(
-        `[data-option-index="${index}"]`,
-      );
-      optionEl?.scrollIntoView({ block: "nearest" });
-    }
-  }, [filtered, isOpen, value]);
+  useScrollSelectedIntoView({ listRef, isOpen, filtered, value });
 
   const handleSelect = useCallback(
     (next: ComboBoxOption) => {
-      setIsOpen(false);
+      close();
       if (next.value === value) return;
       onChange(next.value);
     },
-    [onChange, value],
+    [onChange, value, close],
   );
 
   const handleClear = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -118,7 +81,7 @@ export function ComboBox({
           <button
             type="button"
             disabled={disabled}
-            onClick={() => !disabled && setIsOpen((prev) => !prev)}
+            onClick={() => !disabled && toggleOpen()}
             className={clsx(
               "flex w-full items-center justify-between rounded-md border px-3 py-2 pr-8 text-sm transition",
               disabled

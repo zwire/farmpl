@@ -6,9 +6,9 @@ import type { MetricsDayRecord } from "@/lib/types/planning";
 
 const recs: MetricsDayRecord[] = [
   {
-    interval: "decade",
+    interval: "third",
     day_index: null,
-    period_key: "000:U",
+    period_key: "2024-03:U",
     events: [],
     workers: [],
     lands: [
@@ -26,9 +26,8 @@ const recs: MetricsDayRecord[] = [
 
 describe("LandsTimeline", () => {
   it("shows period key and totals", () => {
-    render(<LandsTimeline interval="decade" records={recs} />);
-    expect(screen.getByText("000:U")).toBeInTheDocument();
-    // total used 3.5 appears multiple times (card + row); allow multiple
-    expect(screen.getAllByText("3.5").length).toBeGreaterThan(0);
+    render(<LandsTimeline interval="third" records={recs} />);
+    expect(screen.getByText("2024-03:U")).toBeInTheDocument();
+    expect(screen.getByText(/合計 3.5a/)).toBeInTheDocument();
   });
 });
