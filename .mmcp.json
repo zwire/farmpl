@@ -30,15 +30,6 @@
         "/workspace"
       ],
       "env": {}
-    },
-    "spec-workflow": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@pimzino/spec-workflow-mcp@latest",
-        "/workspace"
-      ],
-      "env": {}
     }
   }
 }
