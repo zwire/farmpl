@@ -61,7 +61,8 @@ class LinkAreaUseConstraint(Constraint):
                     # Upper bound by base envelope always
                     model.Add(ctx.variables.x_area_by_l_c_t[key_t] <= base)
                     # Tie to base:
-                    # - If occupancy is modeled: equality only when occ=1 and not blocked
+                    # - If occupancy is modeled:
+                    #   equality only when occ=1 and not blocked
                     if occ_l is not None:
                         model.Add(ctx.variables.x_area_by_l_c_t[key_t] <= cap * occ_l)
                     if t not in blocked:

@@ -70,24 +70,30 @@ def _snapshot_ok() -> JobSnapshot:
 
 def test_metrics_timeline_happy_path(monkeypatch):
     monkeypatch.setenv("AUTH_MODE", "none")
+    app = create_app()
 
     def fake_snapshot(job_id: str) -> JobSnapshot:
         assert job_id == "jid"
         return _snapshot_ok()
 
-    app = create_app()
     monkeypatch.setattr("services.job_runner.snapshot", fake_snapshot)
     client = TestClient(app)
 
     r = client.get(
         "/v1/metrics/timeline",
-        params={"job_id": "jid", "start_day": 0, "end_day": 9, "bucket": "decade"},
+        params={
+            "job_id": "jid",
+            "start_day": 0,
+            "end_day": 9,
+            "bucket": "third",
+            "base_date": "2024-01-01",
+        },
     )
     assert r.status_code == 200, r.text
     data = r.json()
-    assert data["interval"] == "decade"
+    assert data["interval"] == "third"
     assert len(data["records"]) == 1
-    assert data["records"][0]["period_key"] == "000:U"
+    assert data["records"][0]["period_key"] == "2024-01:U"
 
 
 def test_metrics_timeline_invalid_bucket_validation(monkeypatch):
@@ -106,6 +112,7 @@ def test_metrics_timeline_bad_ranges(monkeypatch):
     monkeypatch.setenv("AUTH_MODE", "none")
 
     def fake_snapshot(job_id: str) -> JobSnapshot:
+        assert job_id == "jid"
         return _snapshot_ok()
 
     app = create_app()
@@ -114,7 +121,12 @@ def test_metrics_timeline_bad_ranges(monkeypatch):
 
     r = client.get(
         "/v1/metrics/timeline",
-        params={"job_id": "jid", "start_day": 19, "end_day": 25, "bucket": "day"},
+        params={
+            "job_id": "jid",
+            "start_day": 19,
+            "end_day": 25,
+            "bucket": "day",
+        },
     )
     assert r.status_code == 422
 
@@ -131,6 +143,11 @@ def test_metrics_timeline_unknown_job(monkeypatch):
 
     r = client.get(
         "/v1/metrics/timeline",
-        params={"job_id": "nope", "start_day": 0, "end_day": 1, "bucket": "day"},
+        params={
+            "job_id": "nope",
+            "start_day": 0,
+            "end_day": 1,
+            "bucket": "day",
+        },
     )
     assert r.status_code == 404

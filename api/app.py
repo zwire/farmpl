@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,37 +16,44 @@ from routers.metrics import router as metrics_router
 from routers.optimize import router as optimize_router
 from routers.system import router as system_router
 from routers.templates import router as templates_router
+from services import job_runner
 
 
-def _get_allowed_origins() -> list[str]:
+def _get_allowed_origins(settings: app_config.Settings) -> list[str]:
     origins = os.getenv("CORS_ALLOW_ORIGINS", "*")
+    if origins == "*":
+        return ["*"]
     return [o.strip() for o in origins.split(",") if o.strip()]
 
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):  # pragma: no cover
-    yield
-    try:
-        from services import job_runner
+    async def shutdown_backend() -> None:
+        backend = getattr(app.state, "job_backend", None)
+        if backend is not None:
+            try:
+                backend.shutdown(wait=False)
+            except Exception:
+                pass
 
-        job_runner.shutdown(wait=False)
-    except Exception:
-        pass
+    try:
+        yield
+    finally:
+        await shutdown_backend()
 
 
 def create_app() -> FastAPI:
-    """Application factory.
+    """FarmPL API application factory."""
 
-    Wires basic middleware and a minimal health endpoint. Detailed routers, metrics,
-    and auth will be added in subsequent tasks.
-    """
+    settings = app_config.settings()
 
     app = FastAPI(title="FarmPL Optimization API", version="0.1.0", lifespan=_lifespan)
+    app.state.settings = settings
 
     # CORS (liberal by default; tighten via env)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=_get_allowed_origins(),
+        allow_origins=_get_allowed_origins(settings),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -59,31 +67,29 @@ def create_app() -> FastAPI:
 
     # Middleware order: logging -> rate-limit -> metrics
     app.middleware("http")(request_logging_middleware)
-    if app_config.rate_limit_enabled():
-        app.middleware("http")(rate_limit_mw.middleware)
+
+    rate_limiter = rate_limit_mw.RateLimiter.from_settings(settings)
+    app.state.rate_limiter = rate_limiter
+    if settings.rate_limit_enabled:
+        app.middleware("http")(rate_limiter.middleware)
+
     app.middleware("http")(metrics.middleware)
 
-    # Read and validate config at startup (store in app.state)
-    try:
-        app.state.sync_timeout_ms = app_config.sync_timeout_ms()
-        app.state.async_timeout_s = app_config.async_timeout_s()
-        app.state.max_json_mb = app_config.max_json_mb()
-        app.state.job_backend = app_config.job_backend()
-        app.state.redis_url = app_config.redis_url()
-    except Exception:
-        pass
+    app.state.max_json_mb = settings.max_json_mb
 
-    # Centralized error handlers (422/Domain/HTTP/500)
     install_exception_handlers(app)
 
-    # Mount routers
+    job_backend = job_runner.create_backend(settings)
+    job_runner.configure(job_backend)
+    app.state.job_backend = job_backend
+
     app.include_router(optimize_router)
     app.include_router(templates_router)
     app.include_router(system_router)
     app.include_router(metrics_router)
 
     @app.get("/healthz")
-    def healthz() -> dict[str, str]:
+    def healthz() -> dict[str, Any]:
         return {"status": "ok"}
 
     return app

@@ -36,8 +36,8 @@ def test_land_capacity_limits_total_area() -> None:
     # Take any day (e.g., day 1) to check per-day capacity
     total_units = sum(
         units
-        for (l, _c, t), units in res.x_area_by_l_c_t_values.items()
-        if l == "L1" and t == 1
+        for (land_id, _c, t), units in res.x_area_by_l_c_t_values.items()
+        if land_id == "L1" and t == 1
     )
     # Capacity 1.0a * scale(10) = 10 units
     assert total_units == 10

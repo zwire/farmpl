@@ -51,7 +51,8 @@ class RolesConstraint(Constraint):
                         assign = model.NewBoolVar(f"assign_{w.id}_{ev.id}_{t}")
                         ctx.variables.assign_by_w_e_t[key] = assign
                         model.Add(assign <= r)
-                    # Exclusivity: if worker blocked or lacks any required role -> forbid
+                    # Exclusivity:
+                    # if worker blocked or lacks any required role -> forbid
                     if (w.blocked_days and t in w.blocked_days) or not (
                         (w.roles or set()) & req_roles
                     ):

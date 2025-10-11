@@ -5,6 +5,7 @@ import time
 from fastapi.testclient import TestClient
 
 from app import create_app
+from core import config
 from schemas import (
     ApiCrop,
     ApiEvent,
@@ -38,6 +39,7 @@ def make_request_body() -> OptimizationRequest:
 
 def test_optimize_async_happy_path(monkeypatch):
     monkeypatch.setenv("AUTH_MODE", "none")
+    config.reload_settings()
 
     def fake_solve_sync(
         _req: OptimizationRequest, *, progress_cb=None

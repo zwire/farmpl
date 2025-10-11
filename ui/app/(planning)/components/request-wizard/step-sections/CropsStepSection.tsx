@@ -6,7 +6,8 @@ import type { PlanFormCrop, PlanFormState } from "@/lib/types/planning";
 
 import { ComboBox, type ComboBoxOption } from "../ComboBox";
 import { EntityCard, Field, SectionCard } from "../SectionElements";
-import { createUniqueId, roundToInt } from "../utils";
+import { createUniqueId } from "../utils";
+import { roundToInt } from "../utils/number";
 import type { PlanFormUpdater } from "./types";
 
 type CropsStepSectionProps = {

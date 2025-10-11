@@ -7,7 +7,7 @@ endpoint. They intentionally avoid schema-version fields and "over" flags.
 Conventions
 - Day indices are 0-based (see design).
 - For interval 'day', `day_index` must be set and `period_key` must be None.
-- For interval 'decade', `period_key` must be set and `day_index` must be None.
+- For interval 'third', `period_key` must be set and `day_index` must be None.
 """
 
 from __future__ import annotations
@@ -70,14 +70,14 @@ class DaySummary(BaseModel):
 
 
 class DayRecord(BaseModel):
-    """One timeline bucket: a single day or a decade group.
+    """One timeline bucket: a single day or a third group.
 
     Exactly one of (day_index, period_key) must be set depending on interval.
     """
 
     model_config = ConfigDict(extra="forbid")
 
-    interval: Literal["day", "decade"]
+    interval: Literal["day", "third"]
     day_index: int | None = Field(default=None, ge=0)
     period_key: str | None = None
     events: list[EventMetric] = Field(default_factory=list)
@@ -90,12 +90,14 @@ class DayRecord(BaseModel):
         if self.interval == "day":
             if self.day_index is None or self.period_key is not None:
                 raise ValueError(
-                    "For interval='day', day_index must be set and period_key must be None"
+                    "For interval='day', day_index must be set and "
+                    "period_key must be None"
                 )
         else:
             if self.period_key is None or self.day_index is not None:
                 raise ValueError(
-                    "For interval='decade', period_key must be set and day_index must be None"
+                    "For interval='third', period_key must be set and "
+                    "day_index must be None"
                 )
         return self
 
@@ -105,7 +107,7 @@ class TimelineResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    interval: Literal["day", "decade"]
+    interval: Literal["day", "third"]
     records: list[DayRecord] = Field(default_factory=list)
 
 

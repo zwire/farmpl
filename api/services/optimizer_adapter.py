@@ -27,28 +27,12 @@ from schemas.optimization import (
 )
 
 
-def _area_from_units(area_a: float | None, area_10a: float | None) -> float:
-    if (area_a is None) == (area_10a is None):
-        raise ValueError("area_a と area_10a はどちらか一方のみ指定してください")
-    return float(area_a) if area_a is not None else float(area_10a) * 10.0
-
-
-def _price_per_a(price_per_a: float | None, price_per_10a: float | None) -> float:
-    if (price_per_a is None) == (price_per_10a is None):
-        raise ValueError(
-            "price_per_a と price_per_10a はどちらか一方のみ指定してください"
-        )
-    return (
-        float(price_per_a) if price_per_a is not None else float(price_per_10a) / 10.0
-    )
-
-
 def to_domain_plan(api: ApiPlan) -> PlanRequest:
     crops = []
     for c in api.crops:
         price = None
         if (c.price_per_a is not None) ^ (c.price_per_10a is not None):
-            price = _price_per_a(c.price_per_a, c.price_per_10a)
+            price = c.normalized_price_per_a()
         crops.append(
             Crop(
                 id=c.id,
@@ -82,13 +66,13 @@ def to_domain_plan(api: ApiPlan) -> PlanRequest:
 
     lands = [
         Land(
-            id=l.id,
-            name=l.name,
-            area=_area_from_units(l.area_a, l.area_10a),
-            tags=l.tags,
-            blocked_days=l.blocked_days,
+            id=api_land.id,
+            name=api_land.name,
+            area=api_land.normalized_area_a(),
+            tags=api_land.tags,
+            blocked_days=api_land.blocked_days,
         )
-        for l in api.lands
+        for api_land in api.lands
     ]
 
     workers = [
@@ -117,20 +101,8 @@ def to_domain_plan(api: ApiPlan) -> PlanRequest:
     if api.crop_area_bounds:
         bounds = []
         for b in api.crop_area_bounds:
-            min_area = None
-            max_area = None
-            if b.min_area_a is not None or b.min_area_10a is not None:
-                min_area = (
-                    b.min_area_a
-                    if b.min_area_a is not None
-                    else (b.min_area_10a or 0) * 10.0
-                )
-            if b.max_area_a is not None or b.max_area_10a is not None:
-                max_area = (
-                    b.max_area_a
-                    if b.max_area_a is not None
-                    else (b.max_area_10a or 0) * 10.0
-                )
+            min_area = b.normalized_min_area()
+            max_area = b.normalized_max_area()
             bounds.append(
                 CropAreaBound(crop_id=b.crop_id, min_area=min_area, max_area=max_area)
             )
@@ -141,7 +113,7 @@ def to_domain_plan(api: ApiPlan) -> PlanRequest:
             FixedArea(
                 land_id=f.land_id,
                 crop_id=f.crop_id,
-                area=_area_from_units(f.area_a, f.area_10a),
+                area=f.normalized_area_a(),
             )
             for f in api.fixed_areas
         ]
@@ -158,7 +130,9 @@ def to_domain_plan(api: ApiPlan) -> PlanRequest:
     )
 
 
-def _build_timeline(resp: PlanResponse, req: PlanRequest) -> OptimizationTimeline:
+def _build_timeline(
+    resp: PlanResponse, req: PlanRequest, *, start_date_iso: str | None = None
+) -> OptimizationTimeline:
     spans: list[GanttLandSpan] = []
     for land_id, by_day in resp.assignment.crop_area_by_land_day.items():
         crop_ids: set[str] = set()
@@ -168,6 +142,10 @@ def _build_timeline(resp: PlanResponse, req: PlanRequest) -> OptimizationTimelin
             days = sorted(d for d, per in by_day.items() if crop_id in per)
             if not days:
                 continue
+            # Detect day indexing of incoming assignment:
+            # - If any day index is 0, treat as 0-based (no shift)
+            # - Otherwise assume 1-based and shift down when emitting
+            is_one_based = min(days) >= 1
             start = days[0]
             prev = start
             cur_area = by_day[start][crop_id]
@@ -180,8 +158,8 @@ def _build_timeline(resp: PlanResponse, req: PlanRequest) -> OptimizationTimelin
                     GanttLandSpan(
                         land_id=land_id,
                         crop_id=crop_id,
-                        start_day=start,
-                        end_day=prev,
+                        start_day=start - 1 if is_one_based else start,
+                        end_day=prev - 1 if is_one_based else prev,
                         area_a=float(cur_area),
                     )
                 )
@@ -190,8 +168,8 @@ def _build_timeline(resp: PlanResponse, req: PlanRequest) -> OptimizationTimelin
                 GanttLandSpan(
                     land_id=land_id,
                     crop_id=crop_id,
-                    start_day=start,
-                    end_day=prev,
+                    start_day=start - 1 if is_one_based else start,
+                    end_day=prev - 1 if is_one_based else prev,
                     area_a=float(cur_area),
                 )
             )
@@ -199,10 +177,12 @@ def _build_timeline(resp: PlanResponse, req: PlanRequest) -> OptimizationTimelin
     crop_by_event = {e.id: e.crop_id for e in req.events}
     items: list[GanttEventItem] = []
     if resp.event_assignments:
+        days_list = [ea.day for ea in resp.event_assignments]
+        events_one_based = min(days_list) >= 1 if days_list else False
         for ea in resp.event_assignments:
             items.append(
                 GanttEventItem(
-                    day=ea.day,
+                    day=ea.day - 1 if events_one_based else ea.day,
                     event_id=ea.event_id,
                     crop_id=crop_by_event.get(ea.event_id, ""),
                     land_ids=list(ea.land_ids or []),
@@ -227,6 +207,7 @@ def _build_timeline(resp: PlanResponse, req: PlanRequest) -> OptimizationTimelin
             "resources": resource_names,
             "events": event_names,
         },
+        start_date=start_date_iso,
     )
 
 
@@ -281,7 +262,18 @@ def solve_sync(
     )
     if progress_cb:
         progress_cb(0.95, "post:timeline_build")
-    result.timeline = _build_timeline(resp, domain_req)
+    # Pass through plan.horizon.start_date (if provided on API) to timeline.start_date
+    start_date_iso = None
+    try:
+        if (
+            req.plan
+            and req.plan.horizon
+            and getattr(req.plan.horizon, "start_date", None)
+        ):
+            start_date_iso = str(req.plan.horizon.start_date)
+    except Exception:
+        start_date_iso = None
+    result.timeline = _build_timeline(resp, domain_req, start_date_iso=start_date_iso)
     if progress_cb:
         progress_cb(1.0, "done")
     return result

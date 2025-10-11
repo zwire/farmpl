@@ -316,12 +316,12 @@ def plan(
         price_map = {c.id: float(c.price_per_area or 0.0) for c in request.crops}
         scale = last_ctx.scale_area
         max_by_lc: dict[tuple[str, str], int] = {}
-        for (l, c, t), units in (last_res.x_area_by_l_c_t_values or {}).items():
-            key = (l, c)
+        for (land_id, c, _t), units in (last_res.x_area_by_l_c_t_values or {}).items():
+            key = (land_id, c)
             if units > max_by_lc.get(key, 0):
                 max_by_lc[key] = units
         profit_val = 0.0
-        for (l, c), units in max_by_lc.items():
+        for (_land_id, c), units in max_by_lc.items():
             profit_val += price_map.get(c, 0.0) * (units / scale)
         objectives["profit"] = round(profit_val, 3)
         # Dispersion
@@ -336,7 +336,9 @@ def plan(
         objectives["idle"] = round(idle_units / scale, 3)
         # Diversity (#crops used)
         used_crops = {
-            c for (l, c), z in (last_res.z_use_by_l_c_values or {}).items() if z > 0
+            c
+            for (_land_id, c), z in (last_res.z_use_by_l_c_values or {}).items()
+            if z > 0
         }
         objectives["diversity"] = float(len(used_crops))
 
@@ -374,18 +376,22 @@ def plan(
         have_res_ids = {r.id for r in request.resources}
         for rid in sorted(required_res_ids - have_res_ids):
             hints.append(f"missing resource: {rid}")
-        max_land_area = sum(l.area for l in request.lands)
+        max_land_area = sum(land.area for land in request.lands)
         for b in request.crop_area_bounds or []:
             if b.min_area is not None and b.min_area > max_land_area:
-                hints.append(
-                    f"crop {b.crop_id} min_area {b.min_area} > total_land {max_land_area}"
+                msg = (
+                    f"crop {b.crop_id} min_area {b.min_area} > "
+                    f"total_land {max_land_area}"
                 )
+                hints.append(msg)
         for fa in request.fixed_areas or []:
             land = next((ld for ld in request.lands if ld.id == fa.land_id), None)
             if land and fa.area > land.area:
-                hints.append(
-                    f"fixed area {fa.area} for {fa.land_id}/{fa.crop_id} > land area {land.area}"
+                msg2 = (
+                    f"fixed area {fa.area} for {fa.land_id}/{fa.crop_id} > "
+                    f"land area {land.area}"
                 )
+                hints.append(msg2)
 
     _report(0.92, "post:summary")
     return PlanResponse(

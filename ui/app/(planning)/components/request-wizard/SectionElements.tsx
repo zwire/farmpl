@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 
 import type { AreaMeasurement } from "@/lib/types/planning";
-import { roundTo1Decimal } from "./utils";
+import { roundTo1Decimal } from "./utils/number";
 
 interface SectionCardProps {
   title: string;

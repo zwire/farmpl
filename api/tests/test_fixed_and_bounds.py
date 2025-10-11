@@ -22,7 +22,7 @@ def _base_x_units(res: SolveContext, crop_id: str) -> int:
     for t in days:
         s = sum(
             units
-            for (l, c, tt), units in res.x_area_by_l_c_t_values.items()
+            for (land_id, c, tt), units in res.x_area_by_l_c_t_values.items()
             if c == crop_id and tt == t
         )
         best = max(best, s)

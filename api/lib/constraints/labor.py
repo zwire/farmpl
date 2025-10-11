@@ -90,6 +90,15 @@ class LaborConstraint(Constraint):
 
                 daily_sum = sum(daily_sum_terms) if daily_sum_terms else 0
 
+                # Tie activity indicator to actual work time.
+                # r[e,t] == 1  <=>  daily_sum >= 1  (when variables exist)
+                # If no worker vars exist that day, forbid r[e,t]=1.
+                if daily_sum_terms:
+                    model.Add(daily_sum >= 1).OnlyEnforceIf(r)
+                    model.Add(daily_sum == 0).OnlyEnforceIf(r.Not())
+                else:
+                    model.Add(r == 0)
+
                 # Daily cap per event when r=1 (hours scale)
                 if ev.labor_daily_cap is not None:
                     model.Add(daily_sum <= int(round(ev.labor_daily_cap)) * r)

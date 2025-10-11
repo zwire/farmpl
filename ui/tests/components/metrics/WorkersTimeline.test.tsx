@@ -25,11 +25,10 @@ const recs: MetricsDayRecord[] = [
 ];
 
 describe("WorkersTimeline", () => {
-  it("shows used/capacity text and key", () => {
+  it("shows usage summary and entry", () => {
     render(<WorkersTimeline interval="day" records={recs} />);
-    // key 2 label present
+    expect(screen.getByText(/作業者稼働状況/)).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
-    // shows "6.0 / 14.0"
-    expect(screen.getByText(/6\.0\s*\/\s*14\.0/)).toBeInTheDocument();
+    expect(screen.getAllByText(/6\.0h \/ 14\.0h/).length).toBeGreaterThan(0);
   });
 });

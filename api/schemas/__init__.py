@@ -18,6 +18,14 @@ from .optimization import (
     StatusJob,
     StatusResult,
 )
+from .templates import (
+    CropCatalogItem,
+    CropSuggestResponse,
+    InstantiateEventsRequest,
+    InstantiateEventsResponse,
+    InstantiateRequest,
+    TemplateListItem,
+)
 
 __all__ = [
     "OptimizationRequest",
@@ -38,4 +46,10 @@ __all__ = [
     "OptimizationTimeline",
     "GanttLandSpan",
     "GanttEventItem",
+    "TemplateListItem",
+    "CropCatalogItem",
+    "CropSuggestResponse",
+    "InstantiateRequest",
+    "InstantiateEventsRequest",
+    "InstantiateEventsResponse",
 ]

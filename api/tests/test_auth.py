@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from app import create_app
+from core import config
 from lib.schemas import PlanAssignment, PlanDiagnostics, PlanResponse
 from schemas import ApiCrop, ApiEvent, ApiHorizon, ApiLand, ApiPlan, OptimizationRequest
 
@@ -31,6 +32,7 @@ def test_auth_api_key_required(monkeypatch):
     # Configure auth mode and valid keys
     monkeypatch.setenv("AUTH_MODE", "api_key")
     monkeypatch.setenv("API_KEYS", "secret1,secret2")
+    config.reload_settings()
 
     # Fast planner
     def fake_plan(*args, **kwargs):

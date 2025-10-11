@@ -136,6 +136,7 @@ export interface ApiOptimizationTimelineEventItem {
 }
 
 export interface ApiOptimizationTimeline {
+  start_date?: string | null;
   land_spans: ApiOptimizationTimelineLandSpan[];
   events: ApiOptimizationTimelineEventItem[];
   entity_names?: {
@@ -317,6 +318,7 @@ export interface TimelineEventView {
 }
 
 export interface OptimizationTimelineView {
+  startDateIso: string;
   landSpans: TimelineLandSpanView[];
   events: TimelineEventView[];
 }
@@ -346,7 +348,7 @@ export type IdMap<T extends { id: string }> = Record<string, T>;
 
 // ========================= Metrics timeline types ========================= //
 
-export type MetricsInterval = "decade" | "day";
+export type MetricsInterval = "third" | "day";
 
 export interface MetricsEventMetric {
   id: string;
@@ -380,7 +382,7 @@ export interface MetricsDaySummary {
 export interface MetricsDayRecord {
   interval: MetricsInterval;
   day_index?: number | null; // present when interval=day
-  period_key?: string | null; // present when interval=decade (e.g., 000:U)
+  period_key?: string | null; // present when interval=third (e.g., 2024-03:U)
   events: MetricsEventMetric[];
   workers: MetricsWorkerMetric[];
   lands: MetricsLandMetric[];

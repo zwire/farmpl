@@ -46,7 +46,7 @@ def test_land_blocked_day_forces_zero_area() -> None:
     sc = solve(ctx)
     assert sc.status in ("FEASIBLE", "OPTIMAL")
     # day1 area must be 0 for all crops on L1
-    for (land_id, crop_id, t), val in sc.x_area_by_l_c_t_values.items():
+    for (land_id, _crop_id, t), val in sc.x_area_by_l_c_t_values.items():
         if land_id == "L1" and t == 1:
             assert val == 0
 
@@ -88,7 +88,7 @@ def test_worker_blocked_day_forces_zero_hours() -> None:
     sc = solve(ctx)
     assert sc.status in ("FEASIBLE", "OPTIMAL")
     # Blocked worker must have 0 hours; others may work
-    for (w, e, t), h in sc.h_time_by_w_e_t_values.items():
+    for (w, _e, _t), h in sc.h_time_by_w_e_t_values.items():
         if w == "W1":
             assert h == 0
 
@@ -127,5 +127,5 @@ def test_resource_blocked_day_forces_zero_usage() -> None:
     sc = solve(ctx)
     assert sc.status in ("FEASIBLE", "OPTIMAL")
     # Blocked resource must have 0 usage
-    for (r, e, t), u in sc.u_time_by_r_e_t_values.items():
+    for (_r, _e, _t), u in sc.u_time_by_r_e_t_values.items():
         assert u == 0

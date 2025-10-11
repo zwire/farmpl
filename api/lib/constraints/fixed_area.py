@@ -53,7 +53,8 @@ class FixedAreaConstraint(Constraint):
                 xt = ctx.variables.x_area_by_l_c_t[(fa.land_id, fa.crop_id, t)]
                 occ = ctx.variables.occ_by_l_c_t.get((fa.land_id, fa.crop_id, t))
                 if occ is None:
-                    # If occ not modeled for this crop/day yet, skip equality; keep upper bound
+                    # If occ not modeled for this crop/day yet,
+                    # skip equality; keep upper bound
                     model.Add(xt <= b)
                     continue
                 # Upper bound always
@@ -62,5 +63,6 @@ class FixedAreaConstraint(Constraint):
                 if t not in blocked:
                     model.Add(xt == b).OnlyEnforceIf(occ)
 
-            # Ensure some presence when b>0: sum_t x_t >= b is a simple sufficient condition
+            # Ensure some presence when b>0:
+            # sum_t x_t >= b is a simple sufficient condition
             model.Add(sum(terms) >= b)

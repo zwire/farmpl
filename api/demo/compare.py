@@ -63,8 +63,8 @@ def _crop_base_areas(sc: SolveContext, ctx: BuildContext) -> dict[str, float]:
     scale = ctx.scale_area
     vals = sc.x_area_by_l_c_t_values or {}
     max_by_lc: dict[tuple[str, str], int] = {}
-    for (l, c, _t), units in vals.items():
-        key = (l, c)
+    for (land_id, c, _t), units in vals.items():
+        key = (land_id, c)
         if units > max_by_lc.get(key, 0):
             max_by_lc[key] = units
     for (_l, c), units in max_by_lc.items():

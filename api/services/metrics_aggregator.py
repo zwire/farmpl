@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable
+from datetime import date, timedelta
 from typing import Literal
 
 from schemas import ApiPlan
@@ -17,16 +18,18 @@ from schemas.metrics import (
 from . import job_runner
 
 
-def _decade_key(day: int) -> str:
-    month_index = day // 30
-    d_in_month = day % 30
-    if d_in_month < 10:
-        label = "U"
-    elif d_in_month < 20:
-        label = "M"
+def _third_key(day: int, base_date: date) -> str:
+    d = base_date + timedelta(days=day)
+    year = d.year
+    month = d.month
+    dom = d.day
+    if dom <= 10:
+        label = "U"  # 上旬
+    elif dom <= 20:
+        label = "M"  # 中旬
     else:
-        label = "L"
-    return f"{month_index:03d}:{label}"
+        label = "L"  # 下旬
+    return f"{year:04d}-{month:02d}:{label}"
 
 
 def _validate_range(plan_days: int, start_day: int, end_day: int) -> None:
@@ -43,7 +46,12 @@ def _iter_days(start_day: int, end_day: int) -> Iterable[int]:
 
 
 def aggregate(
-    job_id: str, start_day: int, end_day: int, bucket: Literal["day", "decade"]
+    job_id: str,
+    start_day: int,
+    end_day: int,
+    bucket: Literal["day", "third"],
+    *,
+    base_date_iso: str | None = None,
 ) -> TimelineResponse:
     """Aggregate worker/land utilization per day or decade from a completed job.
 
@@ -51,8 +59,8 @@ def aggregate(
     - Reads capacities from plan; usage from timeline spans/events
     """
 
-    if bucket not in {"day", "decade"}:
-        raise ValueError("bucket must be 'day' or 'decade'")
+    if bucket not in {"day", "third"}:
+        raise ValueError("bucket must be 'day' or 'third'")
 
     snap = job_runner.snapshot(job_id)
     if snap.result is None or snap.req is None or snap.result.status != "ok":
@@ -67,11 +75,11 @@ def aggregate(
 
     # Lookups
     workers_by = {w.id: w for w in plan.workers}
-    lands_by = {l.id: l for l in plan.lands}
+    lands_by = {land.id: land for land in plan.lands}
     events_by = {e.id: e for e in plan.events}
 
     land_cap_by: dict[str, float] = {
-        lid: l.normalized_area_a() for lid, l in lands_by.items()
+        lid: land.normalized_area_a() for lid, land in lands_by.items()
     }
 
     # Accumulators
@@ -89,6 +97,10 @@ def aggregate(
         return TimelineResponse(interval=bucket, records=[])
 
     # Land utilization from spans (inclusive end_day)
+    # Also precompute per-crop area per day for fallback when events don't list land_ids
+    crop_area_by_day: dict[str, dict[int, float]] = defaultdict(
+        lambda: defaultdict(float)
+    )
     for span in timeline.land_spans:
         s = max(start_day, span.start_day)
         e = min(end_day, span.end_day)
@@ -96,8 +108,16 @@ def aggregate(
             continue
         for d in _iter_days(s, e):
             land_used_by_land_day[span.land_id][d] += float(span.area_a)
+            crop_area_by_day[span.crop_id][d] += float(span.area_a)
 
-    # Labor utilization from events (single-day events)
+    # Labor utilization from events
+    # Distribute each event's total labor across its active days within the bucket
+    # and then split evenly among assigned workers for that day.
+    occ_days_by_event: dict[str, list[int]] = defaultdict(list)
+    for it in timeline.events:
+        if start_day <= it.day <= end_day:
+            occ_days_by_event[it.event_id].append(it.day)
+
     for ev in timeline.events:
         d = ev.day
         if d < start_day or d > end_day:
@@ -105,20 +125,32 @@ def aggregate(
         meta = events_by.get(ev.event_id)
         if meta is None:
             continue
+        # Per-occurrence area: prefer explicit land_ids; otherwise
+        # fallback to crop area that day
         area_a = 0.0
-        for lid in ev.land_ids:
-            land = lands_by.get(lid)
-            if land is not None:
-                area_a += land.normalized_area_a()
+        if ev.land_ids:
+            for lid in ev.land_ids:
+                land = lands_by.get(lid)
+                if land is not None:
+                    area_a += land.normalized_area_a()
+        else:
+            # No explicit land assignment (e.g., uses_land=False).
+            # Use planted area of the crop on day d.
+            if meta is not None:
+                area_a = float(crop_area_by_day.get(meta.crop_id, {}).get(d, 0.0))
         labor_total_per_a = float(meta.labor_total_per_a or 0.0)
-        labor_total = labor_total_per_a * area_a
+        total_need = labor_total_per_a * area_a
+        days_in_bucket = max(1, len(occ_days_by_event.get(ev.event_id, [])))
+        labor_for_day = total_need / float(days_in_bucket)
         if ev.worker_ids:
-            share = labor_total / float(len(ev.worker_ids)) if labor_total > 0 else 0.0
+            share = (
+                labor_for_day / float(len(ev.worker_ids)) if labor_for_day > 0 else 0.0
+            )
             for wid in ev.worker_ids:
                 if wid in workers_by:
                     labor_used_by_worker_day[wid][d] += share
         else:
-            labor_unassigned_by_day[d] += labor_total
+            labor_unassigned_by_day[d] += labor_for_day
 
     # Build records
     if bucket == "day":
@@ -137,11 +169,16 @@ def aggregate(
 
             # Lands
             land_metrics: list[LandMetric] = []
-            for lid, l in lands_by.items():
+            for lid, land in lands_by.items():
                 used = float(land_used_by_land_day[lid][d])
                 cap = float(land_cap_by[lid])
                 land_metrics.append(
-                    LandMetric(land_id=lid, name=l.name, utilization=used, capacity=cap)
+                    LandMetric(
+                        land_id=lid,
+                        name=land.name,
+                        utilization=used,
+                        capacity=cap,
+                    )
                 )
 
             # Events on day d
@@ -187,11 +224,20 @@ def aggregate(
             )
         return TimelineResponse(interval="day", records=records)
 
-    # bucket == 'decade'
-    # Group day indices
+    # bucket == 'third'
+    # Require base_date for precise thirds
+    if not base_date_iso:
+        raise ValueError("base_date_iso is required for bucket 'third'")
+    try:
+        y, m, dd = [int(x) for x in base_date_iso.split("T")[0].split("-")]
+        base_d = date(y, m, dd)
+    except Exception:
+        raise ValueError("base_date_iso must be ISO date 'YYYY-MM-DD'") from None
+
+    # Group day indices by calendar thirds relative to base_date
     groups: dict[str, list[int]] = defaultdict(list)
     for d in _iter_days(start_day, end_day):
-        groups[_decade_key(d)].append(d)
+        groups[_third_key(d, base_d)].append(d)
 
     records: list[DayRecord] = []
     for key, days in groups.items():
@@ -206,11 +252,11 @@ def aggregate(
 
         # Lands
         land_metrics: list[LandMetric] = []
-        for lid, l in lands_by.items():
+        for lid, land in lands_by.items():
             used = sum(float(land_used_by_land_day[lid][d]) for d in days)
             cap = float(land_cap_by[lid]) * len(days)
             land_metrics.append(
-                LandMetric(land_id=lid, name=l.name, utilization=used, capacity=cap)
+                LandMetric(land_id=lid, name=land.name, utilization=used, capacity=cap)
             )
 
         # Events in group
@@ -240,7 +286,7 @@ def aggregate(
 
         records.append(
             DayRecord(
-                interval="decade",
+                interval="third",
                 day_index=None,
                 period_key=key,
                 events=event_metrics,
@@ -255,4 +301,4 @@ def aggregate(
             )
         )
 
-    return TimelineResponse(interval="decade", records=records)
+    return TimelineResponse(interval="third", records=records)

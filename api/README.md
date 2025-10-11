@@ -62,16 +62,16 @@ uv run uvicorn main:app --reload
 
 ## レート制限の挙動
 - 有効時は固定ウィンドウでカウント。
-- 超過時: HTTP 429  JSON `{ status, title, detail, retry_after }`
-- 付与ヘッダ: `Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`
+- 超過時: HTTP 429  JSON `{ type, status, title, detail, retry_after }`
+- 付与ヘッダ: `Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
 
 ## 同期タイムアウト
 - `SYNC_TIMEOUT_MS` 超過で `OptimizationResult{ status: "timeout" }` を返却。
 - `objective_value = null`、`stats.timeout_ms` に設定値を格納。
 
 ## エラーレスポンス（Problem-like）
-- 422（Request/Pydantic Validation）: `{ status, title, detail, errors: [...] }`
-- Domain/HTTP/500 も一貫したJSONで返却（スタックは非公開）
+- 422（Request/Pydantic Validation）: `{ type, status, title, detail, errors: [...] }`
+- Domain/HTTP/500 も一貫したJSONで返却（Problem JSON, typeはHTTPステータスURL）
 
 ## ログ/メトリクス
 - 構造化ログ（JSON行）: `request.start` / `request.end`（method, path, status, duration_ms, request_id）

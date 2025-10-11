@@ -299,6 +299,28 @@ export function EventPlanningSection({
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-sm text-slate-600">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            対象作物
+          </h3>
+          <select
+            value={selectedCropId ?? ""}
+            onChange={handleCropSelect}
+            className="rounded-md border border-slate-300 px-3 py-1 text-sm"
+          >
+            {plan.crops.map((crop) => (
+              <option key={crop.id} value={crop.id}>
+                {crop.name || crop.id}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="text-xs text-slate-500">
+          作物を選んでから作業間の依存関係と詳細を編集します。
+        </p>
+      </div>
+
       <SectionCard
         title="テンプレートから作業計画初期化"
         description="選択中の作物に対して、作型テンプレートと開始日を指定して作業計画を初期化します"
@@ -344,26 +366,6 @@ export function EventPlanningSection({
           )}
         </div>
       </SectionCard>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-sm text-slate-600">
-          対象作物
-          <select
-            value={selectedCropId ?? ""}
-            onChange={handleCropSelect}
-            className="rounded-md border border-slate-300 px-3 py-1 text-sm"
-          >
-            {plan.crops.map((crop) => (
-              <option key={crop.id} value={crop.id}>
-                {crop.name || crop.id}
-              </option>
-            ))}
-          </select>
-        </label>
-        <p className="text-xs text-slate-500">
-          作物を選んでから作業間の依存関係と詳細を編集します。
-        </p>
-      </div>
 
       <SectionCard
         title="作業間の依存関係"

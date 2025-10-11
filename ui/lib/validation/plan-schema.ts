@@ -340,7 +340,9 @@ export const buildApiPlanPayload = (plan: PlanFormState): ApiPlan => {
   const parsed = planFormSchema.parse(plan);
 
   return {
-    horizon: { num_days: parsed.horizon.numDays },
+    horizon: {
+      num_days: parsed.horizon.numDays,
+    },
     crops: parsed.crops.map((crop) => ({
       id: crop.id,
       name: crop.name,

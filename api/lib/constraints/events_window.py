@@ -187,14 +187,8 @@ class EventsWindowConstraint(Constraint):
 
             for crop in ctx.request.crops:
                 for block_start, block_end in segments:
-                    prev_day = block_start - 1
-                    next_day = block_end + 1
-                    prev_occ = None
-                    next_occ = None
-                    if prev_day >= 1:
-                        prev_occ = occ_l.get((land.id, crop.id, prev_day))
-                    if next_day <= H:
-                        next_occ = occ_l.get((land.id, crop.id, next_day))
+                    # Neighbor occupancy variables are not used further;
+                    # no-op lookups removed
                     for blocked_day in range(block_start, block_end + 1):
                         key_l = (land.id, crop.id, blocked_day)
                         if key_l in occ_l:

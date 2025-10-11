@@ -2,6 +2,8 @@
 
 import type { MetricsDayRecord, MetricsInterval } from "@/lib/types/planning";
 
+import { TimelineUsageList } from "./TimelineUsageList";
+
 interface CapacityTimelineProps {
   interval: MetricsInterval;
   records: MetricsDayRecord[];
@@ -13,34 +15,24 @@ export function CapacityTimeline({
   records,
   mode,
 }: CapacityTimelineProps) {
-  const usedTotal = records.reduce((acc, r) => {
-    return (
-      acc +
-      (mode === "workers"
-        ? Number(r.summary?.labor_total_hours ?? 0)
-        : Number(r.summary?.land_total_area ?? 0))
-    );
-  }, 0);
+  const unitLabel = mode === "workers" ? "h" : "a";
 
   return (
-    <section>
-      <header>
-        {/* minimal legend text expected by tests */}
-        <span>Used</span> <span>Capacity</span>
-      </header>
-      <div>
-        {/* Show aggregated total used */}
-        <strong>{usedTotal.toFixed(1)}</strong>
-      </div>
-      <ul>
-        {records.map((r, i) => (
-          <li key={i.toString()}>
-            {interval === "day"
-              ? String(r.day_index ?? "")
-              : String(r.period_key ?? "")}
-          </li>
-        ))}
-      </ul>
-    </section>
+    <TimelineUsageList
+      title={mode === "workers" ? "作業者稼働サマリ" : "圃場利用サマリ"}
+      interval={interval}
+      records={records}
+      unitLabel={unitLabel}
+      extract={(record) => ({
+        used:
+          mode === "workers"
+            ? Number(record.summary?.labor_total_hours ?? 0)
+            : Number(record.summary?.land_total_area ?? 0),
+        capacity:
+          mode === "workers"
+            ? Number(record.summary?.labor_capacity_hours ?? 0)
+            : Number(record.summary?.land_capacity_area ?? 0),
+      })}
+    />
   );
 }

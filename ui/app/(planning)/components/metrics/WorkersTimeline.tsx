@@ -2,6 +2,8 @@
 
 import type { MetricsDayRecord, MetricsInterval } from "@/lib/types/planning";
 
+import { TimelineUsageList } from "./TimelineUsageList";
+
 interface WorkersTimelineProps {
   interval: MetricsInterval;
   records: MetricsDayRecord[];
@@ -9,21 +11,19 @@ interface WorkersTimelineProps {
 
 export function WorkersTimeline({ interval, records }: WorkersTimelineProps) {
   return (
-    <div>
-      {records.map((r, i) => {
-        const key =
-          interval === "day"
-            ? String(r.day_index ?? "")
-            : String(r.period_key ?? "");
-        const used = Number(r.summary?.labor_total_hours ?? 0).toFixed(1);
-        const cap = Number(r.summary?.labor_capacity_hours ?? 0).toFixed(1);
-        return (
-          <div key={i.toString()}>
-            <span>{key}</span>
-            <span>{` ${used} / ${cap}`}</span>
-          </div>
-        );
+    <TimelineUsageList
+      title="作業者稼働状況"
+      interval={interval}
+      records={records}
+      unitLabel="h"
+      extract={(record) => ({
+        used: Number(record.summary?.labor_total_hours ?? 0),
+        capacity: Number(record.summary?.labor_capacity_hours ?? 0),
+        description:
+          record.workers.length > 0
+            ? `${record.workers.length}名のアサイン`
+            : undefined,
       })}
-    </div>
+    />
   );
 }

@@ -30,7 +30,8 @@ def test_link_area_enforces_zero_when_z_zero() -> None:
     ctx.model.Add(x >= 1)
 
     res = solve(ctx)
-    # With x <= cap*z and z=0, model must become infeasible because x>=1 contradicts link
+    # With x <= cap*z and z=0, the model must become infeasible
+    # because x>=1 contradicts the x<=cap*z link.
     assert res.status in ("INFEASIBLE", "MODEL_INVALID")
 
 
