@@ -289,7 +289,13 @@ export const createEmptyPlan = (): PlanUiState =>
     fixedAreas: [],
     stages: {
       stageOrder: DEFAULT_STAGE_ORDER,
-      stepToleranceBy: {},
+      stepToleranceBy: DEFAULT_STAGE_ORDER.reduce<Record<string, number>>(
+        (map, stage) => {
+          map[stage] = 0.05;
+          return map;
+        },
+        {},
+      ),
     },
   });
 

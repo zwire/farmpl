@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { PlanningCalendarService } from "@/lib/domain/planning-calendar";
 import type { PlanUiEvent, PlanUiState } from "@/lib/domain/planning-ui-types";
 import { SectionCard } from "../request-wizard/SectionElements";
-import { createUniqueId } from "../request-wizard/utils";
+import { createUniqueId, formatIdHint } from "../request-wizard/utils";
 import { EventDetailsPanel } from "./EventDetailsPanel";
 import { EventGraphEditor } from "./EventGraphEditor";
 
@@ -216,10 +216,7 @@ export function EventPlanningSection({
   };
 
   const handleAddEvent = () => {
-    const newId = createUniqueId(
-      "event",
-      plan.events.map((event) => event.id),
-    );
+    const newId = createUniqueId(plan.events.map((event) => event.id));
     onPlanChange((prev) => {
       const cropId = selectedCropId ?? prev.crops[0]?.id ?? "";
       const newEvent: PlanUiEvent = {
@@ -312,6 +309,7 @@ export function EventPlanningSection({
             {plan.crops.map((crop) => (
               <option key={crop.id} value={crop.id}>
                 {crop.name || crop.id}
+                {crop.id ? ` (${formatIdHint(crop.id)})` : ""}
               </option>
             ))}
           </select>

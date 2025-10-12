@@ -1,2 +1,2 @@
-export { createUniqueId } from "./id";
+export { createUniqueId, formatIdHint } from "./id";
 export { roundTo1Decimal, roundToInt } from "./number";

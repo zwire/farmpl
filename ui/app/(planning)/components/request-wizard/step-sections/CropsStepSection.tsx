@@ -87,10 +87,7 @@ export function CropsStepSection({
       crops: [
         ...prev.crops,
         {
-          id: createUniqueId(
-            "crop",
-            prev.crops.map((crop) => crop.id),
-          ),
+          id: createUniqueId(prev.crops.map((crop) => crop.id)),
           name: "",
           category: "",
           price: { unit: "a", value: 1 },

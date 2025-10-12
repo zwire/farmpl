@@ -3,7 +3,8 @@
 import React, { type CSSProperties, useMemo, useState } from "react";
 import { usePlanningStore } from "@/lib/state/planning-store";
 import { useViewPreferencesStore } from "@/lib/state/view-preferences";
-import type { MetricsTimelineResponse } from "@/lib/types/planning";
+import type { OptimizationResultView } from "@/lib/types/planning";
+import { useMetricsTimeline } from "../useMetricsTimeline";
 import { CategoryLegend } from "./CategoryLegend";
 import { classifyEventCategory } from "./classifyEventCategory";
 import { colorForCategory } from "./colorForCategory";
@@ -18,7 +19,7 @@ type HexColor = string;
 
 const ROW_HEIGHT = 36;
 const ROW_GAP = 12;
-const LEFT_GUTTER = 150;
+const LEFT_GUTTER = 160;
 const HEADER_HEIGHT = 44;
 
 const palette = [
@@ -61,40 +62,31 @@ const colorForUsage = (percentage: number): string => {
 };
 
 export function GanttChart({
-  timeline,
+  jobId,
+  jobResult,
   className,
 }: {
-  timeline: MetricsTimelineResponse | null;
+  jobId: string | undefined;
+  jobResult: OptimizationResultView | null;
   className?: string;
 }) {
+  const { gantt } = useViewPreferencesStore();
+  const { timeline, isLoading, error } = useMetricsTimeline({
+    jobId,
+    result: jobResult,
+    bucket: gantt.scale,
+  });
+
   const result = usePlanningStore((state) => state.lastResult);
   const plan = usePlanningStore((state) => state.plan);
 
   const { gantt: viewPrefs } = useViewPreferencesStore();
   const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
-  const [drillDownRange, setDrillDownRange] = useState<{
-    startDay: number;
-    endDay: number;
-  } | null>(null);
 
   const baseViewModel = useGanttData(result?.timeline ?? undefined, plan);
 
   const scale = useMemo(() => {
     if (!baseViewModel) return null;
-
-    if (drillDownRange) {
-      const drillDownStartDate = new Date(baseViewModel.startDateIso);
-      drillDownStartDate.setUTCDate(
-        drillDownStartDate.getUTCDate() + drillDownRange.startDay,
-      );
-
-      return createTimelineScale({
-        type: "day",
-        startDateIso: drillDownStartDate.toISOString(),
-        totalDays: drillDownRange.endDay - drillDownRange.startDay + 1,
-        minUnitWidth: 32, // Unify cell width
-      });
-    }
 
     return createTimelineScale({
       type: timeline?.interval === "day" ? "day" : "third",
@@ -102,21 +94,7 @@ export function GanttChart({
       totalDays: baseViewModel.totalDays,
       minUnitWidth: 32, // Unify cell width
     });
-  }, [baseViewModel, drillDownRange, timeline?.interval]);
-
-  const handleHeaderClick = (tickIndex: number) => {
-    if (drillDownRange || !baseViewModel || !scale || scale.type !== "third")
-      return;
-
-    const dayRange = scale.tickToDayRange(tickIndex);
-    if (dayRange) {
-      setDrillDownRange(dayRange);
-    }
-  };
-
-  const handleBackToThirds = () => {
-    setDrillDownRange(null);
-  };
+  }, [baseViewModel, timeline?.interval]);
 
   const viewModel = useGanttViewModel(baseViewModel, viewPrefs.mode);
 
@@ -171,28 +149,19 @@ export function GanttChart({
     >
       {viewPrefs.mode === "land" ? "土地" : "作物"} / 日付
     </div>,
-    ...scale.ticks.map((tick, index) => (
-      <button
-        type="button"
-        key={`header-${
-          drillDownRange ? drillDownRange.startDay + tick.day : tick.day
-        }`}
-        disabled={!!drillDownRange || scale.type !== "third"}
+    ...scale.ticks.map((tick, _) => (
+      <span
+        key={`header-${tick.day}`}
         className={`flex w-full flex-col items-center justify-center border border-slate-200 text-[11px] disabled:cursor-default dark:border-slate-700 ${
           tick.isMajor
             ? "bg-slate-100 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200"
             : "bg-white text-slate-500 dark:bg-slate-900 dark:text-slate-400"
-        } ${
-          !drillDownRange && scale.type === "third"
-            ? "cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700"
-            : ""
         }`}
         style={{ height: HEADER_HEIGHT }}
         title={scale.formatTooltip(tick.day)}
-        onClick={() => handleHeaderClick(index)}
       >
         {tick.label}
-      </button>
+      </span>
     )),
   ];
 
@@ -260,12 +229,7 @@ export function GanttChart({
     const ganttRowCells = scale.ticks.map((tick, tickIndex) => {
       let dayRange = scale.tickToDayRange(tickIndex);
 
-      if (drillDownRange && dayRange) {
-        dayRange = {
-          startDay: drillDownRange.startDay + dayRange.startDay,
-          endDay: drillDownRange.startDay + dayRange.endDay,
-        };
-      } else if (scale.type === "day") {
+      if (scale.type === "day") {
         dayRange = { startDay: tick.day, endDay: tick.day };
       }
 
@@ -336,6 +300,9 @@ export function GanttChart({
           style={{ minHeight: ROW_HEIGHT }}
         >
           {viewModel.rowLabelById[rowId] ?? rowId}
+          <span className="text-slate-500 text-xs pl-1">
+            {`(${rowId.slice(0, 8)})`}
+          </span>
         </div>
         {ganttRowCells}
       </React.Fragment>
@@ -346,21 +313,10 @@ export function GanttChart({
     <div className={`flex flex-col gap-6 ${className ?? ""}`}>
       <div className={`flex flex-col gap-4 ${className ?? ""}`}>
         <header className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
-              タイムライン
-            </h3>
-            {drillDownRange && (
-              <button
-                type="button"
-                onClick={handleBackToThirds}
-                className="text-sm text-sky-600 hover:underline dark:text-sky-400"
-              >
-                &larr; 旬表示に戻る
-              </button>
-            )}
-          </div>
-          <ViewControls />
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+            タイムライン
+          </h3>
+          <ViewControls isLoading={isLoading} error={error} />
           <CategoryLegend items={allCategories} />
         </header>
         <div className="relative overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">

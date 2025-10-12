@@ -48,12 +48,7 @@ export function AvailabilitySection({
         description="圃場ごとの面積・タグ・利用不可期間を管理します"
         actionLabel="圃場を追加"
         onAction={() =>
-          addLand(() =>
-            createUniqueId(
-              "land",
-              plan.lands.map((land) => land.id),
-            ),
-          )
+          addLand(() => createUniqueId(plan.lands.map((land) => land.id)))
         }
         emptyMessage="圃場が登録されていません。"
         hasItems={plan.lands.length > 0}
@@ -118,10 +113,7 @@ export function AvailabilitySection({
         actionLabel="作業者を追加"
         onAction={() =>
           addWorker(() =>
-            createUniqueId(
-              "worker",
-              plan.workers.map((worker) => worker.id),
-            ),
+            createUniqueId(plan.workers.map((worker) => worker.id)),
           )
         }
         emptyMessage="作業者が登録されていません。"
@@ -186,10 +178,7 @@ export function AvailabilitySection({
       actionLabel="共有リソースを追加"
       onAction={() =>
         addResource(() =>
-          createUniqueId(
-            "resource",
-            plan.resources.map((resource) => resource.id),
-          ),
+          createUniqueId(plan.resources.map((resource) => resource.id)),
         )
       }
       emptyMessage="共有リソースが登録されていません。"

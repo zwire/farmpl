@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
+from uuid import uuid4
 
 from schemas.optimization import (
     ApiCrop,
@@ -33,7 +34,12 @@ class InstantiateOptions:
     crop_name_override: str | None = None
 
 
-def _to_api_events(tpl: CropTemplate, factor: float) -> Iterable[ApiEvent]:
+def _to_api_events(
+    tpl: CropTemplate,
+    factor: float,
+    crop_id: str,
+    event_id_map: dict[str, str],
+) -> Iterable[ApiEvent]:
     for e in tpl.events:
         start_cond = None
         end_cond = None
@@ -45,6 +51,7 @@ def _to_api_events(tpl: CropTemplate, factor: float) -> Iterable[ApiEvent]:
         lag_min = None
         lag_max = None
         pred = e.preceding_event_id
+        mapped_preceding = event_id_map.get(pred, pred) if pred else None
         if e.lag_days is not None:
             if e.seasonal_scale:
                 lag_min, lag_max = _scale_pair(e.lag_days, factor)
@@ -52,14 +59,14 @@ def _to_api_events(tpl: CropTemplate, factor: float) -> Iterable[ApiEvent]:
                 lag_min, lag_max = e.lag_days
 
         yield ApiEvent(
-            id=e.id,
-            crop_id=tpl.id,  # use template id as crop_id within this plan
+            id=event_id_map.get(e.id, e.id),
+            crop_id=crop_id,
             name=e.name,
             category=e.category,
             start_cond=start_cond,
             end_cond=end_cond,
             frequency_days=e.frequency_days,
-            preceding_event_id=pred,
+            preceding_event_id=mapped_preceding,
             lag_min_days=lag_min,
             lag_max_days=lag_max,
             people_required=e.people_required,
@@ -83,15 +90,18 @@ def instantiate(tpl: CropTemplate, opts: InstantiateOptions) -> ApiPlan:
         )
     )
 
+    crop_id = opts.crop_id_override or str(uuid4())
+
     crop = ApiCrop(
-        id=tpl.id,
+        id=crop_id,
         name=opts.crop_name_override
         or tpl.crop_name + (f"({tpl.variant})" if tpl.variant else ""),
         category=tpl.category,
         price_per_a=price_a,
     )
 
-    events = list(_to_api_events(tpl, factor))
+    event_id_map: dict[str, str] = {event.id: str(uuid4()) for event in tpl.events}
+    events = list(_to_api_events(tpl, factor, crop_id, event_id_map))
 
     plan = ApiPlan(
         horizon=ApiHorizon(num_days=opts.horizon_days),

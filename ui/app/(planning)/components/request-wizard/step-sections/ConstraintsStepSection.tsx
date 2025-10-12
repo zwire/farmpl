@@ -11,6 +11,7 @@ import {
   MeasurementInput,
   SectionCard,
 } from "../SectionElements";
+import { formatIdHint } from "../utils";
 import type { PlanFormUpdater } from "./types";
 
 const STAGE_DEFINITIONS = [
@@ -65,6 +66,7 @@ export function ConstraintsStepSection({
         value: crop.id,
         label: crop.name || crop.id,
         description: crop.category ?? undefined,
+        hint: formatIdHint(crop.id),
       })),
     [plan.crops],
   );
@@ -75,6 +77,7 @@ export function ConstraintsStepSection({
         value: land.id,
         label: land.name || land.id,
         description: land.tags?.join(", ") || undefined,
+        hint: formatIdHint(land.id),
       })),
     [plan.lands],
   );
@@ -109,8 +112,8 @@ export function ConstraintsStepSection({
         ...prev.cropAreaBounds,
         {
           cropId: prev.crops[0]?.id ?? "",
-          minArea: undefined,
-          maxArea: undefined,
+          minArea: { unit: "a", value: 1 },
+          maxArea: { unit: "a", value: 10000 },
         },
       ],
     }));
@@ -178,7 +181,7 @@ export function ConstraintsStepSection({
             id={bound.cropId}
             onRemove={() => handleRemoveBound(index)}
           >
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-3">
               <Field label="対象作物">
                 <ComboBox
                   value={bound.cropId}
@@ -311,7 +314,7 @@ export function ConstraintsStepSection({
                 type="number"
                 min={0}
                 max={100}
-                step={0.1}
+                step={1}
                 value={(stageConfig.stepToleranceBy?.[stage.key] ?? 0) * 100}
                 onChange={(event) =>
                   updateTolerance(

@@ -1,12 +1,11 @@
 "use client";
 
 import { extent } from "d3-array";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import type { OptimizationResultView } from "@/lib/types/planning";
 
 import { GanttChart as TimelineGanttChart } from "./gantt/GanttChart";
-import { useMetricsTimeline } from "./useMetricsTimeline";
 
 interface MetricsChartsProps {
   result: OptimizationResultView | null;
@@ -22,13 +21,6 @@ interface MetricDatum {
 const MAX_BARS = 6;
 
 export function MetricsCharts({ result, jobId }: MetricsChartsProps) {
-  const [bucket, setBucket] = useState<"third" | "day">("third");
-  const { timeline, isLoading, error } = useMetricsTimeline({
-    jobId,
-    result,
-    bucket,
-  });
-
   const datasets = useMemo(() => mapMetricsFromResult(result), [result]);
 
   if (!result && !jobId) {
@@ -47,28 +39,8 @@ export function MetricsCharts({ result, jobId }: MetricsChartsProps) {
       </header>
 
       {jobId ? (
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex gap-2">
-              <MetricToggle
-                active={bucket === "third"}
-                onClick={() => setBucket("third")}
-              >
-                旬
-              </MetricToggle>
-              <MetricToggle
-                active={bucket === "day"}
-                onClick={() => setBucket("day")}
-              >
-                日
-              </MetricToggle>
-            </div>
-            {isLoading && <span className="text-slate-400">読み込み中…</span>}
-            {error && <span className="text-red-500">{error}</span>}
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
-            <GanttChartWrapper timeline={timeline} />
-          </div>
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+          <TimelineGanttChart jobId={jobId} jobResult={result} />
         </div>
       ) : null}
 
@@ -171,41 +143,6 @@ const MetricsBarChart = ({ title, data }: MetricsBarChartProps) => {
       </dl>
     </article>
   );
-};
-
-interface MetricToggleProps {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}
-
-const MetricToggle = ({ active, onClick, children }: MetricToggleProps) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`rounded-md border px-2 py-1 transition ${
-      active
-        ? "border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-900/20 dark:text-sky-300"
-        : "border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400"
-    }`}
-  >
-    {children}
-  </button>
-);
-
-interface GanttChartWrapperProps {
-  timeline: ReturnType<typeof useMetricsTimeline>["timeline"];
-}
-
-const GanttChartWrapper = ({ timeline }: GanttChartWrapperProps) => {
-  if (!timeline) {
-    return (
-      <div className="text-xs text-slate-400 dark:text-slate-500">
-        タイムライン情報がありません。
-      </div>
-    );
-  }
-  return <TimelineGanttChart timeline={timeline} />;
 };
 
 export { mapMetricsFromResult };

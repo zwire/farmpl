@@ -17,6 +17,7 @@ import {
 import { ChipInput } from "../request-wizard/inputs/ChipInput";
 import { DateRangeInput } from "../request-wizard/inputs/DateRangeInput";
 import { Field } from "../request-wizard/SectionElements";
+import { formatIdHint } from "../request-wizard/utils";
 
 interface EventDetailsPanelProps {
   plan: PlanUiState;
@@ -100,6 +101,7 @@ export function EventDetailsPanel({
         value: resource.id,
         label: resource.name || resource.id,
         description: resource.category ?? undefined,
+        hint: formatIdHint(resource.id),
       })),
     [plan.resources],
   );
@@ -115,6 +117,7 @@ export function EventDetailsPanel({
       .map((event) => ({
         value: event.id,
         label: event.name || event.id,
+        hint: formatIdHint(event.id),
       }));
   }, [plan.events, selectedEvent]);
 

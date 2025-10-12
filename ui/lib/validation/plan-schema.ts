@@ -10,8 +10,127 @@ import type {
 
 /**
  * Zod schemas for validating planning form data prior to submission.
- * All functions are side-effect free so they can run on the client or server.
+ * エンティティの参照が切れている場合はサニタイズ処理で削除し、コンソールへログを出力します。
  */
+
+const isPlanFormStateLike = (value: unknown): value is PlanFormState => {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const plan = value as Record<string, unknown>;
+  return (
+    typeof plan.horizon === "object" &&
+    plan.horizon !== null &&
+    Array.isArray(plan.crops) &&
+    Array.isArray(plan.events) &&
+    Array.isArray(plan.lands) &&
+    Array.isArray(plan.workers) &&
+    Array.isArray(plan.resources) &&
+    Array.isArray(plan.cropAreaBounds) &&
+    Array.isArray(plan.fixedAreas)
+  );
+};
+
+const sanitizePlanForValidation = (value: unknown): unknown => {
+  if (!isPlanFormStateLike(value)) {
+    return value;
+  }
+
+  const plan = value as PlanFormState;
+
+  const sanitized: PlanFormState = {
+    ...plan,
+    horizon: { ...plan.horizon },
+    crops: [...plan.crops],
+    events: [...plan.events],
+    lands: [...plan.lands],
+    workers: [...plan.workers],
+    resources: [...plan.resources],
+    cropAreaBounds: [...plan.cropAreaBounds],
+    fixedAreas: [...plan.fixedAreas],
+    stages: plan.stages
+      ? {
+          ...plan.stages,
+          stepToleranceBy: plan.stages.stepToleranceBy
+            ? { ...plan.stages.stepToleranceBy }
+            : undefined,
+        }
+      : undefined,
+  };
+
+  const removalMessages: string[] = [];
+  const logRemoval = (message: string) => {
+    removalMessages.push(`[plan-schema] ${message}`);
+  };
+
+  const cropIds = new Set(sanitized.crops.map((crop) => crop.id));
+
+  let filteredEvents = sanitized.events.filter((event) => {
+    if (!cropIds.has(event.cropId)) {
+      logRemoval(
+        `イベント "${event.id}" を削除しました: 存在しない作物ID "${event.cropId}" を参照しています`,
+      );
+      return false;
+    }
+    return true;
+  });
+
+  let removedInPass = false;
+  do {
+    const eventIds = new Set(filteredEvents.map((event) => event.id));
+    removedInPass = false;
+    const nextEvents: PlanFormState["events"] = [];
+    for (const event of filteredEvents) {
+      if (event.precedingEventId && !eventIds.has(event.precedingEventId)) {
+        logRemoval(
+          `イベント "${event.id}" を削除しました: 存在しない precedingEventId "${event.precedingEventId}" を参照しています`,
+        );
+        removedInPass = true;
+      } else {
+        nextEvents.push(event);
+      }
+    }
+    filteredEvents = nextEvents;
+  } while (removedInPass);
+  sanitized.events = filteredEvents;
+
+  const landIds = new Set(sanitized.lands.map((land) => land.id));
+
+  sanitized.cropAreaBounds = sanitized.cropAreaBounds.filter((bound) => {
+    if (!cropIds.has(bound.cropId)) {
+      logRemoval(
+        `cropAreaBounds のエントリを削除しました: 存在しない作物ID "${bound.cropId}" を参照しています`,
+      );
+      return false;
+    }
+    return true;
+  });
+
+  sanitized.fixedAreas = sanitized.fixedAreas.filter((fixed) => {
+    const missingTargets: string[] = [];
+    if (!cropIds.has(fixed.cropId)) {
+      missingTargets.push(`作物ID "${fixed.cropId}"`);
+    }
+    if (!landIds.has(fixed.landId)) {
+      missingTargets.push(`土地ID "${fixed.landId}"`);
+    }
+    if (missingTargets.length > 0) {
+      logRemoval(
+        `fixedAreas のエントリを削除しました: 存在しない ${missingTargets.join(" と ")} を参照しています`,
+      );
+      return false;
+    }
+    return true;
+  });
+
+  if (removalMessages.length > 0) {
+    for (const message of removalMessages) {
+      console.log(message);
+    }
+  }
+
+  return sanitized;
+};
 
 const requiredId = z.string().trim().min(1, "IDは必須です");
 const optionalString = z.string().trim().min(1).optional();
@@ -176,7 +295,7 @@ const stagesSchema = z
     }
   });
 
-export const planFormSchema = z
+const basePlanFormSchema = z
   .object({
     horizon: z
       .object({
@@ -313,6 +432,11 @@ export const planFormSchema = z
       }
     });
   });
+
+export const planFormSchema = z.preprocess(
+  sanitizePlanForValidation,
+  basePlanFormSchema,
+);
 
 export const optimizationRequestDraftSchema = z.object({
   idempotencyKey: z.string().trim().min(1).optional(),

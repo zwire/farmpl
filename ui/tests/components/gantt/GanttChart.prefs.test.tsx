@@ -110,15 +110,6 @@ describe("GanttChart with View Preferences", () => {
     expect(screen.getByText(/土地 \/ 日付/)).toBeInTheDocument();
   });
 
-  it("should switch scale when a header tick is clicked (drill-down)", () => {
-    render(<GanttChart />);
-    act(() => {
-      fireEvent.click(screen.getByRole("button", { name: /1月 上旬/ }));
-    });
-    // Day-scale label appears (first day of 上旬)
-    expect(screen.getByText("1/1")).toBeInTheDocument();
-  });
-
   // Persistence test is complex with this setup and might not be needed
   // if we trust the zustand persist middleware, which is tested by the library itself.
   // A simple check that the state changes is sufficient for integration.

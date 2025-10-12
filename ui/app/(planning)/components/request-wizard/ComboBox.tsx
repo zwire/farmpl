@@ -12,6 +12,7 @@ export interface ComboBoxOption {
   value: string;
   label: string;
   description?: string;
+  hint?: string;
 }
 
 interface BaseProps {
@@ -50,7 +51,8 @@ export function ComboBox({
     return options.filter((option) => {
       return (
         option.label.toLowerCase().includes(lower) ||
-        option.value.toLowerCase().includes(lower)
+        option.value.toLowerCase().includes(lower) ||
+        (option.hint?.toLowerCase() ?? "").includes(lower)
       );
     });
   }, [options, query]);
@@ -91,14 +93,19 @@ export function ComboBox({
             aria-haspopup="listbox"
             aria-expanded={isOpen}
           >
-            <span
+            <div
               className={clsx(
-                "block truncate text-left",
+                "block w-full truncate text-left flex flex-row items-center gap-1",
                 showPlaceholder && "text-slate-400",
               )}
             >
               {displayLabel}
-            </span>
+              {selectedOption?.hint && (
+                <span className="text-[11px] text-slate-400">
+                  {selectedOption.hint}
+                </span>
+              )}
+            </div>
           </button>
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">
             ▼
@@ -148,7 +155,20 @@ export function ComboBox({
                   onClick={() => handleSelect(option)}
                 >
                   <span className="font-medium">{option.label}</span>
-                  <span className="text-xs text-slate-500">{option.value}</span>
+                  {option.hint ? (
+                    <>
+                      <span className="text-xs text-slate-500">
+                        {option.hint}
+                      </span>
+                      <span className="text-[10px] text-slate-300">
+                        {option.value}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-xs text-slate-500">
+                      {option.value}
+                    </span>
+                  )}
                   {option.description && (
                     <span className="text-xs text-slate-400">
                       {option.description}
@@ -189,7 +209,8 @@ export function MultiComboBox({
     return options.filter((option) => {
       return (
         option.label.toLowerCase().includes(lower) ||
-        option.value.toLowerCase().includes(lower)
+        option.value.toLowerCase().includes(lower) ||
+        (option.hint?.toLowerCase() ?? "").includes(lower)
       );
     });
   }, [options, query]);
@@ -336,9 +357,20 @@ export function MultiComboBox({
                     />
                     <div className="flex flex-col">
                       <span className="font-medium">{option.label}</span>
-                      <span className="text-xs text-slate-500">
-                        {option.value}
-                      </span>
+                      {option.hint ? (
+                        <>
+                          <span className="text-xs text-slate-500">
+                            {option.hint}
+                          </span>
+                          <span className="text-[10px] text-slate-300">
+                            {option.value}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-xs text-slate-500">
+                          {option.value}
+                        </span>
+                      )}
                       {option.description && (
                         <span className="text-xs text-slate-400">
                           {option.description}
