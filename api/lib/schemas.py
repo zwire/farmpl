@@ -102,9 +102,6 @@ class PlanAssignment(BaseModel):
     crop_area_by_land_day: dict[str, dict[int, dict[str, float]]] = Field(
         default_factory=dict, description="land_id -> day -> crop_id -> area"
     )
-    idle_by_land_day: dict[str, dict[int, float]] = Field(
-        default_factory=dict, description="land_id -> day -> idle area"
-    )
 
 
 class WorkerRef(BaseModel):

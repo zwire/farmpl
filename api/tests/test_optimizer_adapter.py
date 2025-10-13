@@ -71,7 +71,6 @@ def test_solve_sync_builds_timeline(monkeypatch: pytest.MonkeyPatch) -> None:
                     2: {"c1": 10.0},
                 }
             },
-            idle_by_land_day={},
         )
         diags = PlanDiagnostics(feasible=True)
         evs = [

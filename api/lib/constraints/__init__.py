@@ -3,7 +3,6 @@ from .events_window import EventsWindowConstraint
 from .occ_equalize import OccEqualizeConstraint
 from .fixed_area import FixedAreaConstraint
 from .hold_area_const import HoldAreaConstConstraint
-from .idle import IdleConstraint
 from .labor import LaborConstraint
 from .land_capacity import LandCapacityConstraint
 from .link_area_use import LinkAreaUseConstraint
@@ -17,7 +16,6 @@ __all__ = [
     "OccEqualizeConstraint",
     "LaborConstraint",
     "ResourcesConstraint",
-    "IdleConstraint",
     "FixedAreaConstraint",
     "HoldAreaConstConstraint",
     "AreaBoundsConstraint",

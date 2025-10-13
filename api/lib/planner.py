@@ -7,13 +7,12 @@ from collections.abc import Callable
 from .constraints import (
     AreaBoundsConstraint,
     EventsWindowConstraint,
-    OccEqualizeConstraint,
     FixedAreaConstraint,
     HoldAreaConstConstraint,
-    IdleConstraint,
     LaborConstraint,
     LandCapacityConstraint,
     LinkAreaUseConstraint,
+    OccEqualizeConstraint,
     ResourcesConstraint,
     RolesConstraint,
 )
@@ -22,8 +21,9 @@ from .model_builder import build_model
 from .objectives import (
     build_dispersion_expr,
     build_diversity_expr,
-    build_idle_expr,
-    build_labor_hours_expr,
+    build_earliness_expr,
+    build_event_span_expr,
+    build_occupancy_span_expr,
     build_profit_expr,
 )
 from .schemas import (
@@ -65,7 +65,6 @@ def plan(
         OccEqualizeConstraint(),
         LaborConstraint(),
         ResourcesConstraint(),
-        IdleConstraint(),
         HoldAreaConstConstraint(),
         FixedAreaConstraint(),
         AreaBoundsConstraint(),
@@ -78,8 +77,9 @@ def plan(
     sense_map = {
         "profit": "max",
         "dispersion": "min",
-        "labor": "min",
-        "idle": "min",
+        "event_span": "min",
+        "earliness": "min",
+        "occ_span": "min",
         "diversity": "max",
     }
     if stage_order:
@@ -91,10 +91,18 @@ def plan(
         if not stage_defs:
             stage_defs = [("profit", "max"), ("dispersion", "min")]
     else:
-        stage_defs = [("profit", "max"), ("dispersion", "min")]
+        # Default stages: profit -> dispersion -> event_span -> earliness -> occ_span -> diversity
+        stage_defs = [
+            ("profit", "max"),
+            ("dispersion", "min"),
+            ("event_span", "min"),
+            ("earliness", "min"),
+            ("occ_span", "min"),
+            ("diversity", "max"),
+        ]
         if extra_stages:
             for k in extra_stages:
-                if k not in ("profit", "dispersion"):
+                if k not in {name for name, _ in stage_defs}:
                     stage_defs.append((k, sense_map.get(k, "min")))
 
     locks: list[tuple[str, str, int]] = []
@@ -114,10 +122,6 @@ def plan(
                 expr = build_profit_expr(ctx)
             elif lname == "dispersion":
                 expr = build_dispersion_expr(ctx)
-            elif lname == "labor":
-                expr = build_labor_hours_expr(ctx)
-            elif lname == "idle":
-                expr = build_idle_expr(ctx)
             elif lname == "diversity":
                 expr = build_diversity_expr(ctx)
             else:
@@ -140,11 +144,14 @@ def plan(
         elif name == "dispersion":
             obj_expr = build_dispersion_expr(ctx)
             ctx.model.Minimize(obj_expr)
-        elif name == "labor":
-            obj_expr = build_labor_hours_expr(ctx)
+        elif name == "event_span":
+            obj_expr = build_event_span_expr(ctx)
             ctx.model.Minimize(obj_expr)
-        elif name == "idle":
-            obj_expr = build_idle_expr(ctx)
+        elif name == "earliness":
+            obj_expr = build_earliness_expr(ctx)
+            ctx.model.Minimize(obj_expr)
+        elif name == "occ_span":
+            obj_expr = build_occupancy_span_expr(ctx)
             ctx.model.Minimize(obj_expr)
         elif name == "diversity":
             obj_expr = build_diversity_expr(ctx)
@@ -171,7 +178,6 @@ def plan(
             "h_wet": len(ctx.variables.h_time_by_w_e_t),
             "assign_wet": len(ctx.variables.assign_by_w_e_t),
             "u_ret": len(ctx.variables.u_time_by_r_e_t),
-            "idle_lt": len(ctx.variables.idle_by_l_t),
             "occ_ct": len(ctx.variables.occ_by_c_t),
             "occ_lct": len(ctx.variables.occ_by_l_c_t),
         }
@@ -218,18 +224,7 @@ def plan(
                 area
             )
 
-    # Build idle per land/day
-    idle_by_land_day: dict[str, dict[int, float]] = {}
-    if feasible and last_res and last_res.idle_by_l_t_values is not None and last_ctx:
-        for (land_id, t), units in last_res.idle_by_l_t_values.items():
-            if units <= 0:
-                continue
-            area = units / last_ctx.scale_area
-            idle_by_land_day.setdefault(land_id, {})[t] = area
-
-    assignment = PlanAssignment(
-        crop_area_by_land_day=crop_area_by_land_day, idle_by_land_day=idle_by_land_day
-    )
+    assignment = PlanAssignment(crop_area_by_land_day=crop_area_by_land_day)
     _report(0.86, "post:assignment")
 
     # Build event assignments with workers, resources, and areas
@@ -277,6 +272,7 @@ def plan(
                                 from .constants import (
                                     TIME_SCALE_UNITS_PER_HOUR as _TS,
                                 )
+
                                 raw = (
                                     sc.h_time_by_w_e_t_values.get((w_id, e_id, t), 0)
                                     or 0
@@ -298,6 +294,7 @@ def plan(
                     if ev_id == e_id and tt == t and val > 0:
                         per_res[r_id] = per_res.get(r_id, 0) + val
                 from .constants import TIME_SCALE_UNITS_PER_HOUR as _TS
+
                 for r_id, units in per_res.items():
                     resources_used.append(
                         ResourceUsageRef(
@@ -353,12 +350,10 @@ def plan(
         )
         # Labor
         from .constants import TIME_SCALE_UNITS_PER_HOUR as _TS
+
         labor_total_units = float(sum((last_res.h_time_by_w_e_t_values or {}).values()))
         labor_total = labor_total_units / float(_TS)
         objectives["labor"] = labor_total
-        # Idle
-        idle_units = float(sum((last_res.idle_by_l_t_values or {}).values()))
-        objectives["idle"] = round(idle_units / scale, 3)
         # Diversity (#crops used)
         used_crops = {
             c
@@ -372,7 +367,9 @@ def plan(
             sum(float(w.capacity_per_day or 0.0) for w in request.workers)
             * request.horizon.num_days
         )
-        assigned_res_units = float(sum((last_res.u_time_by_r_e_t_values or {}).values()))
+        assigned_res_units = float(
+            sum((last_res.u_time_by_r_e_t_values or {}).values())
+        )
         assigned_res = assigned_res_units / float(_TS)
         total_res_capacity = (
             sum(float(r.capacity_per_day or 0.0) for r in request.resources)

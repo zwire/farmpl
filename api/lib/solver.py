@@ -20,7 +20,6 @@ class SolveContext:
     h_time_by_w_e_t_values: dict[tuple[str, str, int], int] | None = None
     assign_by_w_e_t_values: dict[tuple[str, str, int], int] | None = None
     u_time_by_r_e_t_values: dict[tuple[str, str, int], int] | None = None
-    idle_by_l_t_values: dict[tuple[str, int], int] | None = None
     occ_by_c_t_values: dict[tuple[str, int], int] | None = None
     occ_by_l_c_t_values: dict[tuple[str, str, int], int] | None = None
     # timings
@@ -92,7 +91,6 @@ def solve(ctx: BuildContext, prev: SolveContext | None = None) -> SolveContext:
         hvals: dict[tuple[str, str, int], int] = {}
         avals: dict[tuple[str, str, int], int] = {}
         uvals: dict[tuple[str, str, int], int] = {}
-        idlevals: dict[tuple[str, int], int] = {}
         occvals: dict[tuple[str, int], int] = {}
         occ_land_vals: dict[tuple[str, str, int], int] = {}
         for key, var in ctx.variables.x_area_by_l_c_t.items():
@@ -109,8 +107,6 @@ def solve(ctx: BuildContext, prev: SolveContext | None = None) -> SolveContext:
             # resource time values
             aval = int(solver.Value(var))
             uvals[key] = aval
-        for key, var in ctx.variables.idle_by_l_t.items():
-            idlevals[key] = int(solver.Value(var))
         for key, var in ctx.variables.occ_by_c_t.items():
             occvals[key] = int(solver.Value(var))
         for key, var in ctx.variables.occ_by_l_c_t.items():
@@ -121,7 +117,6 @@ def solve(ctx: BuildContext, prev: SolveContext | None = None) -> SolveContext:
         sc.h_time_by_w_e_t_values = hvals
         sc.assign_by_w_e_t_values = avals
         sc.u_time_by_r_e_t_values = uvals
-        sc.idle_by_l_t_values = idlevals
         sc.occ_by_c_t_values = occvals
         sc.occ_by_l_c_t_values = occ_land_vals
     return sc

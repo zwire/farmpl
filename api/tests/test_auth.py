@@ -38,7 +38,7 @@ def test_auth_api_key_required(monkeypatch):
     def fake_plan(*args, **kwargs):
         return PlanResponse(
             diagnostics=PlanDiagnostics(feasible=True),
-            assignment=PlanAssignment(crop_area_by_land_day={}, idle_by_land_day={}),
+            assignment=PlanAssignment(crop_area_by_land_day={}),
             event_assignments=[],
             objectives={"profit": 1.23},
             summary={"area_total": 0.0},

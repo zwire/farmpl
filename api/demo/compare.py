@@ -8,7 +8,6 @@ from lib.constraints import (
     EventsWindowConstraint,
     FixedAreaConstraint,
     HoldAreaConstConstraint,
-    IdleConstraint,
     LaborConstraint,
     LandCapacityConstraint,
     LinkAreaUseConstraint,
@@ -16,7 +15,7 @@ from lib.constraints import (
     RolesConstraint,
 )
 from lib.model_builder import BuildContext, build_model
-from lib.objectives import build_diversity_expr, build_idle_expr, build_profit_expr
+from lib.objectives import build_diversity_expr, build_profit_expr
 from lib.planner import plan
 from lib.schemas import PlanRequest
 from lib.solver import SolveContext, solve
@@ -46,7 +45,6 @@ def _base_constraints():
         EventsWindowConstraint(),
         LaborConstraint(),
         ResourcesConstraint(),
-        IdleConstraint(),
         HoldAreaConstConstraint(),
         FixedAreaConstraint(),
         AreaBoundsConstraint(),
@@ -76,14 +74,6 @@ def _build_dispersion_expr(ctx: BuildContext):
     return sum(ctx.variables.z_use_by_l_c.values()) if ctx.variables.z_use_by_l_c else 0
 
 
-def _build_labor_expr(ctx: BuildContext):
-    return (
-        sum(ctx.variables.h_time_by_w_e_t.values())
-        if ctx.variables.h_time_by_w_e_t
-        else 0
-    )
-
-
 Stage = tuple[str, str, Callable[[BuildContext], Any]]  # (name, sense, expr_builder)
 
 
@@ -104,8 +94,6 @@ def _run_lexicographic(
                 expr = build_profit_expr(ctx)
             elif lname == "dispersion":
                 expr = _build_dispersion_expr(ctx)
-            elif lname == "labor":
-                expr = _build_labor_expr(ctx)
             else:
                 continue
             stage_tol = tol_pct
@@ -164,8 +152,6 @@ def compare_objectives(
         order_map = {
             "profit": ("profit", "max", build_profit_expr),
             "dispersion": ("dispersion", "min", _build_dispersion_expr),
-            "labor": ("labor", "min", _build_labor_expr),
-            "idle": ("idle", "min", build_idle_expr),
             "diversity": ("diversity", "max", build_diversity_expr),
         }
         stages: list[Stage] = [order_map[s] for s in stage_order if s in order_map]
@@ -180,33 +166,6 @@ def compare_objectives(
         return results
 
     # Otherwise, run a few illustrative 3-stage scenarios
-    results["three_stage_labor"] = _run_lexicographic(
-        req,
-        [
-            ("profit", "max", build_profit_expr),
-            ("dispersion", "min", _build_dispersion_expr),
-            ("labor", "min", _build_labor_expr),
-        ],
-        tol_pct=0.0,
-    )
-    results["three_stage_idle_strict"] = _run_lexicographic(
-        req,
-        [
-            ("profit", "max", build_profit_expr),
-            ("dispersion", "min", _build_dispersion_expr),
-            ("idle", "min", build_idle_expr),
-        ],
-        tol_pct=0.0,
-    )
-    results["three_stage_idle_tol10"] = _run_lexicographic(
-        req,
-        [
-            ("profit", "max", build_profit_expr),
-            ("dispersion", "min", _build_dispersion_expr),
-            ("idle", "min", build_idle_expr),
-        ],
-        tol_pct=0.10,
-    )
     results["diversity_before_dispersion"] = _run_lexicographic(
         req,
         [

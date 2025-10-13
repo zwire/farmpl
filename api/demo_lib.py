@@ -52,12 +52,6 @@ def _print_plan(result: PlanResponse) -> None:
             area_rows.append([land_id, str(t), crops])
     if area_rows:
         print_table(["land", "day", "area(crop:amount)"], area_rows)
-    if result.assignment.idle_by_land_day:
-        idle_rows: list[list[str]] = []
-        for land_id, by_day in result.assignment.idle_by_land_day.items():
-            for t in sorted(by_day.keys()):
-                idle_rows.append([land_id, str(t), f"{by_day[t]:.1f}"])
-        print_table(["land", "day", "idle"], idle_rows)
     if result.event_assignments:
         ev_rows: list[list[str]] = []
         for ea in sorted(result.event_assignments, key=lambda x: (x.day, x.event_id)):

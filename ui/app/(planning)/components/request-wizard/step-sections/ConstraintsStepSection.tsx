@@ -20,24 +20,9 @@ const STAGE_DEFINITIONS = [
     description: "全体の収益が最大になるようにします。",
   },
   {
-    key: "labor",
-    label: "総労働時間",
-    description: "全体の労働時間が最小になるようにします。",
-  },
-  {
-    key: "idle",
-    label: "遊休農地",
-    description: "使われない農地が最小になるようにします。",
-  },
-  {
     key: "dispersion",
     label: "作付けの集約",
     description: "同じ作物をなるべく近くの畑にまとめます。",
-  },
-  {
-    key: "peak",
-    label: "作業の平準化",
-    description: "特定の日への作業集中を避けます。",
   },
   {
     key: "diversity",

@@ -57,16 +57,6 @@ def build_dispersion_expr(ctx: BuildContext) -> cp_model.LinearExpr:
     return sum(terms) if terms else 0
 
 
-def build_labor_hours_expr(ctx: BuildContext) -> cp_model.LinearExpr:
-    terms = list(ctx.variables.h_time_by_w_e_t.values())
-    return sum(terms) if terms else 0
-
-
-def build_idle_expr(ctx: BuildContext) -> cp_model.LinearExpr:
-    terms = list(ctx.variables.idle_by_l_t.values())
-    return sum(terms) if terms else 0
-
-
 def build_diversity_expr(ctx: BuildContext) -> cp_model.LinearExpr:
     # Introduce use_c per crop and link with z[l,c]
     model = ctx.model
@@ -88,3 +78,79 @@ def build_diversity_expr(ctx: BuildContext) -> cp_model.LinearExpr:
             # No z available -> crop cannot be used
             model.Add(use[crop.id] == 0)
     return sum(use.values()) if use else 0
+
+
+def build_event_span_expr(ctx: BuildContext) -> cp_model.LinearExpr:
+    """Minimize active days of land-using events per crop.
+
+    Count only events with uses_land=True. Non-land events are handled by the
+    earliness objective so they are executed as early as possible, even if that
+    means adding a separate day.
+    """
+    model = ctx.model
+    H = ctx.request.horizon.num_days
+    total_terms: list[cp_model.LinearExpr] = []
+    r = ctx.variables.r_event_by_e_t
+    for crop in ctx.request.crops:
+        events = [
+            e
+            for e in ctx.request.events
+            if e.crop_id == crop.id and e.uses_land is False
+        ]
+        if not events:
+            continue
+        for t in range(1, H + 1):
+            # Collect existing r[e,t] for this (c,t)
+            r_terms = []
+            for ev in events:
+                key = (ev.id, t)
+                rv = r.get(key)
+                if rv is not None:
+                    r_terms.append(rv)
+            if not r_terms:
+                continue
+            a_ct = model.NewBoolVar(f"act_{crop.id}_{t}")
+            for rv in r_terms:
+                model.Add(rv <= a_ct)
+            model.Add(a_ct <= sum(r_terms))
+            total_terms.append(a_ct)
+    return sum(total_terms) if total_terms else 0
+
+
+def build_occupancy_span_expr(ctx: BuildContext) -> cp_model.LinearExpr:
+    """Minimize total crop occupancy days Σ_{c,t} occ[c,t]."""
+    occ = ctx.variables.occ_by_c_t
+    terms = list(occ.values())
+    return sum(terms) if terms else 0
+
+
+class EventSpanObjective(Objective):
+    def register(self, ctx: BuildContext) -> None:
+        ctx.objective_expr = build_event_span_expr(ctx)
+        ctx.objective_sense = "min"
+
+
+class OccupancySpanObjective(Objective):
+    def register(self, ctx: BuildContext) -> None:
+        ctx.objective_expr = build_occupancy_span_expr(ctx)
+        ctx.objective_sense = "min"
+
+
+def build_earliness_expr(ctx: BuildContext) -> cp_model.LinearExpr:
+    """ASAP tie-breaker: minimize sum_{e,t} t * r[e,t].
+
+    Encourages scheduling events as early as feasible within their windows,
+    regardless of whether they use land or not.
+    """
+    H = ctx.request.horizon.num_days
+    terms: list[cp_model.LinearExpr] = []
+    for (e_id, t), r in ctx.variables.r_event_by_e_t.items():
+        if 1 <= t <= H:
+            terms.append(t * r)
+    return sum(terms) if terms else 0
+
+
+class EarlinessObjective(Objective):
+    def register(self, ctx: BuildContext) -> None:
+        ctx.objective_expr = build_earliness_expr(ctx)
+        ctx.objective_sense = "min"

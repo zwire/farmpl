@@ -44,16 +44,9 @@ class OptimizationRequest(BaseModel):
         examples=["abc123-20250101T000000Z"],
         min_length=1,
     )
-    # 推奨: 厳格スキーマ
     plan: ApiPlan | None = Field(
         default=None,
-        description="厳格スキーマ。Pydanticで入力値検証と整合性チェックを行う。",
-    )
-    # 互換: 自由形式（将来廃止予定）
-    params: dict[str, Any] | None = Field(
-        default=None,
-        description="自由形式入力（非推奨）。plan が指定されていない場合のみ使用。",
-        examples=[{"resources": {"labor": 10}, "objective": {"type": "idle_min"}}],
+        description="Pydanticで入力値検証と整合性チェックを行う。",
     )
     timeout_ms: int | None = Field(
         default=None,
@@ -306,10 +299,10 @@ class OptimizationStagesConfig(BaseModel):
     stage_order: list[str] = Field(
         default_factory=lambda: [
             "profit",
-            "labor",
-            "idle",
             "dispersion",
-            "peak",
+            "event_span",
+            "earliness",
+            "occ_span",
             "diversity",
         ]
     )
