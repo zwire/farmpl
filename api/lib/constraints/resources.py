@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from lib.constants import TIME_SCALE_UNITS_PER_HOUR
 from lib.interfaces import Constraint
 from lib.model_builder import BuildContext
 
@@ -17,7 +18,7 @@ class ResourcesConstraint(Constraint):
 
         # Capacity per resource per day (sparse by event allowed days)
         for res in ctx.request.resources:
-            cap = int(round(res.capacity_per_day or 0))
+            cap = int(round((res.capacity_per_day or 0.0) * TIME_SCALE_UNITS_PER_HOUR))
             for t in range(1, H + 1):
                 day_terms = []
                 for ev in ctx.request.events:

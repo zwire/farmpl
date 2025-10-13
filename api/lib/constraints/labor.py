@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from ortools.sat.python import cp_model
 
-from lib.constants import AREA_SCALE_UNITS_PER_A
+from lib.constants import AREA_SCALE_UNITS_PER_A, TIME_SCALE_UNITS_PER_HOUR
 from lib.interfaces import Constraint
 from lib.model_builder import BuildContext
 
@@ -36,13 +36,15 @@ class LaborConstraint(Constraint):
         # For each event, build h and link to needs and daily caps
         for ev in ctx.request.events:
             crop_id = ev.crop_id
-            # Exact rational hours-per-unit using integer linearization.
-            # If L = labor_total_per_area (h/a) and S = AREA_SCALE_UNITS_PER_A,
-            # then per-unit hours = L / S = p/q. Enforce q * Σ h[w,e,t] >= p * Σ x.
+            # Exact rational time linearization with scaling.
+            # If L = labor_total_per_area (h/a), S_a = AREA_SCALE_UNITS_PER_A,
+            # and S_t = TIME_SCALE_UNITS_PER_HOUR (units/hour),
+            # per-unit time in scaled units = (L * S_t) / S_a.
+            # Let frac = p/q; enforce q * Σ h_scaled[w,e,t] == p * Σ x_units.
             from fractions import Fraction
 
             L = ev.labor_total_per_area or 0.0
-            labor_per_unit_frac = Fraction(str(L)) / AREA_SCALE_UNITS_PER_A
+            labor_per_unit_frac = Fraction(str(L)) * TIME_SCALE_UNITS_PER_HOUR / AREA_SCALE_UNITS_PER_A
             p = labor_per_unit_frac.numerator
             q = labor_per_unit_frac.denominator
 
@@ -67,7 +69,7 @@ class LaborConstraint(Constraint):
                     if w.blocked_days and t in w.blocked_days:
                         continue
                     key = (w.id, ev.id, t)
-                    cap_w = int(round(w.capacity_per_day))
+                    cap_w = int(round((w.capacity_per_day or 0.0) * TIME_SCALE_UNITS_PER_HOUR))
                     if key not in ctx.variables.h_time_by_w_e_t:
                         ctx.variables.h_time_by_w_e_t[key] = model.NewIntVar(
                             0, cap_w, f"h_{w.id}_{ev.id}_{t}"
@@ -91,7 +93,7 @@ class LaborConstraint(Constraint):
                 daily_sum = sum(daily_sum_terms) if daily_sum_terms else 0
 
                 # Tie activity indicator to actual work time.
-                # r[e,t] == 1  <=>  daily_sum >= 1  (when variables exist)
+                # r[e,t] == 1  <=>  daily_sum >= 1 scaled unit (when variables exist)
                 # If no worker vars exist that day, forbid r[e,t]=1.
                 if daily_sum_terms:
                     model.Add(daily_sum >= 1).OnlyEnforceIf(r)
@@ -101,7 +103,8 @@ class LaborConstraint(Constraint):
 
                 # Daily cap per event when r=1 (hours scale)
                 if ev.labor_daily_cap is not None:
-                    model.Add(daily_sum <= int(round(ev.labor_daily_cap)) * r)
+                    cap_scaled = int(round(ev.labor_daily_cap * TIME_SCALE_UNITS_PER_HOUR))
+                    model.Add(daily_sum <= cap_scaled * r)
 
             # People requirement per active day: sum(assign) >= people_required
             if ev.people_required is not None and ev.people_required > 0:
@@ -130,11 +133,12 @@ class LaborConstraint(Constraint):
                     if v is not None:
                         horizon_sum_terms.append(v)
             if horizon_sum_terms:
-                model.Add(q * sum(horizon_sum_terms) >= total_need_num_expr)
+                # Exact total equality in scaled space
+                model.Add(q * sum(horizon_sum_terms) == total_need_num_expr)
 
         # Worker per-day capacity across events
         for w in ctx.request.workers:
-            cap = int(round(w.capacity_per_day))
+            cap = int(round((w.capacity_per_day or 0.0) * TIME_SCALE_UNITS_PER_HOUR))
             for t in range(1, H + 1):
                 day_terms: list[cp_model.LinearExpr] = []
                 for ev in ctx.request.events:

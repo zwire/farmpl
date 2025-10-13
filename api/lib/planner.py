@@ -274,10 +274,14 @@ def plan(
                             # Attach actual used_time_hours when available
                             hours = 0.0
                             if sc.h_time_by_w_e_t_values is not None:
-                                hours = float(
+                                from .constants import (
+                                    TIME_SCALE_UNITS_PER_HOUR as _TS,
+                                )
+                                raw = (
                                     sc.h_time_by_w_e_t_values.get((w_id, e_id, t), 0)
                                     or 0
                                 )
+                                hours = float(raw) / float(_TS)
                             assigned.append(
                                 WorkerRef(
                                     id=wr.id,
@@ -293,12 +297,13 @@ def plan(
                 for (r_id, ev_id, tt), val in sc.u_time_by_r_e_t_values.items():
                     if ev_id == e_id and tt == t and val > 0:
                         per_res[r_id] = per_res.get(r_id, 0) + val
+                from .constants import TIME_SCALE_UNITS_PER_HOUR as _TS
                 for r_id, units in per_res.items():
                     resources_used.append(
                         ResourceUsageRef(
                             id=r_id,
                             name=res_info.get(r_id),
-                            used_time_hours=float(units),
+                            used_time_hours=float(units) / float(_TS),
                         )
                     )
             # Planted area
@@ -347,7 +352,9 @@ def plan(
             sum((last_res.z_use_by_l_c_values or {}).values())
         )
         # Labor
-        labor_total = float(sum((last_res.h_time_by_w_e_t_values or {}).values()))
+        from .constants import TIME_SCALE_UNITS_PER_HOUR as _TS
+        labor_total_units = float(sum((last_res.h_time_by_w_e_t_values or {}).values()))
+        labor_total = labor_total_units / float(_TS)
         objectives["labor"] = labor_total
         # Idle
         idle_units = float(sum((last_res.idle_by_l_t_values or {}).values()))
@@ -365,7 +372,8 @@ def plan(
             sum(float(w.capacity_per_day or 0.0) for w in request.workers)
             * request.horizon.num_days
         )
-        assigned_res = float(sum((last_res.u_time_by_r_e_t_values or {}).values()))
+        assigned_res_units = float(sum((last_res.u_time_by_r_e_t_values or {}).values()))
+        assigned_res = assigned_res_units / float(_TS)
         total_res_capacity = (
             sum(float(r.capacity_per_day or 0.0) for r in request.resources)
             * request.horizon.num_days

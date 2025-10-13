@@ -187,7 +187,9 @@ CP-SAT 実装ノート:
 - インジケータ制約: `model.Add(var <= K).OnlyEnforceIf(boolVar)` を多用し、大$M$を避ける。
 - 周期・持続の表現: スライディングウィンドウで $active_{e,t}$ を表し、`Add(sum(s_e,tau) == active)` 等で連結。
 - 役割要件（排他）: 必須ロールを持たない・またはブロック日の作業者は当該イベント日に割当不可（$assign=0$）。各必須ロールごとに $\sum assign \ge 1$、さらに $\sum assign \ge people\_req_e$。
-- 労働需要は小数でも厳密化（$L/S=p/q$ として $q\,\sum_{t\in T_e,w} h_{w,e,t} \ge p\,\sum_l b_{l,crop(e)}$）。
+- 労働時間のスケール化: 1単位=0.1h（TIME_SCALE）で $h$ を整数化。
+- 労働需要は小数でも厳密化（$\mathrm{frac}=(L\cdot S_t)/S_a$ を既約分数 $p/q$ として、
+  $q\,\sum_{t\in T_e,w} h^{\text{scaled}}_{w,e,t} = p\,\sum_l x^{\text{units}}_{l,crop(e)}$ を等式で課す）。
 - 目的の正規化: 各項目をスケールして桁を揃える（例: 収益を千円単位、時間は時間単位等）。
 - スパース生成とヒント: 変数は $T_e, T_c$ のみに生成し、段階最適化の後段へ `model.AddHint(...)` で初期解のヒントを渡す（環境により未対応なら無視）。探索並列度は `CP_NUM_WORKERS`、時間制限は `SYNC_TIMEOUT_MS` で制御。
 
