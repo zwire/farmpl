@@ -7,6 +7,7 @@ from collections.abc import Callable
 from .constraints import (
     AreaBoundsConstraint,
     EventsWindowConstraint,
+    OccEqualizeConstraint,
     FixedAreaConstraint,
     HoldAreaConstConstraint,
     IdleConstraint,
@@ -59,6 +60,9 @@ def plan(
         LandCapacityConstraint(),
         LinkAreaUseConstraint(),
         EventsWindowConstraint(),
+        # Equalize land occupancy with crop occupancy when land uses the crop.
+        # This removes mid-season gaps and prevents inconsistent land switches.
+        OccEqualizeConstraint(),
         LaborConstraint(),
         ResourcesConstraint(),
         IdleConstraint(),
@@ -267,7 +271,21 @@ def plan(
                     if ev_id == e_id and tt == t and av > 0:
                         wr = worker_info.get(w_id)
                         if wr is not None:
-                            assigned.append(wr)
+                            # Attach actual used_time_hours when available
+                            hours = 0.0
+                            if sc.h_time_by_w_e_t_values is not None:
+                                hours = float(
+                                    sc.h_time_by_w_e_t_values.get((w_id, e_id, t), 0)
+                                    or 0
+                                )
+                            assigned.append(
+                                WorkerRef(
+                                    id=wr.id,
+                                    name=wr.name,
+                                    roles=wr.roles,
+                                    used_time_hours=hours,
+                                )
+                            )
             # Resources
             resources_used: list[ResourceUsageRef] = []
             if sc.u_time_by_r_e_t_values is not None:
