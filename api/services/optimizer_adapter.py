@@ -24,6 +24,8 @@ from schemas.optimization import (
     OptimizationRequest,
     OptimizationResult,
     OptimizationTimeline,
+    ResourceUsage,
+    WorkerUsage,
 )
 
 
@@ -175,19 +177,75 @@ def _build_timeline(
             )
 
     crop_by_event = {e.id: e.crop_id for e in req.events}
+    event_meta_by_id = {e.id: e for e in req.events}
+    land_by_id = {l.id: l for l in req.lands}
+    event_names = {e.id: e.name for e in req.events}
     items: list[GanttEventItem] = []
     if resp.event_assignments:
         days_list = [ea.day for ea in resp.event_assignments]
         events_one_based = min(days_list) >= 1 if days_list else False
+        # Precompute number of occurrences per event within provided assignments
+        occ_count_by_event: dict[str, int] = {}
         for ea in resp.event_assignments:
+            ev_id = ea.event_id
+            occ_count_by_event[ev_id] = occ_count_by_event.get(ev_id, 0) + 1
+
+        for ea in resp.event_assignments:
+            day0 = ea.day - 1 if events_one_based else ea.day
+            ev_meta = event_meta_by_id.get(ea.event_id)
+            crop_id = crop_by_event.get(ea.event_id, "")
+            # Estimate area for this occurrence if not provided explicitly
+            if ea.crop_area_on_day is not None:
+                area_a = float(ea.crop_area_on_day)
+            else:
+                area_a = 0.0
+                for lid in ea.land_ids or []:
+                    land = land_by_id.get(lid)
+                    if land is not None:
+                        area_a += land.normalized_area_a()
+            labor_total_per_a = float(ev_meta.labor_total_per_area or 0.0)
+            total_need = labor_total_per_a * area_a
+            occ_cnt = max(1, occ_count_by_event.get(ea.event_id, 1))
+            labor_for_day = total_need / float(occ_cnt)
+
+            # Prefer actual per-worker hours if provided by planner; otherwise equal split
+            worker_usages: list[WorkerUsage] = []
+            assigned = list(ea.assigned_workers or [])
+            if assigned:
+                if any(w.used_time_hours for w in assigned):
+                    worker_usages = [
+                        WorkerUsage(
+                            worker_id=w.id,
+                            hours=float(w.used_time_hours or 0.0),
+                        )
+                        for w in assigned
+                    ]
+                else:
+                    share = (
+                        labor_for_day / float(len(assigned))
+                        if labor_for_day > 0
+                        else 0.0
+                    )
+                    worker_usages = [
+                        WorkerUsage(worker_id=w.id, hours=share) for w in assigned
+                    ]
+
+            resource_usages = [
+                ResourceUsage(
+                    resource_id=ru.id, quantity=ru.used_time_hours, unit="hours"
+                )
+                for ru in (ea.resource_usage or [])
+            ]
+
             items.append(
                 GanttEventItem(
-                    day=ea.day - 1 if events_one_based else ea.day,
+                    day=day0,
                     event_id=ea.event_id,
-                    crop_id=crop_by_event.get(ea.event_id, ""),
+                    crop_id=crop_id,
                     land_ids=list(ea.land_ids or []),
-                    worker_ids=[w.id for w in (ea.assigned_workers or [])],
-                    resource_ids=[ru.id for ru in (ea.resource_usage or [])],
+                    worker_usages=worker_usages,
+                    resource_usages=resource_usages,
+                    event_name=event_names.get(ea.event_id),
                 )
             )
     # 名前マップを組み立て
@@ -195,7 +253,6 @@ def _build_timeline(
     crop_names = {crop.id: crop.name for crop in req.crops}
     worker_names = {worker.id: worker.name for worker in req.workers}
     resource_names = {res.id: res.name for res in req.resources}
-    event_names = {ev.id: ev.name for ev in req.events}
 
     return OptimizationTimeline(
         land_spans=spans,

@@ -1,4 +1,3 @@
-import clsx from "clsx";
 import { useMemo } from "react";
 import { classifyEventCategory } from "./classifyEventCategory";
 import { type CategoryColor, colorForCategory } from "./colorForCategory";
@@ -13,15 +12,9 @@ interface CategoryBadge {
 
 interface EventBadgesProps {
   events: GanttEventMarker[];
-  onCategorySelect: (category: string) => void;
-  selectedCategory: string | null;
 }
 
-export const EventBadges = ({
-  events,
-  onCategorySelect,
-  selectedCategory,
-}: EventBadgesProps) => {
+export const EventBadges = ({ events }: EventBadgesProps) => {
   const badges = useMemo(() => {
     if (!events || events.length === 0) {
       return [];
@@ -54,16 +47,9 @@ export const EventBadges = ({
   return (
     <div className="flex flex-wrap items-center gap-1 p-0.5">
       {badges.map((badge) => (
-        <button
+        <span
           key={badge.category}
-          type="button"
-          onClick={() => onCategorySelect(badge.category)}
-          aria-label={`Category: ${badge.category}, ${badge.count} events`}
-          className={clsx(
-            "h-2.5 w-2.5 rounded-full transition-transform hover:scale-125",
-            selectedCategory === badge.category &&
-              "ring-2 ring-sky-500 ring-offset-1",
-          )}
+          className="h-2.5 w-2.5 rounded-full transition-transform"
           style={{
             backgroundColor: badge.color.background,
           }}

@@ -111,6 +111,8 @@ class WorkerRef(BaseModel):
     id: str
     name: str
     roles: list[str] = Field(default_factory=list)
+    # Optional: actual worked hours for this (event, day) assignment
+    used_time_hours: float | None = None
 
 
 class ResourceUsageRef(BaseModel):

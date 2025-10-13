@@ -125,14 +125,25 @@ export interface ApiOptimizationTimelineLandSpan {
   area_a: number;
 }
 
+export interface ApiWorkerUsageItem {
+  worker_id: string;
+  hours: number;
+}
+
+export interface ApiResourceUsageItem {
+  resource_id: string;
+  quantity: number;
+  unit: string;
+}
+
 export interface ApiOptimizationTimelineEventItem {
   day: number;
   event_id: string;
   crop_id: string;
-  land_id?: string | null;
-  land_ids?: string[] | null;
-  worker_ids: string[];
-  resource_ids: string[];
+  land_ids: string[];
+  worker_usages: ApiWorkerUsageItem[];
+  resource_usages: ApiResourceUsageItem[];
+  event_name?: string;
 }
 
 export interface ApiOptimizationTimeline {
@@ -308,8 +319,8 @@ export interface TimelineEventView {
   eventId: string;
   cropId: string;
   landIds: string[];
-  workerIds: string[];
-  resourceIds: string[];
+  workerUsages: { workerId: string; hours: number }[];
+  resourceUsages: { resourceId: string; quantity: number; unit: string }[];
   eventName?: string;
   cropName?: string;
   landNames?: (string | undefined)[];

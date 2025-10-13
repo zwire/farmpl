@@ -4,6 +4,7 @@ import React, { type CSSProperties, useMemo, useState } from "react";
 import { usePlanningStore } from "@/lib/state/planning-store";
 import { useViewPreferencesStore } from "@/lib/state/view-preferences";
 import type { OptimizationResultView } from "@/lib/types/planning";
+import { formatIdHint } from "@/lib/utils/id";
 import { useMetricsTimeline } from "../useMetricsTimeline";
 import { CategoryLegend } from "./CategoryLegend";
 import { classifyEventCategory } from "./classifyEventCategory";
@@ -11,6 +12,7 @@ import { colorForCategory } from "./colorForCategory";
 import { DetailsPane, type SelectedItem } from "./DetailsPane";
 import { EventBadges } from "./event-badges";
 import { createTimelineScale } from "./timeline-scale";
+import type { GanttEventMarker } from "./useGanttData";
 import { useGanttData } from "./useGanttData";
 import { useGanttViewModel } from "./useGanttViewModel";
 import { ViewControls } from "./ViewControls";
@@ -56,9 +58,19 @@ const colorForUsage = (percentage: number): string => {
     const lightness = 1 - Math.min((percentage - 1) / 0.5, 1) * 0.4; // 60% to 20% lightness
     return `hsl(0, 90%, ${lightness * 100}%)${lightness < 0.7 ? "aa" : ""}`;
   }
+  if (percentage <= 0) {
+    return `hsla(0, 0%, 100%, 1)`;
+  }
   // 0-100% usage: green to yellow
   const hue = 120 * (1 - percentage); // 120 (green) -> 0 (red-ish, but we cap at yellow)
   return `hsla(${hue}, 70%, 50%, ${0.1 + percentage * 0.8})`;
+};
+
+const cellFilter = (item: SelectedItem, rowId: string, index: number) => {
+  if (item?.rowId === rowId && item?.index === index) {
+    return `brightness(2)`;
+  }
+  return `brightness(1)`;
 };
 
 export function GanttChart({
@@ -110,14 +122,6 @@ export function GanttChart({
         color: colorForCategory(name),
       }));
   }, [baseViewModel]);
-
-  const handleCategorySelect = (category: string) => {
-    if (!baseViewModel) return;
-    const events = baseViewModel.events.filter(
-      (e) => classifyEventCategory(e.label) === category,
-    );
-    setSelectedItem({ type: "event_category", category, events });
-  };
 
   if (!baseViewModel || !scale || !result?.timeline) {
     return (
@@ -176,8 +180,11 @@ export function GanttChart({
             <div
               key={`${rowId}-${tickIndex.toString()}`}
               className="border border-slate-200 dark:border-slate-700"
-              style={{ minHeight: ROW_HEIGHT }}
-            ></div>
+              style={{
+                minHeight: ROW_HEIGHT,
+                filter: cellFilter(selectedItem, rowId, tickIndex),
+              }}
+            />
           );
         }
         const items = mode === "workers" ? record.workers : record.lands;
@@ -192,6 +199,8 @@ export function GanttChart({
             onClick={() =>
               setSelectedItem({
                 type: "capacity",
+                index: tickIndex,
+                rowId,
                 mode,
                 interval: timeline.interval,
                 record,
@@ -201,6 +210,7 @@ export function GanttChart({
             style={{
               minHeight: ROW_HEIGHT,
               backgroundColor: colorForUsage(usagePct),
+              filter: cellFilter(selectedItem, rowId, tickIndex),
             }}
           >
             <span className="sr-only">
@@ -238,12 +248,15 @@ export function GanttChart({
           <div
             key={`${rowId}-${tickIndex.toString()}`}
             className="relative border border-slate-200 dark:border-slate-700"
-            style={{ minHeight: ROW_HEIGHT }}
-          ></div>
+            style={{
+              minHeight: ROW_HEIGHT,
+              filter: cellFilter(selectedItem, rowId, tickIndex),
+            }}
+          />
         );
       }
 
-      const eventsForTick = [];
+      const eventsForTick: GanttEventMarker[] = [];
       let primaryCropId: string | undefined;
       let hasCropStart = false;
       let hasCropEnd = false;
@@ -270,25 +283,27 @@ export function GanttChart({
       }
 
       return (
-        <div
+        <button
+          type="button"
           key={`${rowId}-${tickIndex.toString()}`}
-          className="relative border border-slate-200 px-1 py-1 dark:border-slate-700"
+          className="relative border border-slate-200 px-1 py-1 text-left dark:border-slate-700"
           style={{
             minHeight: ROW_HEIGHT,
             backgroundColor: background,
+            filter: cellFilter(selectedItem, rowId, tickIndex),
             ...borders,
           }}
+          onClick={() =>
+            setSelectedItem({
+              type: "cell_events",
+              index: tickIndex,
+              rowId,
+              events: eventsForTick,
+            })
+          }
         >
-          <EventBadges
-            events={eventsForTick}
-            onCategorySelect={handleCategorySelect}
-            selectedCategory={
-              selectedItem?.type === "event_category"
-                ? selectedItem.category
-                : null
-            }
-          />
-        </div>
+          <EventBadges events={eventsForTick} />
+        </button>
       );
     });
 
@@ -301,7 +316,7 @@ export function GanttChart({
         >
           {viewModel.rowLabelById[rowId] ?? rowId}
           <span className="text-slate-500 text-xs pl-1">
-            {`(${rowId.slice(0, 8)})`}
+            {formatIdHint(rowId.slice(0, 8))}
           </span>
         </div>
         {ganttRowCells}
@@ -331,6 +346,8 @@ export function GanttChart({
           item={selectedItem}
           landNameById={baseViewModel?.landNameById ?? {}}
           cropNameById={baseViewModel?.cropNameById ?? {}}
+          workerNameById={baseViewModel?.workerNameById ?? {}}
+          resourceNameById={baseViewModel?.resourceNameById ?? {}}
         />
       </div>
     </div>

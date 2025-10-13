@@ -9,6 +9,7 @@ import type {
 } from "@/lib/domain/planning-ui-types";
 import { EVENT_CATEGORY_OPTIONS } from "@/lib/domain/planning-ui-types";
 import { PlanningEventDateUtils } from "@/lib/state/planning-store";
+import { formatIdHint } from "@/lib/utils/id";
 import {
   ComboBox,
   type ComboBoxOption,
@@ -17,7 +18,6 @@ import {
 import { ChipInput } from "../request-wizard/inputs/ChipInput";
 import { DateRangeInput } from "../request-wizard/inputs/DateRangeInput";
 import { Field } from "../request-wizard/SectionElements";
-import { formatIdHint } from "../request-wizard/utils";
 
 interface EventDetailsPanelProps {
   plan: PlanUiState;
@@ -38,7 +38,7 @@ const Section = ({
 }) => (
   <details
     className="group rounded-lg border bg-white/50 border-slate-300 dark:border-slate-800 dark:bg-slate-900/30"
-    open
+    open={false}
   >
     <summary className="flex cursor-pointer list-none items-center justify-between p-4 font-semibold text-slate-800 dark:text-slate-200">
       {title}
@@ -289,7 +289,7 @@ export function EventDetailsPanel({
         </Field>
       </Section>
 
-      <Section title="スケジュール">
+      <Section title="スケジュール・タイミング">
         <Field label="先行作業">
           <small className="block text-[11px] text-slate-400">
             この作業の開始条件が先行作業に依存する場合は選択してください。未指定の場合は日付で実行期間を限定します。

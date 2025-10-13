@@ -5,8 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { PlanningCalendarService } from "@/lib/domain/planning-calendar";
 import type { PlanUiEvent, PlanUiState } from "@/lib/domain/planning-ui-types";
+import { createUniqueId, formatIdHint } from "@/lib/utils/id";
 import { SectionCard } from "../request-wizard/SectionElements";
-import { createUniqueId, formatIdHint } from "../request-wizard/utils";
 import { EventDetailsPanel } from "./EventDetailsPanel";
 import { EventGraphEditor } from "./EventGraphEditor";
 
@@ -297,70 +297,81 @@ export function EventPlanningSection({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-sm text-slate-600">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            対象作物
-          </h3>
+        <label className="flex flex-col gap-2 text-sm text-slate-600">
+          <div className="flex flex-row items-center gap-2">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              対象作物
+            </h3>
+            <p className="text-xs text-slate-500">
+              作物を選んでから作業間の依存関係と詳細を編集します。
+            </p>
+          </div>
           <select
             value={selectedCropId ?? ""}
             onChange={handleCropSelect}
-            className="rounded-md border border-slate-300 px-3 py-1 text-sm"
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
           >
             {plan.crops.map((crop) => (
               <option key={crop.id} value={crop.id}>
                 {crop.name || crop.id}
-                {crop.id ? ` (${formatIdHint(crop.id)})` : ""}
+                {crop.id ? formatIdHint(crop.id) : ""}
               </option>
             ))}
           </select>
         </label>
-        <p className="text-xs text-slate-500">
-          作物を選んでから作業間の依存関係と詳細を編集します。
-        </p>
       </div>
 
       <SectionCard
-        title="テンプレートから作業計画初期化"
-        description="選択中の作物に対して、作型テンプレートと開始日を指定して作業計画を初期化します"
-        actionLabel={selectedTemplateId ? "テンプレートで初期化" : undefined}
-        onAction={selectedTemplateId ? initializeFromTemplate : undefined}
+        title="テンプレートから作業計画作成"
+        description="選択中の作物に対して、作型テンプレートと開始日を指定して作業計画を作成します"
       >
-        <div className="flex flex-wrap items-end gap-4">
-          <label className="flex flex-col gap-1.5 text-sm text-slate-600 dark:text-slate-300">
-            <span className="font-medium">作型（近い名前を提案）</span>
-            <select
-              value={selectedTemplateId}
-              onChange={(e) => setSelectedTemplateId(e.target.value)}
-              className="min-w-[260px] rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+        <div className="flex flex-row items-end justify-between">
+          <div className="flex flex-wrap items-end gap-4">
+            <label className="flex flex-col gap-1.5 text-sm text-slate-600 dark:text-slate-300">
+              <span className="font-medium">作型（近い名前を提案）</span>
+              <select
+                value={selectedTemplateId}
+                onChange={(e) => setSelectedTemplateId(e.target.value)}
+                className="min-w-[260px] rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+              >
+                {variants.map((v) => (
+                  <option key={v.template_id} value={v.template_id}>
+                    {v.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm text-slate-600 dark:text-slate-300">
+              <span className="font-medium">開始日</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={refreshSuggestions}
+              className="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
             >
-              {variants.map((v) => (
-                <option key={v.template_id} value={v.template_id}>
-                  {v.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm text-slate-600 dark:text-slate-300">
-            <span className="font-medium">開始日</span>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-            />
-          </label>
-          <button
-            type="button"
-            onClick={refreshSuggestions}
-            className="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-          >
-            候補更新
-          </button>
-          {variantLoading && (
-            <span className="text-xs text-slate-500">読み込み中…</span>
-          )}
-          {variantError && (
-            <span className="text-xs text-red-600">{variantError}</span>
+              候補更新
+            </button>
+            {variantLoading && (
+              <span className="text-xs text-slate-500">読み込み中…</span>
+            )}
+            {variantError && (
+              <span className="text-xs text-red-600">{variantError}</span>
+            )}
+          </div>
+          {selectedTemplateId && (
+            <button
+              type="button"
+              onClick={initializeFromTemplate}
+              className="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            >
+              テンプレートから作成
+            </button>
           )}
         </div>
       </SectionCard>

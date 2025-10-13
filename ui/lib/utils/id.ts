@@ -12,5 +12,5 @@ export const createUniqueId = (existing: Iterable<string>) => {
 export const formatIdHint = (id: string, length = 8) => {
   if (!id) return "";
   const trimmed = id.slice(0, Math.max(1, length));
-  return `ID: ${trimmed}`;
+  return `(${trimmed})`;
 };

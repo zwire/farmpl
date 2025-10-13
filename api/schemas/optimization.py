@@ -420,6 +420,21 @@ class GanttLandSpan(BaseModel):
     area_a: float = Field(ge=0)
 
 
+class WorkerUsage(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    worker_id: str
+    hours: float = Field(ge=0)
+
+
+class ResourceUsage(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    resource_id: str
+    quantity: float = Field(ge=0)
+    unit: str
+
+
 class GanttEventItem(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -427,8 +442,9 @@ class GanttEventItem(BaseModel):
     event_id: str
     crop_id: str
     land_ids: list[str] = Field(default_factory=list)
-    worker_ids: list[str] = Field(default_factory=list)
-    resource_ids: list[str] = Field(default_factory=list)
+    worker_usages: list[WorkerUsage] = Field(default_factory=list)
+    resource_usages: list[ResourceUsage] = Field(default_factory=list)
+    event_name: str | None = None
 
 
 class OptimizationTimeline(BaseModel):

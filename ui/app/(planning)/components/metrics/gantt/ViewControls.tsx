@@ -25,7 +25,7 @@ export const ViewControls = ({
   const { gantt, setGantt } = useViewPreferencesStore();
 
   return (
-    <div className="flex items-center gap-4 rounded-lg bg-slate-100 p-1.5 dark:bg-slate-800">
+    <div className="flex flex-col gap-4 rounded-lg bg-slate-100 p-1.5 dark:bg-slate-800 md:flex-row">
       <div className="flex items-center gap-2">
         <span className="pl-2 text-sm font-medium text-slate-600 dark:text-slate-300">
           時間スケール

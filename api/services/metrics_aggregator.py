@@ -24,11 +24,11 @@ def _third_key(day: int, base_date: date) -> str:
     month = d.month
     dom = d.day
     if dom <= 10:
-        label = "U"  # 上旬
+        label = "上旬"
     elif dom <= 20:
-        label = "M"  # 中旬
+        label = "中旬"
     else:
-        label = "L"  # 下旬
+        label = "下旬"
     return f"{year:04d}-{month:02d}:{label}"
 
 
@@ -86,7 +86,6 @@ def aggregate(
     labor_used_by_worker_day: dict[str, dict[int, float]] = defaultdict(
         lambda: defaultdict(float)
     )
-    labor_unassigned_by_day: dict[int, float] = defaultdict(float)
     land_used_by_land_day: dict[str, dict[int, float]] = defaultdict(
         lambda: defaultdict(float)
     )
@@ -96,11 +95,6 @@ def aggregate(
         # No timeline; return empty records
         return TimelineResponse(interval=bucket, records=[])
 
-    # Land utilization from spans (inclusive end_day)
-    # Also precompute per-crop area per day for fallback when events don't list land_ids
-    crop_area_by_day: dict[str, dict[int, float]] = defaultdict(
-        lambda: defaultdict(float)
-    )
     for span in timeline.land_spans:
         s = max(start_day, span.start_day)
         e = min(end_day, span.end_day)
@@ -108,15 +102,6 @@ def aggregate(
             continue
         for d in _iter_days(s, e):
             land_used_by_land_day[span.land_id][d] += float(span.area_a)
-            crop_area_by_day[span.crop_id][d] += float(span.area_a)
-
-    # Labor utilization from events
-    # Distribute each event's total labor across its active days within the bucket
-    # and then split evenly among assigned workers for that day.
-    occ_days_by_event: dict[str, list[int]] = defaultdict(list)
-    for it in timeline.events:
-        if start_day <= it.day <= end_day:
-            occ_days_by_event[it.event_id].append(it.day)
 
     for ev in timeline.events:
         d = ev.day
@@ -125,32 +110,9 @@ def aggregate(
         meta = events_by.get(ev.event_id)
         if meta is None:
             continue
-        # Per-occurrence area: prefer explicit land_ids; otherwise
-        # fallback to crop area that day
-        area_a = 0.0
-        if ev.land_ids:
-            for lid in ev.land_ids:
-                land = lands_by.get(lid)
-                if land is not None:
-                    area_a += land.normalized_area_a()
-        else:
-            # No explicit land assignment (e.g., uses_land=False).
-            # Use planted area of the crop on day d.
-            if meta is not None:
-                area_a = float(crop_area_by_day.get(meta.crop_id, {}).get(d, 0.0))
-        labor_total_per_a = float(meta.labor_total_per_a or 0.0)
-        total_need = labor_total_per_a * area_a
-        days_in_bucket = max(1, len(occ_days_by_event.get(ev.event_id, [])))
-        labor_for_day = total_need / float(days_in_bucket)
-        if ev.worker_ids:
-            share = (
-                labor_for_day / float(len(ev.worker_ids)) if labor_for_day > 0 else 0.0
-            )
-            for wid in ev.worker_ids:
-                if wid in workers_by:
-                    labor_used_by_worker_day[wid][d] += share
-        else:
-            labor_unassigned_by_day[d] += labor_for_day
+        for wu in ev.worker_usages:
+            if wu.hours > 0:
+                labor_used_by_worker_day[wu.worker_id][d] += wu.hours
 
     # Build records
     if bucket == "day":
@@ -199,9 +161,7 @@ def aggregate(
                     )
 
             # Summary
-            labor_total = sum(x.utilization for x in worker_metrics) + float(
-                labor_unassigned_by_day[d]
-            )
+            labor_total = sum(x.utilization for x in worker_metrics)
             labor_cap_total = sum(x.capacity for x in worker_metrics)
             land_total = sum(x.utilization for x in land_metrics)
             land_cap_total = sum(x.capacity for x in land_metrics)
@@ -277,9 +237,7 @@ def aggregate(
                 )
 
         # Summary
-        labor_total = sum(float(labor_unassigned_by_day[d]) for d in days) + sum(
-            x.utilization for x in worker_metrics
-        )
+        labor_total = sum(x.utilization for x in worker_metrics)
         labor_cap_total = sum(x.capacity for x in worker_metrics)
         land_total = sum(x.utilization for x in land_metrics)
         land_cap_total = sum(x.capacity for x in land_metrics)

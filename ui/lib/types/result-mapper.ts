@@ -136,22 +136,29 @@ function mapApiTimeline(
       cropName: tl.entity_names?.crops?.[s.crop_id],
     })),
     events: (tl.events ?? []).map((e) => {
-      const landIds = e.land_ids ?? (e.land_id ? [e.land_id] : []);
+      const landIds = Array.isArray(e.land_ids) ? e.land_ids : [];
       return {
         day: e.day,
         eventId: e.event_id,
         cropId: e.crop_id,
         landIds,
-        workerIds: e.worker_ids ?? [],
-        resourceIds: e.resource_ids ?? [],
-        eventName: tl.entity_names?.events?.[e.event_id],
+        workerUsages: (e.worker_usages ?? []).map((u) => ({
+          workerId: u.worker_id,
+          hours: Number(u.hours ?? 0),
+        })),
+        resourceUsages: (e.resource_usages ?? []).map((u) => ({
+          resourceId: u.resource_id,
+          quantity: Number(u.quantity ?? 0),
+          unit: String(u.unit ?? ""),
+        })),
+        eventName: e.event_name ?? tl.entity_names?.events?.[e.event_id],
         cropName: tl.entity_names?.crops?.[e.crop_id],
         landNames: landIds.map((id) => tl.entity_names?.lands?.[id]),
-        workerNames: (e.worker_ids ?? []).map(
-          (id) => tl.entity_names?.workers?.[id],
+        workerNames: (e.worker_usages ?? []).map(
+          (u) => tl.entity_names?.workers?.[u.worker_id],
         ),
-        resourceNames: (e.resource_ids ?? []).map(
-          (id) => tl.entity_names?.resources?.[id],
+        resourceNames: (e.resource_usages ?? []).map(
+          (u) => tl.entity_names?.resources?.[u.resource_id],
         ),
       };
     }),

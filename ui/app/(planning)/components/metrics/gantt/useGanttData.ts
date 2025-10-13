@@ -37,6 +37,8 @@ export interface GanttEventMarker {
   landId?: string;
   label: string;
   dateIso: string;
+  workerUsages: { workerId: string; hours: number }[];
+  resourceUsages: { resourceId: string; quantity: number; unit: string }[];
 }
 
 export interface GanttViewModel {
@@ -50,6 +52,8 @@ export interface GanttViewModel {
   landNameById: Record<string, string>;
   cropNameById: Record<string, string>;
   landDayCells: Record<string, LandDayCell[]>;
+  workerNameById: Record<string, string>;
+  resourceNameById: Record<string, string>;
 }
 
 const spanId = (land: string, crop: string, start: number, end: number) =>
@@ -89,6 +93,8 @@ export const useGanttData = (
           cropId: event.cropId,
           label: event.eventName ?? "",
           dateIso: dayToIso(event.day),
+          workerUsages: event.workerUsages,
+          resourceUsages: event.resourceUsages,
         };
         const landIds =
           event.landIds && event.landIds.length > 0 ? event.landIds : undefined;
@@ -194,6 +200,12 @@ export const useGanttData = (
       landNameById,
       cropNameById,
       landDayCells,
+      workerNameById: plan
+        ? Object.fromEntries(plan.workers.map((w) => [w.id, w.name]))
+        : {},
+      resourceNameById: plan
+        ? Object.fromEntries(plan.resources.map((r) => [r.id, r.name]))
+        : {},
     };
   }, [plan, timeline]);
 };

@@ -3,11 +3,10 @@
 import { useEffect, useState } from "react";
 
 import type { PlanFormCrop, PlanFormState } from "@/lib/types/planning";
-
+import { createUniqueId } from "@/lib/utils/id";
+import { roundToInt } from "@/lib/utils/number";
 import { ComboBox, type ComboBoxOption } from "../ComboBox";
 import { EntityCard, Field, SectionCard } from "../SectionElements";
-import { createUniqueId } from "../utils";
-import { roundToInt } from "../utils/number";
 import type { PlanFormUpdater } from "./types";
 
 type CropsStepSectionProps = {

@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 
 import type { PlanFormFixedArea, PlanFormState } from "@/lib/types/planning";
-
+import { formatIdHint } from "@/lib/utils/id";
 import { ComboBox, type ComboBoxOption } from "../ComboBox";
 import {
   EntityCard,
@@ -11,7 +11,6 @@ import {
   MeasurementInput,
   SectionCard,
 } from "../SectionElements";
-import { formatIdHint } from "../utils";
 import type { PlanFormUpdater } from "./types";
 
 const STAGE_DEFINITIONS = [
