@@ -389,7 +389,10 @@ const constructPlanForm = (
   );
 
   const plan: PlanFormState = {
-    horizon: { numDays: totalDays },
+    horizon: {
+      startDate: horizonDates.start.toISOString().slice(0, 10) as IsoDateString,
+      numDays: totalDays,
+    },
     crops: uiPlan.crops.map<PlanFormCrop>((crop) => ({ ...crop })),
     lands,
     workers,

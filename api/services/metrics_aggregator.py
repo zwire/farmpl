@@ -32,23 +32,12 @@ def _third_key(day: int, base_date: date) -> str:
     return f"{year:04d}-{month:02d}:{label}"
 
 
-def _validate_range(plan_days: int, start_day: int, end_day: int) -> None:
-    if start_day < 0 or end_day < 0:
-        raise ValueError("start_day and end_day must be non-negative")
-    if end_day < start_day:
-        raise ValueError("end_day must be >= start_day")
-    if end_day >= plan_days:
-        raise ValueError(f"end_day out of range (0..{plan_days - 1})")
-
-
 def _iter_days(start_day: int, end_day: int) -> Iterable[int]:
     return range(start_day, end_day + 1)
 
 
 def aggregate(
     job_id: str,
-    start_day: int,
-    end_day: int,
     bucket: Literal["day", "third"],
     *,
     base_date_iso: str | None = None,
@@ -70,8 +59,8 @@ def aggregate(
     if plan is None:
         raise ValueError("snapshot has no plan")
 
-    plan_days = plan.horizon.num_days
-    _validate_range(plan_days, start_day, end_day)
+    start_day = 0
+    end_day = plan.horizon.num_days
 
     # Lookups
     workers_by = {w.id: w for w in plan.workers}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type {
   MetricsInterval,
@@ -17,8 +17,6 @@ export interface UseMetricsTimelineOutput {
   timeline: MetricsTimelineResponse | null;
   isLoading: boolean;
   error: string | null;
-  startDay: number;
-  endDay: number;
 }
 
 interface TimelineFetchOptions {
@@ -31,14 +29,10 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_FARMPL_API_BASE ?? "";
 const API_KEY = process.env.NEXT_PUBLIC_FARMPL_API_KEY ?? "";
 const BEARER_TOKEN = process.env.NEXT_PUBLIC_FARMPL_BEARER_TOKEN ?? "";
 
-const DEFAULT_RANGE: [number, number] = [0, 29];
-
 const buildTimelineUrl = (
   options: TimelineFetchOptions,
   params: {
     jobId: string;
-    startDay: number;
-    endDay: number;
     bucket: MetricsInterval;
     baseDate?: string;
   },
@@ -46,8 +40,6 @@ const buildTimelineUrl = (
   const base = options.baseUrl.replace(/\/$/, "");
   const searchParams = new URLSearchParams({
     job_id: params.jobId,
-    start_day: String(params.startDay),
-    end_day: String(params.endDay),
     bucket: params.bucket,
   });
   if (params.baseDate) {
@@ -66,23 +58,6 @@ const buildHeaders = (options: TimelineFetchOptions) => {
   return headers;
 };
 
-const deriveRange = (
-  result: OptimizationResultView | null,
-): [number, number] => {
-  const timeline = result?.timeline;
-  if (!timeline) return DEFAULT_RANGE;
-
-  const values: number[] = [];
-  for (const event of timeline.events ?? []) values.push(event.day);
-  for (const span of timeline.landSpans ?? []) {
-    values.push(span.startDay, span.endDay);
-  }
-  if (values.length === 0) return DEFAULT_RANGE;
-  const min = Math.max(0, Math.min(...values));
-  const max = Math.max(...values);
-  return [min, max];
-};
-
 export function useMetricsTimeline({
   jobId,
   result,
@@ -95,7 +70,6 @@ export function useMetricsTimeline({
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const [startDay, endDay] = useMemo(() => deriveRange(result), [result]);
   const finished = result?.status === "ok";
 
   useEffect(() => {
@@ -129,8 +103,6 @@ export function useMetricsTimeline({
 
         const url = buildTimelineUrl(fetchOptions, {
           jobId,
-          startDay,
-          endDay,
           bucket,
           baseDate,
         });
@@ -165,14 +137,7 @@ export function useMetricsTimeline({
     return () => {
       controller.abort();
     };
-  }, [
-    jobId,
-    finished,
-    startDay,
-    endDay,
-    bucket,
-    result?.timeline?.startDateIso,
-  ]);
+  }, [jobId, finished, bucket, result?.timeline?.startDateIso]);
 
-  return { timeline, isLoading, error, startDay, endDay };
+  return { timeline, isLoading, error };
 }

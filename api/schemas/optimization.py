@@ -286,11 +286,8 @@ class ApiFixedArea(BaseModel):
 class ApiHorizon(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    start_date: date = Field(description="計画の基準日 (YYYY-MM-DD)")
     num_days: int = Field(gt=0)
-    # Optional plan base date (ISO). If provided, echoed back in timeline.start_date
-    start_date: date | None = Field(
-        default=None, description="計画の基準日 (YYYY-MM-DD)"
-    )
 
 
 class OptimizationStagesConfig(BaseModel):

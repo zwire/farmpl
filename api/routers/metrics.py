@@ -18,8 +18,6 @@ router = APIRouter(
 @router.get("/timeline", response_model=TimelineResponse)
 def get_metrics_timeline(
     job_id: str = Query(..., description="Job identifier returned by async optimize"),
-    start_day: int = Query(..., ge=0, description="Start day index (0-based)"),
-    end_day: int = Query(..., ge=0, description="End day index (0-based, inclusive)"),
     bucket: Literal["day", "third"] = Query(
         "day", description="Aggregation bucket ('day' or 'third')"
     ),
@@ -33,9 +31,7 @@ def get_metrics_timeline(
 ) -> TimelineResponse:
     # bucket is already validated by Literal typing; just call the service.
     try:
-        return metrics_aggregator.aggregate(
-            job_id, start_day, end_day, bucket, base_date_iso=base_date
-        )
+        return metrics_aggregator.aggregate(job_id, bucket, base_date_iso=base_date)
     except KeyError as err:
         raise HTTPException(
             status_code=404, detail={"message": "job not found"}

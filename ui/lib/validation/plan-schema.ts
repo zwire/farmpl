@@ -299,6 +299,7 @@ const basePlanFormSchema = z
   .object({
     horizon: z
       .object({
+        startDate: z.string(),
         numDays: z.number().int().min(1, "計画日数は1以上で指定してください"),
       })
       .strict(),
@@ -465,6 +466,7 @@ export const buildApiPlanPayload = (plan: PlanFormState): ApiPlan => {
 
   return {
     horizon: {
+      start_date: parsed.horizon.startDate,
       num_days: parsed.horizon.numDays,
     },
     crops: parsed.crops.map((crop) => ({

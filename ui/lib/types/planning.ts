@@ -22,6 +22,7 @@ export type JobStatus =
   | "canceled";
 
 export interface ApiHorizon {
+  start_date: string;
   num_days: number;
 }
 
@@ -266,6 +267,7 @@ export interface PlanFormStagesConfig {
 
 export interface PlanFormState {
   horizon: {
+    startDate: string;
     numDays: number;
   };
   crops: PlanFormCrop[];
