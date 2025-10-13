@@ -78,13 +78,16 @@ CP-SAT 実装ノート:
 - 土地利用禁止日のゼロ制約:
   $$x_{l,c,t} = 0 \quad \text{if } land\_blocked_{l,t}=1$$
 
-### 4.2 作物面積の上下限（日次）
-- 各日・全圃場合計に対する上下限（占有・ブロック考慮）:
-  - 上限（常に適用）:
-    $$\sum_{l} x_{l,c,t} \le area\_max_c \quad (\forall c, t \text{ with } area\_max_c\ \text{定義})$$
-  - 下限（占有かつ利用可能圃場がある日に適用）:
-    $$\sum_{l} x_{l,c,t} \ge area\_min_c \quad (\forall c, t \text{ s.t. } occ_{c,t}=1 \land \exists l:\ land\_blocked_{l,t}=0)$$
-  備考: 全圃場が blocked の日は下限を課さない。
+### 4.2 作物面積の上下限（基底・包絡）
+- 基底面積（包絡）$b_{l,c}$ の全圃場合計に対する上下限:
+  $$area\_min_c \le \sum_{l} b_{l,c} \le area\_max_c \quad (orall c\;	ext{定義済みの上下限})$$
+- 採用時の占有整合（少なくとも1日占有）:
+  - 任意の圃場で作物 $c$ を採用（$\exists l:\ z_{l,c}=1$）した場合、
+    $$\sum_{t\in T} occ_{c,t} \ge 1$$
+  - これにより、下限が立つ/採用したときに「占有=0で回避」されることを防ぎます。
+備考:
+- $b_{l,c}$ は `LinkAreaUse` により非ブロック日に $occ_{l,c,t}=1$ のとき $x_{l,c,t}=b_{l,c}$（等式）で結ばれ、
+  さらに `OccEqualize` により $z_{l,c}=1$ なら非ブロック日に $occ_{l,c,t}=occ_{c,t}$ が強制されます。
 
 ### 4.3 イベント実施の可行性ウィンドウ / 頻度 / ラグ
 - 可用ウィンドウ: イベント $e$ は日 $t$ が $[\min(start\_cond_e),\;\max(end\_cond_e)]$ に入るときのみ実施可能。
