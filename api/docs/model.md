@@ -134,6 +134,7 @@ CP-SAT 実装ノート:
 ### 4.7 作物と圃場の分散・集約リンク
 - 二値 $z_{l,c}$ と面積のリンク:
   $$x_{l,c,t} \le area_l \cdot z_{l,c} \quad (\forall l,c,t)$$
+  $$b_{l,c} \le area_l \cdot z_{l,c} \quad (\forall l,c)$$
   $$z_{l,c} \in \{0,1\}$$
 
 ### 4.8 面積の時間連続性（作付け中の土地利用の一貫性担保）

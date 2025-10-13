@@ -33,6 +33,8 @@ class LinkAreaUseConstraint(Constraint):
                         0, cap, f"x_{land.id}_{crop.id}"
                     )
                 base = ctx.variables.x_area_by_l_c[key]
+                # base must be 0 when the land-crop is not used
+                model.Add(base <= cap * ctx.variables.z_use_by_l_c[key])
                 crop_uses_land = crop.id in uses_land_crops
                 blocked = land.blocked_days or set()
                 # Per-day creation:
