@@ -1,4 +1,4 @@
-import type { MetricsDayRecord, MetricsInterval } from "@/lib/types/planning";
+import type { MetricsPeriodRecord } from "@/lib/types/planning";
 import { formatIdHint } from "@/lib/utils/id";
 import type { GanttEventMarker } from "./useGanttData";
 
@@ -14,8 +14,7 @@ export type SelectedItem =
       index: number;
       rowId: string;
       mode: "workers" | "lands";
-      interval: MetricsInterval;
-      record: MetricsDayRecord;
+      record: MetricsPeriodRecord;
     }
   | null;
 
@@ -52,11 +51,7 @@ export const DetailsPane = ({
   return (
     <div className="h-full min-h-[300px] rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       {item.type === "capacity" && (
-        <CapacityDetails
-          mode={item.mode}
-          interval={item.interval}
-          record={item.record}
-        />
+        <CapacityDetails mode={item.mode} record={item.record} />
       )}
       {item.type === "cell_events" && (
         <CellEventsDetails
@@ -101,9 +96,6 @@ const CellEventsDetails = ({
             className="rounded-md border border-slate-200 bg-slate-50/80 p-3 text-sm dark:border-slate-800 dark:bg-slate-800/50"
           >
             <div className="flex items-center gap-2">
-              <div className="text-xs text-slate-500 dark:text-slate-400">
-                {ev.dateIso}
-              </div>
               <div className="font-semibold text-slate-700 dark:text-slate-300">
                 {ev.label}
               </div>
@@ -177,18 +169,13 @@ const CellEventsDetails = ({
 
 const CapacityDetails = ({
   mode,
-  interval,
   record,
 }: {
   mode: "workers" | "lands";
-  record: MetricsDayRecord;
-  interval: MetricsInterval;
+  record: MetricsPeriodRecord;
 }) => {
   const title = mode === "workers" ? "作業者キャパシティ" : "土地キャパシティ";
-  const periodLabel =
-    interval === "day"
-      ? `Day ${(record.day_index as number) + 1}`
-      : record.period_key;
+  const periodLabel = record.period_key;
   const items = mode === "workers" ? record.workers : record.lands;
   const totalUtil = items.reduce((sum, item) => sum + item.utilization, 0);
   const totalCap = items.reduce((sum, item) => sum + item.capacity, 0);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createTimelineScale } from "@/app/(planning)/components/metrics/gantt/timeline-scale";
+import { createTimelineScale } from "@/lib/metrics/timeline-scale";
 
 describe("createTimelineScale ('third' scale)", () => {
   it("should generate correct thirds for a single month", () => {

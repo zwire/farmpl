@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-import type { TimelineScaleType } from "@/app/(planning)/components/metrics/gantt/timeline-scale";
+import type { TimelineScaleType } from "@/lib/metrics/timeline-scale";
 
 export type GanttViewMode = "land" | "crop";
 
@@ -19,11 +19,7 @@ interface ViewPreferencesState {
 export const useViewPreferencesStore = create<ViewPreferencesState>()(
   persist(
     (set) => ({
-      gantt: {
-        mode: "crop",
-        scale: "third",
-        detailExpanded: false,
-      },
+      gantt: { mode: "crop", scale: "third", detailExpanded: false },
       setGantt: (prefs) =>
         set((state) => ({
           gantt: { ...state.gantt, ...prefs },

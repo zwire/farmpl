@@ -65,28 +65,30 @@ export type PlanUiAreaMeasurement = AreaMeasurement;
 export type PlanUiPriceMeasurement = PriceMeasurement;
 
 export type EventCategory =
+  | "圃場準備"
   | "播種"
   | "定植"
+  | "潅水"
   | "施肥"
   | "除草"
   | "防除"
-  | "潅水"
+  | "整枝"
+  | "片付け"
   | "収穫"
   | "出荷"
-  | "圃場準備"
-  | "片付け"
   | "その他";
 
 export const EVENT_CATEGORY_OPTIONS: readonly EventCategory[] = [
+  "圃場準備",
   "播種",
   "定植",
+  "潅水",
   "施肥",
   "除草",
   "防除",
-  "潅水",
+  "整枝",
   "収穫",
   "出荷",
-  "圃場準備",
   "片付け",
   "その他",
 ];

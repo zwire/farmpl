@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -14,25 +15,21 @@ into strict `ApiPlan` objects with seasonal adjustments.
 """
 
 
-class SeasonalConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    default: float = Field(1.0, ge=0.1, le=3.0)
-    # keys as month numbers in string form ("1".."12") to make TOML maps predictable
-    coeff_by_month: dict[str, float] = Field(default_factory=dict)
-
-    @field_validator("coeff_by_month")
-    @classmethod
-    def _check_month_keys(cls, v: dict[str, float]):
-        for k, val in v.items():
-            if k not in {str(i) for i in range(1, 13)}:
-                raise ValueError("coeff_by_month keys must be '1'..'12'")
-            if not (0.1 <= float(val) <= 3.0):
-                raise ValueError("coeff_by_month values must be within 0.1..3.0")
-        return v
-
-    def factor_for(self, d: date) -> float:
-        return float(self.coeff_by_month.get(str(d.month), self.default))
+# Event category must match UI EventCategory (planning-ui-types.ts)
+EventCategoryLiteral = Literal[
+    "圃場準備",
+    "播種",
+    "定植",
+    "潅水",
+    "施肥",
+    "除草",
+    "防除",
+    "整枝",
+    "収穫",
+    "出荷",
+    "片付け",
+    "その他",
+]
 
 
 class HorizonHint(BaseModel):
@@ -46,16 +43,13 @@ class TemplateEvent(BaseModel):
 
     id: str
     name: str
-    category: str | None = None
+    category: EventCategoryLiteral | None = None
     uses_land: bool = False
     # Either a start window (absolute from Day=1), or lag from predecessor
     start_window_days: tuple[int, int] | None = Field(default=None)
     preceding_event_id: str | None = None
     lag_days: tuple[int, int] | None = Field(default=None)
     frequency_days: int | None = Field(default=None, gt=0)
-    # Seasonal scaling (per event). When true, seasonal factor applies to lag days.
-    # Start windows are not scaled by default.
-    seasonal_scale: bool = True
     labor_total_per_a: float | None = Field(default=None, ge=0)
     labor_daily_cap: float | None = Field(default=None, ge=0)
     people_required: int | None = Field(default=None, ge=0)
@@ -69,13 +63,14 @@ class CropTemplate(BaseModel):
     # File-level template metadata
     id: str
     label: str
+    # New style: template refers to external crop master by id
+    # Loader fills the following for backward compatibility
     crop_id: str
     crop_name: str
     category: str | None = None
     variant: str | None = None
     price_per_a: float | None = Field(default=None, ge=0)
     price_per_10a: float | None = Field(default=None, ge=0)
-    seasonal: SeasonalConfig = Field(default_factory=SeasonalConfig)
     horizon_hint: HorizonHint = Field(default_factory=HorizonHint)
     events: list[TemplateEvent] = Field(default_factory=list)
 
@@ -113,6 +108,8 @@ class CropCatalogItem(BaseModel):
 
     crop_name: str
     category: str | None = None
+    # Optional aliases for search (e.g., kana/kanji variants)
+    aliases: list[str] = Field(default_factory=list)
     variants: list[CropVariantItem] = Field(default_factory=list)
 
 

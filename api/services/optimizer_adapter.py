@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeout
+from datetime import timedelta
 
 from lib.planner import plan as run_plan
 from lib.schemas import (
@@ -17,6 +19,7 @@ from lib.schemas import (
     Resource,
     Worker,
 )
+from lib.thirds import period_key as third_period_key
 from schemas.optimization import (
     ApiPlan,
     GanttEventItem,
@@ -27,6 +30,191 @@ from schemas.optimization import (
     ResourceUsage,
     WorkerUsage,
 )
+
+
+def _compress_api_plan_to_third(api: ApiPlan) -> PlanRequest:
+    """Compress an ApiPlan (day-indexed) into a third-indexed PlanRequest.
+
+    Policy (coarse but fast):
+    - Horizon: each calendar third becomes one time unit (1-based index).
+    - Workers/Resources capacity_per_day: scaled by 10x (average days/third).
+      Blocked thirds: if all days of the third are blocked, mark that third blocked.
+    - Lands: area unchanged; blocked thirds only when fully blocked in original.
+    - Events: start/end windows mapped to third indices; frequency/lag days -> ceil(/10).
+      labor_total_per_area unchanged; labor_daily_cap scaled by 10x.
+    """
+
+    start = api.horizon.start_date
+    num_days = int(api.horizon.num_days)
+    # Build day -> third index mapping in chronological order
+    third_keys: list[str] = []
+    third_index_by_key: dict[str, int] = {}
+    day_to_third_idx: list[int] = []  # 0-based day -> 1-based third index
+    for d in range(num_days):
+        dt = start + timedelta(days=d)
+        key = third_period_key(dt)
+        if not third_keys or third_keys[-1] != key:
+            third_keys.append(key)
+            third_index_by_key[key] = len(third_keys)
+        day_to_third_idx.append(third_index_by_key[key])
+
+    T = len(third_keys)
+
+    # Helper to map a 0-based day set to third indices set (1-based)
+    def map_days_set(days: set[int] | None) -> set[int] | None:
+        if not days:
+            return None
+        out: set[int] = set()
+        for day0 in days:
+            if 0 <= day0 < num_days:
+                out.add(day_to_third_idx[day0])
+        return out
+
+    # Count days per third and per-third fully-blocked markers per entity
+    days_in_third: list[int] = [0] * (T + 1)  # 1..T
+    for d in range(num_days):
+        days_in_third[day_to_third_idx[d]] += 1
+
+    def fully_blocked_thirds(blocked_days: set[int] | None) -> set[int] | None:
+        if not blocked_days:
+            return None
+        blk = {int(x) for x in blocked_days}
+        fb: set[int] = set()
+        for t in range(1, T + 1):
+            # all days of the third are blocked
+            day_indices = [i for i in range(num_days) if day_to_third_idx[i] == t]
+            if day_indices and all((i in blk) for i in day_indices):
+                fb.add(t)
+        return fb or None
+
+    # Crops
+    crops = [
+        Crop(
+            id=c.id,
+            name=c.name,
+            category=c.category,
+            price_per_area=(
+                c.normalized_price_per_a()
+                if (c.price_per_a is not None) ^ (c.price_per_10a is not None)
+                else None
+            ),
+        )
+        for c in api.crops
+    ]
+
+    # Events (map windows and day-based params)
+    events = []
+    for e in api.events:
+        start_set_th = map_days_set(e.start_cond)
+        end_set_th = map_days_set(e.end_cond)
+        freq_th = None
+        if e.frequency_days and e.frequency_days > 0:
+            freq_th = int(math.ceil(e.frequency_days / 10.0))
+        lag_min_th = (
+            int(math.ceil((e.lag_min_days or 0) / 10.0)) if e.lag_min_days else None
+        )
+        lag_max_th = (
+            int(math.ceil((e.lag_max_days or 0) / 10.0)) if e.lag_max_days else None
+        )
+        events.append(
+            Event(
+                id=e.id,
+                crop_id=e.crop_id,
+                name=e.name,
+                category=e.category,
+                start_cond=start_set_th,
+                end_cond=end_set_th,
+                frequency_days=freq_th,
+                preceding_event_id=e.preceding_event_id,
+                lag_min_days=lag_min_th,
+                lag_max_days=lag_max_th,
+                people_required=e.people_required,
+                labor_total_per_area=e.labor_total_per_a,
+                labor_daily_cap=(
+                    (e.labor_daily_cap * 10.0)
+                    if e.labor_daily_cap is not None
+                    else None
+                ),
+                required_roles=e.required_roles,
+                required_resources=e.required_resources,
+                uses_land=e.uses_land,
+            )
+        )
+
+    # Lands
+    lands = [
+        Land(
+            id=land.id,
+            name=land.name,
+            area=land.normalized_area_a(),
+            tags=land.tags,
+            blocked_days=fully_blocked_thirds(land.blocked_days),
+        )
+        for land in api.lands
+    ]
+
+    # Workers
+    workers = []
+    for w in api.workers:
+        workers.append(
+            Worker(
+                id=w.id,
+                name=w.name,
+                roles=set(w.roles) if w.roles else set(),
+                capacity_per_day=float(w.capacity_per_day) * 10.0,
+                blocked_days=fully_blocked_thirds(w.blocked_days),
+            )
+        )
+
+    # Resources
+    resources = []
+    for r in api.resources:
+        resources.append(
+            Resource(
+                id=r.id,
+                name=r.name,
+                category=r.category,
+                capacity_per_day=(float(r.capacity_per_day) * 10.0)
+                if r.capacity_per_day
+                else None,
+                blocked_days=fully_blocked_thirds(r.blocked_days),
+            )
+        )
+
+    # Bounds and fixed areas
+    bounds = None
+    if api.crop_area_bounds:
+        bounds = []
+        for b in api.crop_area_bounds:
+            bounds.append(
+                CropAreaBound(
+                    crop_id=b.crop_id,
+                    min_area=b.normalized_min_area(),
+                    max_area=b.normalized_max_area(),
+                )
+            )
+
+    fixed = None
+    if api.fixed_areas:
+        fixed = [
+            FixedArea(
+                land_id=f.land_id,
+                crop_id=f.crop_id,
+                area=f.normalized_area_a(),
+            )
+            for f in api.fixed_areas
+        ]
+
+    return PlanRequest(
+        horizon=Horizon(num_days=T),
+        crops=crops,
+        events=events,
+        lands=lands,
+        workers=workers,
+        resources=resources,
+        crop_area_bounds=bounds,
+        fixed_areas=fixed,
+    )
 
 
 def to_domain_plan(api: ApiPlan) -> PlanRequest:
@@ -136,23 +324,23 @@ def _build_timeline(
     resp: PlanResponse, req: PlanRequest, *, start_date_iso: str | None = None
 ) -> OptimizationTimeline:
     spans: list[GanttLandSpan] = []
-    for land_id, by_day in resp.assignment.crop_area_by_land_day.items():
+    for land_id, by_t in resp.assignment.crop_area_by_land_t.items():
         crop_ids: set[str] = set()
-        for per_crop in by_day.values():
+        for per_crop in by_t.values():
             crop_ids.update(per_crop.keys())
         for crop_id in sorted(crop_ids):
-            days = sorted(d for d, per in by_day.items() if crop_id in per)
-            if not days:
+            times = sorted(t for t, per in by_t.items() if crop_id in per)
+            if not times:
                 continue
-            # Detect day indexing of incoming assignment:
-            # - If any day index is 0, treat as 0-based (no shift)
+            # Detect t indexing of incoming assignment:
+            # - If any t index is 0, treat as 0-based (no shift)
             # - Otherwise assume 1-based and shift down when emitting
-            is_one_based = min(days) >= 1
-            start = days[0]
+            is_one_based = min(times) >= 1
+            start = times[0]
             prev = start
-            cur_area = by_day[start][crop_id]
-            for d in days[1:]:
-                a = by_day[d][crop_id]
+            cur_area = by_t[start][crop_id]
+            for d in times[1:]:
+                a = by_t[d][crop_id]
                 if d == prev + 1 and abs(a - cur_area) < 1e-9:
                     prev = d
                     continue
@@ -160,8 +348,8 @@ def _build_timeline(
                     GanttLandSpan(
                         land_id=land_id,
                         crop_id=crop_id,
-                        start_day=start - 1 if is_one_based else start,
-                        end_day=prev - 1 if is_one_based else prev,
+                        start_index=start - 1 if is_one_based else start,
+                        end_index=prev - 1 if is_one_based else prev,
                         area_a=float(cur_area),
                     )
                 )
@@ -170,8 +358,8 @@ def _build_timeline(
                 GanttLandSpan(
                     land_id=land_id,
                     crop_id=crop_id,
-                    start_day=start - 1 if is_one_based else start,
-                    end_day=prev - 1 if is_one_based else prev,
+                    start_index=start - 1 if is_one_based else start,
+                    end_index=prev - 1 if is_one_based else prev,
                     area_a=float(cur_area),
                 )
             )
@@ -182,7 +370,7 @@ def _build_timeline(
     event_names = {e.id: e.name for e in req.events}
     items: list[GanttEventItem] = []
     if resp.event_assignments:
-        days_list = [ea.day for ea in resp.event_assignments]
+        days_list = [ea.index for ea in resp.event_assignments]
         events_one_based = min(days_list) >= 1 if days_list else False
         # Precompute number of occurrences per event within provided assignments
         occ_count_by_event: dict[str, int] = {}
@@ -191,12 +379,12 @@ def _build_timeline(
             occ_count_by_event[ev_id] = occ_count_by_event.get(ev_id, 0) + 1
 
         for ea in resp.event_assignments:
-            day0 = ea.day - 1 if events_one_based else ea.day
+            index = ea.index - 1 if events_one_based else ea.index
             ev_meta = event_meta_by_id.get(ea.event_id)
             crop_id = crop_by_event.get(ea.event_id, "")
             # Estimate area for this occurrence if not provided explicitly
-            if ea.crop_area_on_day is not None:
-                area_a = float(ea.crop_area_on_day)
+            if ea.crop_area_on_t is not None:
+                area_a = float(ea.crop_area_on_t)
             else:
                 area_a = 0.0
                 for lid in ea.land_ids or []:
@@ -239,7 +427,7 @@ def _build_timeline(
 
             items.append(
                 GanttEventItem(
-                    day=day0,
+                    index=index,
                     event_id=ea.event_id,
                     crop_id=crop_id,
                     land_ids=list(ea.land_ids or []),
@@ -271,7 +459,7 @@ def _build_timeline(
 def solve_sync(
     req: OptimizationRequest, progress_cb: Callable[[float, str], None] | None = None
 ) -> OptimizationResult:
-    if req.plan is None and (req.params is None or req.params == {}):
+    if req.plan is None:
         return OptimizationResult(
             status="error",
             objective_value=None,
@@ -280,16 +468,8 @@ def solve_sync(
             warnings=[],
         )
 
-    if req.plan is None:
-        return OptimizationResult(
-            status="error",
-            objective_value=None,
-            solution=None,
-            stats={"message": "params 形式は未サポートです。plan で送信してください。"},
-            warnings=[],
-        )
-
-    domain_req = to_domain_plan(req.plan)
+    # Convert to third-granularity domain plan
+    domain_req = _compress_api_plan_to_third(req.plan)
 
     stage_order = None
     lock_by = None

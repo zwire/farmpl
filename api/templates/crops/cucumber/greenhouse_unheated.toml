@@ -1,18 +1,12 @@
 [template]
 id = "cucumber_house_unheated"
 label = "キュウリ(ハウス無加温)"
-crop_id = "ck"
-crop_name = "キュウリ"
-category = "vegetable"
+crop_ref = "cucumber"
 variant = "ハウス無加温"
 price_per_a = 110000.0
 
 [horizon_hint]
 default_days = 145
-
-[seasonal]
-default = 1.0
-coeff_by_month = { "12"=1.25, "1"=1.30, "2"=1.20, "3"=1.05, "4"=0.95, "5"=0.90, "6"=0.90, "7"=0.90, "8"=0.95, "9"=1.0, "10"=1.05, "11"=1.15 }
 
 [[events]]
 id = "sow"
@@ -20,7 +14,6 @@ name = "播種"
 category = "播種"
 uses_land = false
 start_window_days = [1, 7]
-seasonal_scale = false
 labor_total_per_a = 1.5
 
 [[events]]
@@ -30,37 +23,25 @@ category = "定植"
 uses_land = true
 preceding_event_id = "sow"
 lag_days = [20, 30]
-seasonal_scale = true
 labor_total_per_a = 4.0
 
 [[events]]
-id = "harvest_start"
-name = "収穫開始"
+id = "harvest"
+name = "収穫"
 category = "収穫"
 uses_land = true
 preceding_event_id = "transplant"
-lag_days = [25, 40]
-seasonal_scale = true
+lag_days = [25, 65]
 labor_total_per_a = 4.0
-
-[[events]]
-id = "harvest_end"
-name = "収穫終了"
-category = "収穫"
-uses_land = true
-preceding_event_id = "harvest_start"
-lag_days = [40, 65]
-seasonal_scale = true
 
 [[events]]
 id = "care"
 name = "摘心・管理"
-category = "管理"
-uses_land = false
+category = "その他"
+uses_land = true
 preceding_event_id = "transplant"
 lag_days = [7, 55]
 frequency_days = 7
-seasonal_scale = false
 labor_total_per_a = 2.5
 labor_daily_cap = 4.0
 
@@ -68,10 +49,9 @@ labor_daily_cap = 4.0
 id = "pesticide"
 name = "防除"
 category = "防除"
-uses_land = false
+uses_land = true
 preceding_event_id = "transplant"
 lag_days = [10, 120]
 frequency_days = 14
-seasonal_scale = false
 labor_total_per_a = 0.7
 labor_daily_cap = 3.0

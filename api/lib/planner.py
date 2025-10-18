@@ -208,7 +208,7 @@ def plan(
     )
 
     # Build time-indexed assignment from the last stage values
-    crop_area_by_land_day: dict[str, dict[int, dict[str, float]]] = {}
+    crop_area_by_land_t: dict[str, dict[int, dict[str, float]]] = {}
     if (
         feasible
         and last_res
@@ -220,11 +220,11 @@ def plan(
             if units <= 0:
                 continue
             area = units / scale
-            crop_area_by_land_day.setdefault(land_id, {}).setdefault(t, {})[crop_id] = (
+            crop_area_by_land_t.setdefault(land_id, {}).setdefault(t, {})[crop_id] = (
                 area
             )
 
-    assignment = PlanAssignment(crop_area_by_land_day=crop_area_by_land_day)
+    assignment = PlanAssignment(crop_area_by_land_t=crop_area_by_land_t)
     _report(0.86, "post:assignment")
 
     # Build event assignments with workers, resources, and areas
@@ -239,12 +239,12 @@ def plan(
         # Build resource lookup
         res_info = {r.id: r.name for r in request.resources}
 
-        # Lookup tables for event metadata and per-day land usage
+        # Lookup tables for event metadata and per-t land usage
         event_lookup = {event.id: event for event in request.events}
 
         # Precompute crop area by (crop_id, t)
         crop_area_by_t: dict[tuple[str, int], float] = {}
-        land_ids_by_crop_day: dict[tuple[str, int], set[str]] = {}
+        land_ids_by_crop_t: dict[tuple[str, int], set[str]] = {}
         if sc.x_area_by_l_c_t_values is not None:
             scale = last_ctx.scale_area
             for (land_id, crop_id, t), units in sc.x_area_by_l_c_t_values.items():
@@ -252,7 +252,7 @@ def plan(
                     units / scale
                 )
                 if units > 0:
-                    land_ids_by_crop_day.setdefault((crop_id, t), set()).add(land_id)
+                    land_ids_by_crop_t.setdefault((crop_id, t), set()).add(land_id)
 
         pairs = sorted(sc.r_event_by_e_t_values.keys(), key=lambda k: (k[1], k[0]))
         for e_id, t in pairs:
@@ -312,15 +312,15 @@ def plan(
             # Land allocation (only for events that occupy land)
             land_ids: list[str] = []
             if ev_meta is not None and getattr(ev_meta, "uses_land", False):
-                land_ids = sorted(land_ids_by_crop_day.get((ev_meta.crop_id, t), set()))
+                land_ids = sorted(land_ids_by_crop_t.get((ev_meta.crop_id, t), set()))
 
             event_assignments.append(
                 EventAssignment(
-                    day=t,
+                    index=t,
                     event_id=e_id,
                     assigned_workers=assigned,
                     resource_usage=resources_used,
-                    crop_area_on_day=crop_area,
+                    crop_area_on_t=crop_area,
                     land_ids=land_ids,
                 )
             )
@@ -332,7 +332,7 @@ def plan(
     hints: list[str] = []
 
     if feasible and last_res is not None and last_ctx is not None:
-        # Profit from per-day areas (max over t per land/crop)
+        # Profit from per-t areas (max over t per land/crop)
         price_map = {c.id: float(c.price_per_area or 0.0) for c in request.crops}
         scale = last_ctx.scale_area
         max_by_lc: dict[tuple[str, str], int] = {}

@@ -405,8 +405,8 @@ class GanttLandSpan(BaseModel):
 
     land_id: str
     crop_id: str
-    start_day: int = Field(ge=0)
-    end_day: int = Field(ge=0)
+    start_index: int = Field(ge=0)
+    end_index: int = Field(ge=0)
     area_a: float = Field(ge=0)
 
 
@@ -428,7 +428,7 @@ class ResourceUsage(BaseModel):
 class GanttEventItem(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    day: int = Field(ge=0)
+    index: int = Field(ge=0)
     event_id: str
     crop_id: str
     land_ids: list[str] = Field(default_factory=list)

@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import type { GanttViewMode } from "@/lib/state/view-preferences";
-import type { GanttViewModel, LandDayCell } from "./useGanttData";
+import { computeThirdRanges, paintSpanOnDayCells, thirdStartDay } from "@/lib/utils/thirds";
+import type { GanttViewModel, LandPeriodCell } from "./useGanttData";
 
 // Re-exporting LandDayCell as GanttViewCell for semantic clarity in the view model.
-export type GanttViewCell = LandDayCell;
+export type GanttViewCell = LandPeriodCell;
 
 export interface GanttViewModelTransformed {
   rowOrder: string[];
@@ -32,7 +33,7 @@ export const useGanttViewModel = (
       transformed = {
         rowOrder: baseData.landOrder,
         rowLabelById: baseData.landNameById,
-        cellsByRow: baseData.landDayCells,
+        cellsByRow: baseData.landPeriodCells,
       };
     } else {
       // mode === 'crop'
@@ -41,6 +42,11 @@ export const useGanttViewModel = (
       );
 
       const cropCellsByRow: Record<string, GanttViewCell[]> = {};
+      // Build third → day-range mapping to project third indices to day cells
+      const thirdRanges = computeThirdRanges(
+        baseData.startDateIso,
+        baseData.totalDays,
+      );
       for (const cropId of cropRowOrder) {
         cropCellsByRow[cropId] = Array.from(
           { length: baseData.totalDays },
@@ -53,29 +59,14 @@ export const useGanttViewModel = (
       for (const span of baseData.spans) {
         const rowCells = cropCellsByRow[span.cropId];
         if (!rowCells) continue;
-
-        for (let day = span.startDay; day <= span.endDay; day++) {
-          if (day >= baseData.totalDays) continue;
-
-          const cell = rowCells[day];
-          if (!cell.cropId) {
-            cell.cropId = span.cropId;
-            cell.cropName = span.cropName;
-          }
-          if (day === span.startDay) {
-            cell.cropStart = true;
-          }
-          if (day === span.endDay) {
-            cell.cropEnd = true;
-          }
-        }
+        paintSpanOnDayCells(rowCells, span, thirdRanges);
       }
 
       for (const event of baseData.events) {
         const rowCells = cropCellsByRow[event.cropId];
-        if (rowCells && event.day < baseData.totalDays && rowCells[event.day]) {
-          rowCells[event.day].events.push(event);
-        }
+        if (!rowCells) continue;
+        const di = thirdStartDay(thirdRanges, event.index); // first day of the third
+        if (di >= 0 && rowCells[di]) rowCells[di].events.push(event);
       }
       transformed = {
         rowOrder: cropRowOrder,
