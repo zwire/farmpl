@@ -31,6 +31,15 @@ interface EventGraphEditorProps {
 const NODE_HORIZONTAL_GAP = 240;
 const NODE_VERTICAL_GAP = 180;
 const STAGE_WIDTH = 3;
+const DEFAULT_NODE_STYLE = {
+  borderRadius: "0.5rem",
+  borderWidth: 2,
+  background: "white",
+  boxShadow:
+    "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+} as const;
+const SELECTED_BORDER_COLOR = "#0ea5e9";
+const UNSELECTED_BORDER_COLOR = "transparent";
 
 export function EventGraphEditor({
   events,
@@ -40,6 +49,7 @@ export function EventGraphEditor({
   onRemoveEvent,
 }: EventGraphEditorProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const selectionSyncingRef = useRef(false);
   const [nodes, setNodes] = useState<Node[]>(() =>
     generateNodes(events, selectedEventId ?? null),
   );
@@ -51,9 +61,13 @@ export function EventGraphEditor({
     }
     const { clientWidth: width, clientHeight: height } = containerRef.current;
     const centerPosition = { x: width / 4, y: height / 4 };
+    selectionSyncingRef.current = true;
     setNodes((current) =>
       syncNodes(current, events, selectedEventId ?? null, centerPosition),
     );
+    void Promise.resolve().then(() => {
+      selectionSyncingRef.current = false;
+    });
   }, [events, selectedEventId]);
 
   useEffect(() => {
@@ -97,6 +111,7 @@ export function EventGraphEditor({
 
   const handleSelectionChange = useCallback(
     (selection: { nodes?: Node[] } | null) => {
+      if (selectionSyncingRef.current) return;
       const newSelectedId = selection?.nodes?.[0]?.id;
       if (!newSelectedId) return;
       if (selectedEventId !== newSelectedId) {
@@ -149,12 +164,8 @@ const generateNodes = (
       },
       selected: isSelected,
       style: {
-        borderRadius: "0.5rem",
-        borderWidth: 2,
-        borderColor: isSelected ? "#0ea5e9" : "transparent",
-        background: "white",
-        boxShadow:
-          "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+        ...DEFAULT_NODE_STYLE,
+        borderColor: isSelected ? SELECTED_BORDER_COLOR : UNSELECTED_BORDER_COLOR,
       },
     } satisfies Node;
   });
@@ -192,41 +203,57 @@ const syncNodes = (
   centerPosition: { x: number; y: number } | null,
 ): Node[] => {
   const byId = new Map(current.map((node) => [node.id, node] as const));
+  let hasChanged = current.length !== events.length;
 
-  return events.map((event, index) => {
+  const nextNodes = events.map((event, index) => {
     const existing = byId.get(event.id);
     const isSelected = event.id === selectedId;
+    const label = event.name || event.id;
     if (existing) {
-      return {
-        ...existing,
-        data: { label: event.name || event.id },
-        selected: isSelected,
-        style: {
-          ...existing.style,
-          borderColor: isSelected ? "#0ea5e9" : "transparent",
-        },
-      } satisfies Node;
+      const previousBorderColor =
+        typeof existing.style?.borderColor === "string"
+          ? existing.style.borderColor
+          : undefined;
+      const nextBorderColor = isSelected
+        ? SELECTED_BORDER_COLOR
+        : UNSELECTED_BORDER_COLOR;
+      const needsLabelUpdate = existing.data?.label !== label;
+      const needsSelectedUpdate = existing.selected !== isSelected;
+      const needsBorderUpdate = previousBorderColor !== nextBorderColor;
+      if (needsLabelUpdate || needsSelectedUpdate || needsBorderUpdate) {
+        hasChanged = true;
+        return {
+          ...existing,
+          data: { ...existing.data, label },
+          selected: isSelected,
+          style: {
+            ...DEFAULT_NODE_STYLE,
+            ...existing.style,
+            borderColor: nextBorderColor,
+          },
+        } satisfies Node;
+      }
+      return existing;
     }
+    hasChanged = true;
     const row = Math.floor(index / STAGE_WIDTH);
     const column = index % STAGE_WIDTH;
     return {
       id: event.id,
-      data: { label: event.name || event.id },
+      data: { label },
       position: centerPosition ?? {
         x: column * NODE_HORIZONTAL_GAP,
         y: row * NODE_VERTICAL_GAP,
       },
       selected: isSelected,
       style: {
-        borderRadius: "0.5rem",
-        borderWidth: 2,
-        borderColor: isSelected ? "#0ea5e9" : "transparent",
-        background: "white",
-        boxShadow:
-          "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+        ...DEFAULT_NODE_STYLE,
+        borderColor: isSelected ? SELECTED_BORDER_COLOR : UNSELECTED_BORDER_COLOR,
       },
     } satisfies Node;
   });
+
+  return hasChanged ? nextNodes : current;
 };
 
 const createLagLabel = (

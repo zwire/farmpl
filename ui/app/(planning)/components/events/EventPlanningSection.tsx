@@ -38,9 +38,27 @@ export function EventPlanningSection({
     [plan.events, selectedCropId],
   );
 
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(
-    cropEvents[0]?.id ?? null,
-  );
+  const [selectionByCrop, setSelectionByCrop] = useState<
+    Record<string, string | null>
+  >({});
+  const [graphVersionByCrop, setGraphVersionByCrop] = useState<
+    Record<string, number>
+  >({});
+
+  const selectedEventId = useMemo(() => {
+    if (!selectedCropId) return null;
+    const stored = selectionByCrop[selectedCropId];
+    if (stored && cropEvents.some((event) => event.id === stored)) {
+      return stored;
+    }
+    return cropEvents[0]?.id ?? null;
+  }, [selectionByCrop, selectedCropId, cropEvents]);
+
+  const graphKey = useMemo(() => {
+    const baseId = selectedCropId ?? "__ALL__";
+    const version = graphVersionByCrop[baseId] ?? 0;
+    return `${baseId}:${version}`;
+  }, [graphVersionByCrop, selectedCropId]);
 
   useEffect(() => {
     if (!selectedCropId && cropIds.length > 0) {
@@ -49,20 +67,61 @@ export function EventPlanningSection({
   }, [cropIds, selectedCropId]);
 
   useEffect(() => {
-    if (
-      selectedEventId &&
-      !cropEvents.some((event) => event.id === selectedEventId)
-    ) {
-      setSelectedEventId(cropEvents[0]?.id ?? null);
-    }
-    if (!selectedEventId && cropEvents.length > 0) {
-      setSelectedEventId(cropEvents[0].id);
-    }
-  }, [cropEvents, selectedEventId]);
+    if (!selectedCropId) return;
+    const fallback = cropEvents[0]?.id ?? null;
+    setSelectionByCrop((prev) => {
+      const hasKey = Object.hasOwn(prev, selectedCropId);
+      const current = hasKey ? (prev[selectedCropId] ?? null) : null;
+      const isValidCurrent =
+        current !== null && cropEvents.some((event) => event.id === current);
+      const nextValue = isValidCurrent ? current : fallback;
+      if (nextValue === current) {
+        if (nextValue === null && hasKey) {
+          const next = { ...prev };
+          delete next[selectedCropId];
+          return next;
+        }
+        if (nextValue === null && !hasKey) {
+          return prev;
+        }
+        return prev;
+      }
+      const next = { ...prev };
+      if (nextValue === null) {
+        delete next[selectedCropId];
+      } else {
+        next[selectedCropId] = nextValue;
+      }
+      return next;
+    });
+  }, [selectedCropId, cropEvents]);
 
-  const handleSelect = (eventId: string | null) => {
-    setSelectedEventId(eventId);
-  };
+  const handleSelect = useCallback(
+    (eventId: string | null) => {
+      if (!selectedCropId) return;
+      setSelectionByCrop((prev) => {
+        const current = prev[selectedCropId] ?? null;
+        const nextValue = eventId ?? null;
+        if (current === nextValue) return prev;
+        const next = { ...prev };
+        if (nextValue === null) {
+          delete next[selectedCropId];
+        } else {
+          next[selectedCropId] = nextValue;
+        }
+        return next;
+      });
+    },
+    [selectedCropId],
+  );
+
+  const bumpGraphVersion = useCallback((cropId: string | null) => {
+    if (!cropId) return;
+    setGraphVersionByCrop((prev) => ({
+      ...prev,
+      [cropId]: (prev[cropId] ?? 0) + 1,
+    }));
+  }, []);
 
   // ----- Template-based initialization UI state -----
   type CropVariantItem = {
@@ -209,6 +268,7 @@ export function EventPlanningSection({
           ...mapped,
         ],
       }));
+      bumpGraphVersion(selectedCropId);
     } catch (e) {
       // no-op; could surface error toast if needed
       console.error(e);
@@ -217,6 +277,7 @@ export function EventPlanningSection({
 
   const handleAddEvent = () => {
     const newId = createUniqueId(plan.events.map((event) => event.id));
+    const targetCropId = selectedCropId ?? plan.crops[0]?.id ?? "";
     onPlanChange((prev) => {
       const cropId = selectedCropId ?? prev.crops[0]?.id ?? "";
       const newEvent: PlanUiEvent = {
@@ -239,15 +300,29 @@ export function EventPlanningSection({
         events: [...prev.events, newEvent],
       };
     });
-    setSelectedEventId(newId);
+    if (targetCropId) {
+      setSelectionByCrop((prev) => ({
+        ...prev,
+        [targetCropId]: newId,
+      }));
+    }
   };
 
   const handleRemoveEvent = (eventId: string) => {
+    const eventCropId =
+      plan.events.find((event) => event.id === eventId)?.cropId ?? null;
     onPlanChange((prev) => ({
       ...prev,
       events: prev.events.filter((event) => event.id !== eventId),
     }));
-    setSelectedEventId((current) => (current === eventId ? null : current));
+    if (eventCropId) {
+      setSelectionByCrop((prev) => {
+        if ((prev[eventCropId] ?? null) !== eventId) return prev;
+        const next = { ...prev };
+        delete next[eventCropId];
+        return next;
+      });
+    }
   };
 
   const handleUpdateEvent = (
@@ -385,6 +460,7 @@ export function EventPlanningSection({
         hasItems={cropEvents.length > 0}
       >
         <EventGraphEditor
+          key={graphKey}
           events={cropEvents}
           selectedEventId={selectedEventId}
           onSelectEvent={handleSelect}

@@ -104,7 +104,10 @@ def instantiate(tpl: CropTemplate, opts: InstantiateOptions) -> ApiPlan:
     events = list(_to_api_events(tpl, factor, crop_id, event_id_map))
 
     plan = ApiPlan(
-        horizon=ApiHorizon(num_days=opts.horizon_days),
+        horizon=ApiHorizon(
+            num_days=opts.horizon_days,
+            start_date=opts.start_date,
+        ),
         crops=[crop],
         events=events,
         lands=[],
