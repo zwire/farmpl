@@ -1,55 +1,30 @@
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
-export type TimelineScaleType = "day" | "third";
+export type TimelineScaleType = "third";
 
 export interface TimelineScaleOptions {
-  type: TimelineScaleType;
   startDateIso: string;
   totalDays: number;
   minUnitWidth?: number;
 }
 
 export interface TimelineTick {
-  day: number; // For 'day' scale, this is day index. For 'third' scale, this is third index.
+  index: number;
   x: number;
   label: string;
   isMajor: boolean;
 }
 
 export interface TimelineScale {
-  type: TimelineScaleType;
   unitWidth: number;
   totalWidth: number;
   ticks: TimelineTick[];
-  positionForDay: (day: number) => number;
   spanWidth: (startDay: number, endDay: number) => number;
-  formatTooltip: (day: number) => string;
+  formatTooltip: (index: number) => string;
   tickToDayRange: (
     tickIndex: number,
   ) => { startDay: number; endDay: number } | null;
 }
-
-export const createTimelineScale = ({
-  type,
-  startDateIso,
-  totalDays,
-  minUnitWidth,
-}: TimelineScaleOptions): TimelineScale => {
-  if (type === "third") {
-    return createThirdScale({
-      startDateIso,
-      totalDays,
-      minUnitWidth: minUnitWidth ?? 28,
-    });
-  }
-  return createDayScale({
-    startDateIso,
-    totalDays,
-    minUnitWidth: minUnitWidth ?? 18,
-  });
-};
-
-// --- Third Scale Implementation ---
 
 const getDateInfo = (date: Date) => {
   const year = date.getUTCFullYear();
@@ -81,7 +56,7 @@ interface Third {
   label: string;
 }
 
-const createThirdScale = ({
+export const createThirdScale = ({
   startDateIso,
   totalDays,
   minUnitWidth,
@@ -137,7 +112,7 @@ const createThirdScale = ({
 
   const totalWidth = thirds.length * unitWidth;
   const ticks: TimelineTick[] = thirds.map((t) => ({
-    day: t.thirdIndex, // Using 'day' as the index of the third
+    index: t.thirdIndex,
     x: t.thirdIndex * unitWidth,
     label: t.label,
     isMajor: t.isMajor,
@@ -151,12 +126,6 @@ const createThirdScale = ({
       }
     }
   }
-
-  const positionForDay = (day: number): number => {
-    const index = dayToThirdIndex[day];
-    if (index === undefined) return -1;
-    return index * unitWidth;
-  };
 
   const spanWidth = (startDay: number, endDay: number): number => {
     const startThirdIndex = dayToThirdIndex[startDay];
@@ -182,11 +151,9 @@ const createThirdScale = ({
   };
 
   return {
-    type: "third",
     unitWidth,
     totalWidth,
     ticks,
-    positionForDay,
     spanWidth,
     formatTooltip,
     tickToDayRange: (tickIndex: number) => {
@@ -197,75 +164,18 @@ const createThirdScale = ({
   };
 };
 
-// --- Day Scale Implementation ---
-
-const createDayScale = ({
+// Backwards-compatible wrapper used in tests. Only 'third' is supported.
+export function createTimelineScale({
+  type,
   startDateIso,
   totalDays,
-  minUnitWidth,
 }: {
+  type: TimelineScaleType;
   startDateIso: string;
   totalDays: number;
-  minUnitWidth: number;
-}): TimelineScale => {
-  const unitWidth = Math.max(minUnitWidth, determineUnitWidth(totalDays));
-  const contentWidth = totalDays * unitWidth;
-  const baseDate = parseIsoDate(startDateIso);
-  const formatter = new Intl.DateTimeFormat("ja-JP", {
-    month: "numeric",
-    day: "numeric",
-    timeZone: "UTC",
-  });
-  const tooltipFormatter = new Intl.DateTimeFormat("ja-JP", {
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-    weekday: "short",
-    timeZone: "UTC",
-  });
-
-  const tickInterval = determineTickInterval(totalDays);
-  const ticks: TimelineTick[] = [];
-  for (let day = 0; day < totalDays; day++) {
-    const date = addDays(baseDate, day);
-    ticks.push({
-      day,
-      x: day * unitWidth,
-      label: formatter.format(date),
-      isMajor: date.getUTCDate() === 1 || tickInterval === 1,
-    });
-  }
-
-  return {
-    type: "day",
-    unitWidth,
-    totalWidth: contentWidth,
-    ticks,
-    positionForDay: (day) => day * unitWidth,
-    spanWidth: (startDay, endDay) =>
-      Math.max(endDay - startDay + 1, 0) * unitWidth,
-    formatTooltip: (day) => tooltipFormatter.format(addDays(baseDate, day)),
-    tickToDayRange: (tickIndex: number) => {
-      const tick = ticks[tickIndex];
-      if (!tick) return null;
-      return { startDay: tick.day, endDay: tick.day };
-    },
-  };
-};
-
-const determineUnitWidth = (totalDays: number): number => {
-  if (totalDays <= 30) return 28;
-  if (totalDays <= 90) return 22;
-  if (totalDays <= 180) return 18;
-  return 14;
-};
-
-const determineTickInterval = (totalDays: number): number => {
-  if (totalDays <= 35) return 1;
-  if (totalDays <= 90) return 3; // More frequent labels
-  if (totalDays <= 180) return 7; // More frequent labels
-  return 14; // More frequent labels
-};
+}): TimelineScale {
+  return createThirdScale({ startDateIso, totalDays, minUnitWidth: 28 });
+}
 
 const parseIsoDate = (iso: string): Date => {
   const datePart = iso.split("T")[0];
@@ -275,3 +185,4 @@ const parseIsoDate = (iso: string): Date => {
 
 const addDays = (date: Date, offset: number): Date =>
   new Date(date.getTime() + offset * DAY_IN_MS);
+

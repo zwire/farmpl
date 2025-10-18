@@ -121,8 +121,8 @@ export interface ApiOptimizationRequest {
 export interface ApiOptimizationTimelineLandSpan {
   land_id: string;
   crop_id: string;
-  start_day: number;
-  end_day: number;
+  start_index: number;
+  end_index: number;
   area_a: number;
 }
 
@@ -138,7 +138,7 @@ export interface ApiResourceUsageItem {
 }
 
 export interface ApiOptimizationTimelineEventItem {
-  day: number;
+  index: number;
   event_id: string;
   crop_id: string;
   land_ids: string[];
@@ -309,15 +309,15 @@ export interface OptimizationResultSummaryView {
 export interface TimelineLandSpanView {
   landId: string;
   cropId: string;
-  startDay: number;
-  endDay: number;
+  startIndex: number;
+  endIndex: number;
   areaA: number;
   landName?: string;
   cropName?: string;
 }
 
 export interface TimelineEventView {
-  day: number;
+  index: number;
   eventId: string;
   cropId: string;
   landIds: string[];
@@ -361,13 +361,11 @@ export type IdMap<T extends { id: string }> = Record<string, T>;
 
 // ========================= Metrics timeline types ========================= //
 
-export type MetricsInterval = "third" | "day";
-
 export interface MetricsEventMetric {
   id: string;
   label: string;
-  start_day: number; // 0-based day index
-  end_day?: number | null;
+  start_index: number; // 0-based index (third)
+  end_index?: number | null;
   type?: string | null;
 }
 
@@ -385,24 +383,22 @@ export interface MetricsLandMetric {
   capacity: number; // capacity area within bucket
 }
 
-export interface MetricsDaySummary {
+export interface MetricsPeriodSummary {
   labor_total_hours: number;
   labor_capacity_hours: number;
   land_total_area: number;
   land_capacity_area: number;
 }
 
-export interface MetricsDayRecord {
-  interval: MetricsInterval;
-  day_index?: number | null; // present when interval=day
-  period_key?: string | null; // present when interval=third (e.g., 2024-03:U)
+export interface MetricsPeriodRecord {
+  index?: number | null; // unused for 'third'
+  period_key?: string | null; // e.g., 2024-03:上旬
   events: MetricsEventMetric[];
   workers: MetricsWorkerMetric[];
   lands: MetricsLandMetric[];
-  summary: MetricsDaySummary;
+  summary: MetricsPeriodSummary;
 }
 
 export interface MetricsTimelineResponse {
-  interval: MetricsInterval;
-  records: MetricsDayRecord[];
+  records: MetricsPeriodRecord[];
 }

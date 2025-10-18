@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
 import type {
-  MetricsInterval,
   MetricsTimelineResponse,
   OptimizationResultView,
 } from "@/lib/types/planning";
@@ -10,7 +9,6 @@ import { mapTimelineResponse } from "@/lib/types/result-mapper";
 export interface UseMetricsTimelineInput {
   jobId?: string;
   result: OptimizationResultView | null;
-  bucket: MetricsInterval;
 }
 
 export interface UseMetricsTimelineOutput {
@@ -31,20 +29,13 @@ const BEARER_TOKEN = process.env.NEXT_PUBLIC_FARMPL_BEARER_TOKEN ?? "";
 
 const buildTimelineUrl = (
   options: TimelineFetchOptions,
-  params: {
-    jobId: string;
-    bucket: MetricsInterval;
-    baseDate?: string;
-  },
+  params: { jobId: string; baseDate: string },
 ) => {
   const base = options.baseUrl.replace(/\/$/, "");
   const searchParams = new URLSearchParams({
     job_id: params.jobId,
-    bucket: params.bucket,
+    base_date: params.baseDate,
   });
-  if (params.baseDate) {
-    searchParams.set("base_date", params.baseDate);
-  }
   return `${base}/v1/metrics/timeline?${searchParams.toString()}`;
 };
 
@@ -61,7 +52,6 @@ const buildHeaders = (options: TimelineFetchOptions) => {
 export function useMetricsTimeline({
   jobId,
   result,
-  bucket,
 }: UseMetricsTimelineInput): UseMetricsTimelineOutput {
   const [timeline, setTimeline] = useState<MetricsTimelineResponse | null>(
     null,
@@ -91,21 +81,19 @@ export function useMetricsTimeline({
       bearerToken: BEARER_TOKEN,
     };
 
-    const baseDate =
-      bucket === "third"
-        ? result?.timeline?.startDateIso?.split("T")[0]
-        : undefined;
+    const baseDate = result?.timeline?.startDateIso?.split("T")[0];
+    if (!baseDate) {
+      setTimeline(null);
+      setError("基準日が不明です（startDateIso）");
+      return;
+    }
 
     const run = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        const url = buildTimelineUrl(fetchOptions, {
-          jobId,
-          bucket,
-          baseDate,
-        });
+        const url = buildTimelineUrl(fetchOptions, { jobId, baseDate });
         const response = await fetch(url, {
           headers: buildHeaders(fetchOptions),
           signal: controller.signal,
@@ -137,7 +125,7 @@ export function useMetricsTimeline({
     return () => {
       controller.abort();
     };
-  }, [jobId, finished, bucket, result?.timeline?.startDateIso]);
+  }, [jobId, finished, result?.timeline?.startDateIso]);
 
   return { timeline, isLoading, error };
 }

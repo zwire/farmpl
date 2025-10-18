@@ -43,7 +43,7 @@ def solve(ctx: BuildContext, prev: SolveContext | None = None) -> SolveContext:
 
     # Warm start with hints from previous solution
     if prev is not None:
-        # Per-day areas
+        # Per-t areas
         if prev.x_area_by_l_c_t_values is not None:
             for key, var in ctx.variables.x_area_by_l_c_t.items():
                 if key in prev.x_area_by_l_c_t_values:

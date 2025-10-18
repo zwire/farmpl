@@ -98,9 +98,9 @@ class PlanDiagnostics(BaseModel):
 
 
 class PlanAssignment(BaseModel):
-    # Time-indexed assignment: land -> day -> crop -> area
-    crop_area_by_land_day: dict[str, dict[int, dict[str, float]]] = Field(
-        default_factory=dict, description="land_id -> day -> crop_id -> area"
+    # Time-indexed assignment: land -> t -> crop -> area
+    crop_area_by_land_t: dict[str, dict[int, dict[str, float]]] = Field(
+        default_factory=dict, description="land_id -> t -> crop_id -> area"
     )
 
 
@@ -108,7 +108,7 @@ class WorkerRef(BaseModel):
     id: str
     name: str
     roles: list[str] = Field(default_factory=list)
-    # Optional: actual worked hours for this (event, day) assignment
+    # Optional: actual worked hours for this (event, t) assignment
     used_time_hours: float | None = None
 
 
@@ -119,18 +119,18 @@ class ResourceUsageRef(BaseModel):
 
 
 class EventAssignment(BaseModel):
-    day: int
+    index: int
     event_id: str
     assigned_workers: list[WorkerRef] = Field(default_factory=list)
     resource_usage: list[ResourceUsageRef] = Field(default_factory=list)
-    crop_area_on_day: float | None = None
+    crop_area_on_t: float | None = None
     land_ids: list[str] = Field(default_factory=list)
 
 
 class PlanResponse(BaseModel):
     diagnostics: PlanDiagnostics
     assignment: PlanAssignment
-    # Optional: event-level assignments (day x event -> workers)
+    # Optional: event-level assignments (t x event -> workers)
     event_assignments: list[EventAssignment] | None = None
     # Objective values summary (evaluated on final plan when feasible)
     objectives: dict[str, float] = Field(default_factory=dict)

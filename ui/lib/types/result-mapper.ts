@@ -2,20 +2,15 @@ import type {
   ApiOptimizationResult,
   ApiOptimizationTimeline,
   ConstraintHintView,
-  MetricsDayRecord,
   MetricsEventMetric,
-  MetricsInterval,
   MetricsLandMetric,
+  MetricsPeriodRecord,
   MetricsTimelineResponse,
   MetricsWorkerMetric,
   OptimizationResultView,
   OptimizationStageMetric,
   OptimizationTimelineView,
 } from "./planning";
-
-function isInterval(v: unknown): v is MetricsInterval {
-  return v === "day" || v === "third";
-}
 
 function asNumber(x: unknown, def = 0): number {
   const n = typeof x === "number" ? x : Number(x);
@@ -27,8 +22,8 @@ function mapEvent(e: unknown): MetricsEventMetric {
   return {
     id: String(obj.id ?? ""),
     label: String(obj.label ?? ""),
-    start_day: asNumber(obj.start_day, 0),
-    end_day: obj.end_day == null ? null : asNumber(obj.end_day),
+    start_index: asNumber(obj.start_index, 0),
+    end_index: obj.end_index == null ? null : asNumber(obj.end_index),
     type: obj.type == null ? null : String(obj.type),
   };
 }
@@ -53,18 +48,10 @@ function mapLand(l: unknown): MetricsLandMetric {
   };
 }
 
-function mapRecord(interval: MetricsInterval, r: unknown): MetricsDayRecord {
+function mapRecord(r: unknown): MetricsPeriodRecord {
   const obj = r && typeof r === "object" ? (r as Record<string, unknown>) : {};
-  const dayIndexRaw = (obj as { day_index?: unknown }).day_index;
   const periodKeyRaw = (obj as { period_key?: unknown }).period_key;
-  const rec: MetricsDayRecord = {
-    interval,
-    day_index:
-      dayIndexRaw == null
-        ? null
-        : typeof dayIndexRaw === "number"
-          ? dayIndexRaw
-          : asNumber(dayIndexRaw, 0),
+  const rec: MetricsPeriodRecord = {
     period_key: periodKeyRaw == null ? null : String(periodKeyRaw),
     events: Array.isArray(obj.events) ? obj.events.map(mapEvent) : [],
     workers: Array.isArray(obj.workers) ? obj.workers.map(mapWorker) : [],
@@ -91,29 +78,16 @@ function mapRecord(interval: MetricsInterval, r: unknown): MetricsDayRecord {
     },
   };
 
-  // Sanity: enforce day vs third invariants
-  if (interval === "day") {
-    rec.day_index = asNumber(rec.day_index, 0);
-    rec.period_key = null;
-  } else {
-    rec.day_index = null;
-    rec.period_key = String(rec.period_key ?? "");
-  }
+  rec.period_key = String(rec.period_key ?? "");
   return rec;
 }
 
 export function mapTimelineResponse(json: unknown): MetricsTimelineResponse {
   const obj =
     json && typeof json === "object" ? (json as Record<string, unknown>) : {};
-  const interval: unknown = obj.interval;
-  if (!isInterval(interval)) {
-    throw new Error("metrics timeline: invalid interval");
-  }
   const recordsSrc: unknown[] = Array.isArray(obj.records) ? obj.records : [];
-  const records: MetricsDayRecord[] = recordsSrc.map((r) =>
-    mapRecord(interval, r),
-  );
-  return { interval, records };
+  const records: MetricsPeriodRecord[] = recordsSrc.map((r) => mapRecord(r));
+  return { records };
 }
 
 // ========================= API → View mapper (existing UI path) ========================= //
@@ -129,8 +103,8 @@ function mapApiTimeline(
     landSpans: (tl.land_spans ?? []).map((s) => ({
       landId: s.land_id,
       cropId: s.crop_id,
-      startDay: s.start_day,
-      endDay: s.end_day,
+      startIndex: s.start_index,
+      endIndex: s.end_index,
       areaA: s.area_a,
       landName: tl.entity_names?.lands?.[s.land_id],
       cropName: tl.entity_names?.crops?.[s.crop_id],
@@ -138,7 +112,7 @@ function mapApiTimeline(
     events: (tl.events ?? []).map((e) => {
       const landIds = Array.isArray(e.land_ids) ? e.land_ids : [];
       return {
-        day: e.day,
+        index: e.index,
         eventId: e.event_id,
         cropId: e.crop_id,
         landIds,

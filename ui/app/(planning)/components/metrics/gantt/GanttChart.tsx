@@ -11,7 +11,7 @@ import { classifyEventCategory } from "./classifyEventCategory";
 import { colorForCategory } from "./colorForCategory";
 import { DetailsPane, type SelectedItem } from "./DetailsPane";
 import { EventBadges } from "./event-badges";
-import { createTimelineScale } from "./timeline-scale";
+import { createThirdScale } from "@/lib/metrics/timeline-scale";
 import type { GanttEventMarker } from "./useGanttData";
 import { useGanttData } from "./useGanttData";
 import { useGanttViewModel } from "./useGanttViewModel";
@@ -82,11 +82,9 @@ export function GanttChart({
   jobResult: OptimizationResultView | null;
   className?: string;
 }) {
-  const { gantt } = useViewPreferencesStore();
   const { timeline, isLoading, error } = useMetricsTimeline({
     jobId,
     result: jobResult,
-    bucket: gantt.scale,
   });
 
   const result = usePlanningStore((state) => state.lastResult);
@@ -100,13 +98,12 @@ export function GanttChart({
   const scale = useMemo(() => {
     if (!baseViewModel) return null;
 
-    return createTimelineScale({
-      type: timeline?.interval === "day" ? "day" : "third",
+    return createThirdScale({
       startDateIso: baseViewModel.startDateIso,
       totalDays: baseViewModel.totalDays,
       minUnitWidth: 32, // Unify cell width
     });
-  }, [baseViewModel, timeline?.interval]);
+  }, [baseViewModel]);
 
   const viewModel = useGanttViewModel(baseViewModel, viewPrefs.mode);
 
@@ -155,14 +152,14 @@ export function GanttChart({
     </div>,
     ...scale.ticks.map((tick, _) => (
       <span
-        key={`header-${tick.day}`}
+        key={`header-${tick.index}`}
         className={`flex w-full flex-col items-center justify-center border border-slate-200 text-[11px] disabled:cursor-default dark:border-slate-700 ${
           tick.isMajor
             ? "bg-slate-100 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200"
             : "bg-white text-slate-500 dark:bg-slate-900 dark:text-slate-400"
         }`}
         style={{ height: HEADER_HEIGHT }}
-        title={scale.formatTooltip(tick.day)}
+        title={scale.formatTooltip(tick.index)}
       >
         {tick.label}
       </span>
@@ -202,7 +199,6 @@ export function GanttChart({
                 index: tickIndex,
                 rowId,
                 mode,
-                interval: timeline.interval,
                 record,
               })
             }
@@ -236,13 +232,8 @@ export function GanttChart({
 
     // --- Gantt Rows (Crops/Lands) ---
     const dayCells = viewModel.cellsByRow[rowId] ?? [];
-    const ganttRowCells = scale.ticks.map((tick, tickIndex) => {
-      let dayRange = scale.tickToDayRange(tickIndex);
-
-      if (scale.type === "day") {
-        dayRange = { startDay: tick.day, endDay: tick.day };
-      }
-
+    const ganttRowCells = scale.ticks.map((_, tickIndex) => {
+      const dayRange = scale.tickToDayRange(tickIndex);
       if (!dayRange) {
         return (
           <div
