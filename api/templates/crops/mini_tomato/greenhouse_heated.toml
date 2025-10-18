@@ -1,19 +1,12 @@
 [template]
 id = "minitomato_house_heated"
 label = "ミニトマト(ハウス加温)"
-crop_id = "mt"
-crop_name = "ミニトマト"
-category = "vegetable"
+crop_ref = "mini_tomato"
 variant = "ハウス加温"
 price_per_a = 140000.0
 
 [horizon_hint]
 default_days = 170
-
-[seasonal]
-default = 0.9
-# 加温により冬でも生育が進む想定
-coeff_by_month = { "12"=1.0, "1"=1.05, "2"=1.0, "3"=0.95, "4"=0.90, "5"=0.85, "6"=0.85, "7"=0.85, "8"=0.90, "9"=0.95, "10"=1.0, "11"=1.0 }
 
 [[events]]
 id = "sow"
@@ -21,7 +14,6 @@ name = "播種"
 category = "播種"
 uses_land = false
 start_window_days = [1, 7]
-seasonal_scale = false
 labor_total_per_a = 2.5
 
 [[events]]
@@ -31,37 +23,25 @@ category = "定植"
 uses_land = true
 preceding_event_id = "sow"
 lag_days = [22, 30]
-seasonal_scale = true
 labor_total_per_a = 6.5
 
 [[events]]
-id = "harvest_start"
-name = "収穫開始"
+id = "harvest"
+name = "収穫"
 category = "収穫"
 uses_land = true
 preceding_event_id = "transplant"
-lag_days = [35, 50]
-seasonal_scale = true
+lag_days = [35, 90] 
 labor_total_per_a = 5.0
-
-[[events]]
-id = "harvest_end"
-name = "収穫終了"
-category = "収穫"
-uses_land = true
-preceding_event_id = "harvest_start"
-lag_days = [60, 90]
-seasonal_scale = true
 
 [[events]]
 id = "prune"
 name = "整枝・誘引"
-category = "管理"
-uses_land = false
+category = "その他"
+uses_land = true
 preceding_event_id = "transplant"
 lag_days = [7, 70]
 frequency_days = 7
-seasonal_scale = false
 labor_total_per_a = 3.5
 labor_daily_cap = 4.0
 
@@ -69,10 +49,9 @@ labor_daily_cap = 4.0
 id = "pesticide"
 name = "防除"
 category = "防除"
-uses_land = false
+uses_land = true
 preceding_event_id = "transplant"
 lag_days = [10, 130]
 frequency_days = 14
-seasonal_scale = false
 labor_total_per_a = 0.8
 labor_daily_cap = 3.0

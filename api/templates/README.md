@@ -7,34 +7,30 @@
 - テンプレは将来、手作業でファイル追加・編集するだけで拡張できる。
 
 ## 配置とファイル形式
-- ディレクトリ: `api/templates/crops/<crop>/<variant>.toml`
+- 作物マスター: `api/templates/catalog/crops.toml`
+- イベントテンプレ: `api/templates/crops/<crop>/<variant>.toml`
 - 形式: TOML（Python 3.13 の標準 `tomllib` で読み込み、追加の依存は不要）
 
-## テンプレート TOML のスキーマ（概要）
+## テンプレート TOML のスキーマ（概要・新方式）
 ```toml
 [template]
 id = "minitomato_rouchi"
 label = "ミニトマト(露地)"
-crop_id = "mt"
-crop_name = "ミニトマト"
-category = "vegetable"
-variant = "露地"          # UI 表示用
-price_per_a = 120000.0     # 円/a（ApiCrop の単位）
+crop_ref = "mt"           # 作物マスターへの参照（crops.toml の id）
+variant = "露地"           # UI 表示用
+price_per_a = 120000.0      # 円/a（ApiCrop の単位）
 
 [horizon_hint]
 default_days = 150         # 推奨の計画期間（任意）
 
-[seasonal]
-default = 1.0
-coeff_by_month = { "3"=1.0, "4"=0.95, "5"=0.90, "6"=0.85, "7"=0.85 }
+## 季節係数は廃止（開始日の月による倍率調整は行いません）
 
 [[events]]                 # 1件のイベント定義
 id = "sow"
 name = "播種"
-category = "播種"
+category = "播種"          # UI の EventCategory と一致
 uses_land = false
 start_window_days = [1, 7] # 計画 Day=1 からの相対ウィンドウ（両端含む）
-seasonal_scale = false # このイベントが季節係数の影響を受けるか（主にラグ日数に適用）
 labor_total_per_a = 2.0
 
 [[events]]
@@ -44,7 +40,6 @@ category = "定植"
 uses_land = true
 preceding_event_id = "sow"
 lag_days = [25, 35]        # ラグ（最小, 最大）。季節係数で倍率調整
-seasonal_scale = true      # このイベントのラグに季節係数を適用
 labor_total_per_a = 6.0
 ```
 
@@ -54,10 +49,8 @@ labor_total_per_a = 6.0
 - `frequency_days` … 近接抑止のための最小間隔（日）。（強制回数ではない）
 - `uses_land = true` … 占有区間（最初と最後の `uses_land=true` のイベントで区間が張られる）
 
-### 季節係数の適用（イベント単位）
-- `seasonal_scale` … 当該イベントのラグに係数を掛ける（default: true）。
-- 播種など開始ウィンドウは通常スケールしない想定。係数を効かせたい場合はラグで表現してください。
-- 例: 農薬散布など「決まった間隔」を守るイベントは `seasonal_scale = false` を推奨。
+### 注意
+- 季節係数は廃止しました。播種ウィンドウやラグは定義値のまま適用されます。
 
 ## 追加・編集方法
 1. 既存 TOML をコピーして新ファイルを作成
@@ -78,6 +71,5 @@ labor_total_per_a = 6.0
 }
 ```
 
-### 注意
-- 月別の生育係数 `coeff_by_month` は開始日の月を見てラグを倍率調整します（例: 0.85 で高速化）。
+### 補足
 - `ApiPlan` は lands/workers/resources を空配列で返します。必要に応じて UI 側で後から追加してください。

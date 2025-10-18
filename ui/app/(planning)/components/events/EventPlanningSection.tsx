@@ -403,7 +403,7 @@ export function EventPlanningSection({
         <div className="flex flex-row items-end justify-between">
           <div className="flex flex-wrap items-end gap-4">
             <label className="flex flex-col gap-1.5 text-sm text-slate-600 dark:text-slate-300">
-              <span className="font-medium">作型（近い名前を提案）</span>
+              <span className="font-medium">作型（選択中の作物に関連）</span>
               <select
                 value={selectedTemplateId}
                 onChange={(e) => setSelectedTemplateId(e.target.value)}

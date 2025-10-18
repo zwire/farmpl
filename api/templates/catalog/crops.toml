@@ -1,0 +1,17 @@
+[[crops]]
+id = "mini_tomato"
+name = "ミニトマト"
+category = "果菜類"
+aliases = ["みにとまと", "ミニトマト"]
+
+[[crops]]
+id = "cucumber"
+name = "キュウリ"
+category = "果菜類"
+aliases = ["きゅうり", "胡瓜"]
+
+[[crops]]
+id = "carrot"
+name = "ニンジン"
+category = "根菜類"
+aliases = ["にんじん", "人参"]

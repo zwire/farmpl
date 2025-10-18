@@ -25,6 +25,7 @@ type CropVariantItem = {
 type CropCatalogItem = {
   crop_name: string;
   category?: string | null;
+  aliases?: string[];
   variants: CropVariantItem[];
 };
 
@@ -102,6 +103,7 @@ export function CropsStepSection({
           ? `${item.crop_name}（${item.category}）`
           : item.crop_name,
         value: item.crop_name,
+        hint: (item.aliases ?? []).join(" "),
       }),
     );
 
