@@ -16,9 +16,9 @@
       "extensions": [
         "ms-python.python",
         "charliermarsh.ruff",
+        "tamasfe.even-better-toml",
         "biomejs.biome",
-        "openai.chatgpt",
-        "Pimzino.spec-workflow-mcp"
+        "openai.chatgpt"
       ],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "bash",
