@@ -67,7 +67,7 @@ interface EntityCardProps {
 
 export function EntityCard({ title, id, children, onRemove }: EntityCardProps) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white/80 p-4 backdrop-blur-sm transition-shadow hover:shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+    <div className="relative rounded-lg border border-slate-200 bg-white/80 p-4 backdrop-blur-sm transition-shadow hover:z-10 hover:shadow-sm focus-within:z-20 dark:border-slate-800 dark:bg-slate-900/50">
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col">
           <span className="font-semibold text-slate-800 dark:text-slate-200">

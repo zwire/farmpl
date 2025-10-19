@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 
 import type { PlanFormCrop, PlanFormState } from "@/lib/types/planning";
 import { createUniqueId } from "@/lib/utils/id";
@@ -8,63 +8,19 @@ import { roundToInt } from "@/lib/utils/number";
 import { ComboBox, type ComboBoxOption } from "../ComboBox";
 import { EntityCard, Field, SectionCard } from "../SectionElements";
 import type { PlanFormUpdater } from "./types";
+import { useTemplatesStore } from "@/lib/state/templates-store";
 
 type CropsStepSectionProps = {
   plan: PlanFormState;
   onPlanChange: PlanFormUpdater;
 };
 
-type CropVariantItem = {
-  template_id: string;
-  label: string;
-  variant?: string | null;
-  price_per_a?: number | null;
-  default_horizon_days?: number | null;
-};
-
-type CropCatalogItem = {
-  crop_name: string;
-  category?: string | null;
-  aliases?: string[];
-  variants: CropVariantItem[];
-};
-
 export function CropsStepSection({
   plan,
   onPlanChange,
 }: CropsStepSectionProps) {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_FARMPL_API_BASE ?? "";
-  const API_KEY = process.env.NEXT_PUBLIC_FARMPL_API_KEY ?? "";
-  const BEARER_TOKEN = process.env.NEXT_PUBLIC_FARMPL_BEARER_TOKEN ?? "";
-
-  const [catalog, setCatalog] = useState<CropCatalogItem[] | null>(null);
-  const [catalogError, setCatalogError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let aborted = false;
-    (async () => {
-      try {
-        if (!API_BASE_URL) return;
-        const url = `${API_BASE_URL.replace(/\/$/, "")}/v1/templates/crops`;
-        const headers: Record<string, string> = {};
-        if (API_KEY) headers["X-API-Key"] = API_KEY;
-        if (BEARER_TOKEN) headers.Authorization = `Bearer ${BEARER_TOKEN}`;
-        const resp = await fetch(url, { headers });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = (await resp.json()) as CropCatalogItem[];
-        if (!aborted) setCatalog(data);
-      } catch (error: unknown) {
-        if (!aborted) {
-          const message =
-            error instanceof Error ? error.message : String(error);
-          setCatalogError(message);
-        }
-      }
-    })();
-    return () => {
-      aborted = true;
-    };
-  }, [API_BASE_URL, API_KEY, BEARER_TOKEN]);
+  const catalog = useTemplatesStore((s) => s.crops);
+  const catalogError = useTemplatesStore((s) => s.error);
 
   const handleUpdate = (index: number, patch: Partial<PlanFormCrop>) => {
     onPlanChange((prev) => {
@@ -96,16 +52,19 @@ export function CropsStepSection({
     }));
   };
 
-  const buildCatalogOptions = () =>
-    (catalog ?? []).map(
-      (item): ComboBoxOption => ({
-        label: item.category
-          ? `${item.crop_name}（${item.category}）`
-          : item.crop_name,
-        value: item.crop_name,
-        hint: (item.aliases ?? []).join(" "),
-      }),
-    );
+  const buildCatalogOptions = useMemo(
+    () =>
+      (catalog ?? []).map(
+        (item): ComboBoxOption => ({
+          label: item.category
+            ? `${item.crop_name}（${item.category}）`
+            : item.crop_name,
+          value: item.crop_name,
+          hint: (item.aliases ?? []).join(" "),
+        }),
+      ),
+    [catalog],
+  );
 
   return (
     <SectionCard
@@ -140,7 +99,7 @@ export function CropsStepSection({
                       : crop.price,
                   });
                 }}
-                options={buildCatalogOptions()}
+                options={buildCatalogOptions}
                 disabled={!catalog || catalog.length === 0}
                 placeholder={catalogError ?? "テンプレートの作物名を選択"}
               />

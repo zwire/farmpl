@@ -124,7 +124,7 @@ export function ComboBox({
       {isOpen && !disabled && (
         <div
           ref={listRef}
-          className="absolute left-0 top-full z-50 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg"
+          className="absolute left-0 top-full z-[9999] mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg"
         >
           <div className="p-2">
             <input
