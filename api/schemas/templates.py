@@ -24,18 +24,14 @@ EventCategoryLiteral = Literal[
     "施肥",
     "除草",
     "防除",
+    "間引き",
     "整枝",
+    "摘心",
     "収穫",
     "出荷",
     "片付け",
     "その他",
 ]
-
-
-class HorizonHint(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    default_days: int | None = Field(default=None, gt=0)
 
 
 class TemplateEvent(BaseModel):
@@ -71,7 +67,6 @@ class CropTemplate(BaseModel):
     variant: str | None = None
     price_per_a: float | None = Field(default=None, ge=0)
     price_per_10a: float | None = Field(default=None, ge=0)
-    horizon_hint: HorizonHint = Field(default_factory=HorizonHint)
     events: list[TemplateEvent] = Field(default_factory=list)
 
     @field_validator("price_per_a")
@@ -100,7 +95,6 @@ class CropVariantItem(BaseModel):
     label: str
     variant: str | None = None
     price_per_a: float | None = None
-    default_horizon_days: int | None = None
 
 
 class CropCatalogItem(BaseModel):

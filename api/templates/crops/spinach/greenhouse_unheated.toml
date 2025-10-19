@@ -1,16 +1,16 @@
 [template]
-id = "carrot_outdoor"
-label = "ニンジン(露地)"
-crop_ref = "carrot"
-variant = "露地"
-price_per_a = 52600
+id = "spinach_greenhouse_unheated"
+label = "ほうれん草(ハウス無加温)"
+crop_ref = "spinach"
+variant = "ハウス無加温"
+price_per_a = 50000.0
 
 [[events]]
 id = "prepare_field"
 name = "圃場準備"
 category = "圃場準備"
 uses_land = true
-start_window_days = [1, 10]
+start_window_days = [1, 5]
 labor_total_per_a = 1.0
 
 [[events]]
@@ -19,16 +19,7 @@ name = "播種"
 category = "播種"
 uses_land = true
 preceding_event_id = "prepare_field"
-lag_days = [0, 9]
-labor_total_per_a = 0.8
-
-[[events]]
-id = "thin"
-name = "間引き"
-category = "間引き"
-uses_land = false
-preceding_event_id = "sow"
-lag_days = [20, 35]
+lag_days = [0, 1]
 labor_total_per_a = 1.0
 
 [[events]]
@@ -37,10 +28,9 @@ name = "防除"
 category = "防除"
 uses_land = false
 preceding_event_id = "sow"
-lag_days = [20, 100]
-frequency_days = 14
-labor_total_per_a = 0.6
-labor_daily_cap = 3.0
+lag_days = [15, 30]
+frequency_days = 10
+labor_total_per_a = 0.5
 
 [[events]]
 id = "harvest"
@@ -48,8 +38,8 @@ name = "収穫"
 category = "収穫"
 uses_land = true
 preceding_event_id = "sow"
-lag_days = [80, 120]
-labor_total_per_a = 7.3
+lag_days = [25, 45]
+labor_total_per_a = 6.0
 
 [[events]]
 id = "shipping"
@@ -57,9 +47,8 @@ name = "出荷"
 category = "出荷"
 uses_land = false
 preceding_event_id = "harvest"
-lag_days = [1, 2]
-labor_total_per_a = 10.0
-labor_daily_cap = 3.0
+lag_days = [0, 1]
+labor_total_per_a = 3.0
 
 [[events]]
 id = "cleanup"
@@ -67,6 +56,5 @@ name = "片付け"
 category = "片付け"
 uses_land = true
 preceding_event_id = "harvest"
-lag_days = [10, 20]
-labor_total_per_a = 1.0
-labor_daily_cap = 3.0
+lag_days = [1, 3]
+labor_total_per_a = 0.5

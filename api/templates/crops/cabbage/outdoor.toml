@@ -1,9 +1,9 @@
 [template]
-id = "minitomato_outdoor"
-label = "ミニトマト(露地)"
-crop_ref = "mini_tomato"
+id = "cabbage_outdoor"
+label = "キャベツ(露地)"
+crop_ref = "cabbage"
 variant = "露地"
-price_per_a = 200000.0
+price_per_a = 45000.0
 
 [[events]]
 id = "prepare_field"
@@ -11,15 +11,15 @@ name = "圃場準備"
 category = "圃場準備"
 uses_land = true
 start_window_days = [1, 10]
-labor_total_per_a = 6.0
+labor_total_per_a = 1.0
 
 [[events]]
 id = "sow"
 name = "播種"
 category = "播種"
 uses_land = false
-start_window_days = [1, 7]
-labor_total_per_a = 2.0
+start_window_days = [1, 10]
+labor_total_per_a = 0.5
 
 [[events]]
 id = "transplant"
@@ -28,29 +28,27 @@ category = "定植"
 uses_land = true
 preceding_event_id = "sow"
 lag_days = [25, 35]
-labor_total_per_a = 7.0
+labor_total_per_a = 1.5
 
 [[events]]
-id = "prune"
-name = "整枝"
-category = "整枝"
-uses_land = true
+id = "weeding"
+name = "除草"
+category = "除草"
+uses_land = false
 preceding_event_id = "transplant"
-lag_days = [10, 60]
-frequency_days = 7
-labor_total_per_a = 10.0
-labor_daily_cap = 4.0
+lag_days = [20, 60]
+frequency_days = 20
+labor_total_per_a = 1.0
 
 [[events]]
 id = "pesticide"
 name = "防除"
 category = "防除"
-uses_land = true
+uses_land = false
 preceding_event_id = "transplant"
-lag_days = [10, 120]
-frequency_days = 14
-labor_total_per_a = 3.0
-labor_daily_cap = 3.0
+lag_days = [20, 80]
+frequency_days = 15
+labor_total_per_a = 0.5
 
 [[events]]
 id = "harvest"
@@ -58,8 +56,8 @@ name = "収穫"
 category = "収穫"
 uses_land = true
 preceding_event_id = "transplant"
-lag_days = [40, 70]
-labor_total_per_a = 25.0
+lag_days = [70, 100]
+labor_total_per_a = 2.5
 
 [[events]]
 id = "shipping"
@@ -67,9 +65,8 @@ name = "出荷"
 category = "出荷"
 uses_land = false
 preceding_event_id = "harvest"
-lag_days = [1, 2]
-labor_total_per_a = 5.0
-labor_daily_cap = 3.0
+lag_days = [0, 1]
+labor_total_per_a = 1.5
 
 [[events]]
 id = "cleanup"
@@ -77,6 +74,5 @@ name = "片付け"
 category = "片付け"
 uses_land = true
 preceding_event_id = "harvest"
-lag_days = [10, 20]
-labor_total_per_a = 2.0
-labor_daily_cap = 3.0
+lag_days = [5, 10]
+labor_total_per_a = 0.5

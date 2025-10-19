@@ -1,0 +1,59 @@
+[template]
+id = "asparagus_outdoor_mother_fern"
+label = "アスパラガス(露地立茎栽培)"
+crop_ref = "asparagus"
+variant = "露地立茎栽培"
+price_per_a = 90000.0
+
+[[events]]
+id = "start_of_season_prep"
+name = "春先管理"
+category = "圃場準備"
+uses_land = true
+start_window_days = [1, 10]
+labor_total_per_a = 3.0
+
+[[events]]
+id = "spring_harvest"
+name = "春芽収穫"
+category = "収穫"
+uses_land = true
+preceding_event_id = "start_of_season_prep"
+lag_days = [10, 20]
+labor_total_per_a = 15.0
+
+[[events]]
+id = "setup_mother_ferns"
+name = "立茎"
+category = "整枝"
+uses_land = true
+preceding_event_id = "spring_harvest"
+lag_days = [60, 70]
+labor_total_per_a = 2.0
+
+[[events]]
+id = "summer_autumn_harvest"
+name = "夏秋芽収穫"
+category = "収穫"
+uses_land = true
+preceding_event_id = "setup_mother_ferns"
+lag_days = [20, 30]
+labor_total_per_a = 10.0
+
+[[events]]
+id = "shipping"
+name = "出荷"
+category = "出荷"
+uses_land = false
+preceding_event_id = "summer_autumn_harvest"
+lag_days = [1, 2]
+labor_total_per_a = 2.0
+
+[[events]]
+id = "end_of_season_cleanup"
+name = "刈り取り・片付け"
+category = "片付け"
+uses_land = true
+preceding_event_id = "summer_autumn_harvest"
+lag_days = [90, 100]
+labor_total_per_a = 3.0

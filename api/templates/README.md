@@ -11,7 +11,7 @@
 - イベントテンプレ: `api/templates/crops/<crop>/<variant>.toml`
 - 形式: TOML（Python 3.13 の標準 `tomllib` で読み込み、追加の依存は不要）
 
-## テンプレート TOML のスキーマ（概要・新方式）
+## テンプレート TOML のスキーマ
 ```toml
 [template]
 id = "minitomato_rouchi"
@@ -19,9 +19,6 @@ label = "ミニトマト(露地)"
 crop_ref = "mt"           # 作物マスターへの参照（crops.toml の id）
 variant = "露地"           # UI 表示用
 price_per_a = 120000.0      # 円/a（ApiCrop の単位）
-
-[horizon_hint]
-default_days = 150         # 推奨の計画期間（任意）
 
 ## 季節係数は廃止（開始日の月による倍率調整は行いません）
 

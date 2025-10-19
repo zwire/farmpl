@@ -3,10 +3,15 @@ id = "cucumber_house_unheated"
 label = "キュウリ(ハウス無加温)"
 crop_ref = "cucumber"
 variant = "ハウス無加温"
-price_per_a = 110000.0
+price_per_a = 200000.0
 
-[horizon_hint]
-default_days = 145
+[[events]]
+id = "prepare_field"
+name = "圃場準備"
+category = "圃場準備"
+uses_land = true
+start_window_days = [1, 10]
+labor_total_per_a = 8.0
 
 [[events]]
 id = "sow"
@@ -23,26 +28,17 @@ category = "定植"
 uses_land = true
 preceding_event_id = "sow"
 lag_days = [20, 30]
-labor_total_per_a = 4.0
+labor_total_per_a = 6.0
 
 [[events]]
-id = "harvest"
-name = "収穫"
-category = "収穫"
-uses_land = true
-preceding_event_id = "transplant"
-lag_days = [25, 65]
-labor_total_per_a = 4.0
-
-[[events]]
-id = "care"
-name = "摘心・管理"
-category = "その他"
+id = "prune"
+name = "摘心"
+category = "摘心"
 uses_land = true
 preceding_event_id = "transplant"
 lag_days = [7, 55]
 frequency_days = 7
-labor_total_per_a = 2.5
+labor_total_per_a = 20.0
 labor_daily_cap = 4.0
 
 [[events]]
@@ -53,5 +49,34 @@ uses_land = true
 preceding_event_id = "transplant"
 lag_days = [10, 120]
 frequency_days = 14
-labor_total_per_a = 0.7
+labor_total_per_a = 4.5
+labor_daily_cap = 3.0
+
+[[events]]
+id = "harvest"
+name = "収穫"
+category = "収穫"
+uses_land = true
+preceding_event_id = "transplant"
+lag_days = [25, 65]
+labor_total_per_a = 45.0
+
+[[events]]
+id = "shipping"
+name = "出荷"
+category = "出荷"
+uses_land = false
+preceding_event_id = "harvest"
+lag_days = [1, 2]
+labor_total_per_a = 10.0
+labor_daily_cap = 3.0
+
+[[events]]
+id = "cleanup"
+name = "片付け"
+category = "片付け"
+uses_land = true
+preceding_event_id = "harvest"
+lag_days = [10, 20]
+labor_total_per_a = 5.0
 labor_daily_cap = 3.0

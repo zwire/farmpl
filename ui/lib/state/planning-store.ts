@@ -47,7 +47,7 @@ const isDraftExpired = (savedAt: string | null | undefined): boolean => {
   return Date.now() - timestamp > draftTtlMs;
 };
 
-const DEFAULT_PLAN_LENGTH_DAYS = 30;
+const DEFAULT_PLAN_LENGTH_DAYS = 365;
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 const formatIsoDate = (date: Date): IsoDateString => {

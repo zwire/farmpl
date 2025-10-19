@@ -1,0 +1,80 @@
+[template]
+id = "potato_outdoor"
+label = "ジャガイモ(露地)"
+crop_ref = "potato"
+variant = "露地"
+price_per_a = 30000.0
+
+[[events]]
+id = "prepare_field"
+name = "圃場準備"
+category = "圃場準備"
+uses_land = true
+start_window_days = [1, 10]
+labor_total_per_a = 1.0
+
+[[events]]
+id = "planting"
+name = "植付"
+category = "定植"
+uses_land = true
+preceding_event_id = "prepare_field"
+lag_days = [0, 10]
+labor_total_per_a = 1.5
+
+[[events]]
+id = "hilling_up"
+name = "土寄せ"
+category = "その他"
+uses_land = false
+preceding_event_id = "planting"
+lag_days = [30, 40]
+labor_total_per_a = 1.0
+
+[[events]]
+id = "pesticide"
+name = "防除"
+category = "防除"
+uses_land = false
+preceding_event_id = "planting"
+lag_days = [20, 80]
+frequency_days = 15
+labor_total_per_a = 0.5
+
+[[events]]
+id = "vine_removal"
+name = "茎葉処理"
+category = "その他"
+uses_land = false
+preceding_event_id = "hilling_up"
+lag_days = [40, 60]
+labor_total_per_a = 0.5
+
+[[events]]
+id = "harvest"
+name = "収穫"
+category = "収穫"
+uses_land = true
+preceding_event_id = "vine_removal"
+lag_days = [7, 14]
+labor_total_per_a = 2.5
+
+[[events]]
+id = "shipping"
+name = "出荷"
+category = "出荷"
+uses_land = false
+preceding_event_id = "harvest"
+lag_days = [1, 5]
+labor_total_per_a = 0.5
+labor_daily_cap = 3.0
+
+[[events]]
+id = "cleanup"
+name = "片付け"
+category = "片付け"
+uses_land = true
+preceding_event_id = "harvest"
+lag_days = [5, 10]
+labor_total_per_a = 0.5
+labor_daily_cap = 3.0

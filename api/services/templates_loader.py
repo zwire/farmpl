@@ -101,7 +101,6 @@ def load_all() -> list[LoadedTemplate]:
                 "crop_name": crop_name,
                 "category": category,
                 "events": raw.get("events", []),
-                "horizon_hint": raw.get("horizon_hint", {}),
             }
             data = CropTemplate.model_validate(normalized)
             out.append(LoadedTemplate(path=p, data=data))
@@ -127,7 +126,6 @@ def list_items() -> list[TemplateListItem]:
                 crop_name=lt.data.crop_name,
                 variant=lt.data.variant,
                 category=lt.data.category,
-                default_horizon_days=lt.data.horizon_hint.default_days,
             )
         )
     return items
@@ -165,7 +163,6 @@ def build_catalog() -> list[CropCatalogItem]:
                     price_per_a=lt.data.price_per_a
                     if lt.data.price_per_a is not None
                     else (lt.data.price_per_10a or 0.0) / 10.0,
-                    default_horizon_days=lt.data.horizon_hint.default_days,
                 )
             )
         items.append(

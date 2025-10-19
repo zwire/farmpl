@@ -15,3 +15,117 @@ id = "carrot"
 name = "ニンジン"
 category = "根菜類"
 aliases = ["にんじん", "人参"]
+
+[[crops]]
+id = "large_tomato"
+name = "大玉トマト"
+category = "果菜類"
+aliases = ["おおだまとまと", "トマト", "とまと"]
+
+[[crops]]
+id = "processing_tomato"
+name = "加工用トマト"
+category = "果菜類"
+aliases = ["かこうようとまと"]
+
+[[crops]]
+id = "daikon"
+name = "ダイコン"
+category = "根菜類"
+aliases = ["だいこん", "大根"]
+
+[[crops]]
+id = "potato"
+name = "ジャガイモ"
+category = "根菜類"
+aliases = ["じゃがいも", "馬鈴薯"]
+
+[[crops]]
+id = "sweet_potato"
+name = "サツマイモ"
+category = "根菜類"
+aliases = ["さつまいも", "甘藷"]
+
+[[crops]]
+id = "edamame"
+name = "エダマメ"
+category = "豆類"
+aliases = ["えだまめ", "枝豆"]
+
+[[crops]]
+id = "okra"
+name = "オクラ"
+category = "果菜類"
+aliases = ["おくら"]
+
+[[crops]]
+id = "onion"
+name = "タマネギ"
+category = "葉茎菜類"
+aliases = ["たまねぎ", "玉葱"]
+
+[[crops]]
+id = "pumpkin"
+name = "カボチャ"
+category = "果菜類"
+aliases = ["かぼちゃ", "南瓜"]
+
+[[crops]]
+id = "asparagus"
+name = "アスパラガス"
+category = "葉茎菜類"
+aliases = ["あすぱらがす"]
+
+[[crops]]
+id = "watermelon"
+name = "スイカ"
+category = "果菜類"
+aliases = ["すいか", "西瓜"]
+
+[[crops]]
+id = "taro"
+name = "サトイモ"
+category = "根菜類"
+aliases = ["さといも", "里芋"]
+
+[[crops]]
+id = "sweet_corn"
+name = "スイートコーン"
+category = "果菜類"
+aliases = ["すいーとこーん"]
+
+[[crops]]
+id = "long_onion"
+name = "長ネギ"
+category = "葉茎菜類"
+aliases = ["ながねぎ", "白ネギ"]
+
+[[crops]]
+id = "broccoli"
+name = "ブロッコリー"
+category = "葉茎菜類"
+aliases = ["ぶろっこりー"]
+
+[[crops]]
+id = "cabbage"
+name = "キャベツ"
+category = "葉茎菜類"
+aliases = ["きゃべつ"]
+
+[[crops]]
+id = "lettuce"
+name = "レタス"
+category = "葉茎菜類"
+aliases = ["れたす"]
+
+[[crops]]
+id = "spinach"
+name = "ほうれん草"
+category = "葉茎菜類"
+aliases = ["ほうれんそう", "ホウレンソウ"]
+
+[[crops]]
+id = "nanohana"
+name = "菜の花"
+category = "葉茎菜類"
+aliases = ["なのはな"]

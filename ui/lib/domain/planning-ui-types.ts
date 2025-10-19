@@ -72,7 +72,9 @@ export type EventCategory =
   | "施肥"
   | "除草"
   | "防除"
+  | "間引き"
   | "整枝"
+  | "摘心"
   | "片付け"
   | "収穫"
   | "出荷"
@@ -86,7 +88,9 @@ export const EVENT_CATEGORY_OPTIONS: readonly EventCategory[] = [
   "施肥",
   "除草",
   "防除",
+  "間引き",
   "整枝",
+  "摘心",
   "収穫",
   "出荷",
   "片付け",
