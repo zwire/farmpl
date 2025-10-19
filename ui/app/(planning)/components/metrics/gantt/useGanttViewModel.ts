@@ -1,6 +1,10 @@
 import { useMemo } from "react";
 import type { GanttViewMode } from "@/lib/state/view-preferences";
-import { computeThirdRanges, paintSpanOnDayCells, thirdStartDay } from "@/lib/utils/thirds";
+import {
+  computeThirdRanges,
+  paintSpanOnDayCells,
+  thirdStartDay,
+} from "@/lib/utils/thirds";
 import type { GanttViewModel, LandPeriodCell } from "./useGanttData";
 
 // Re-exporting LandDayCell as GanttViewCell for semantic clarity in the view model.

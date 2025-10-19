@@ -58,8 +58,9 @@ def _plan_to_api(plan: PlanRequest) -> dict[str, Any]:
             "id": e.id,
             "crop_id": e.crop_id,
             "name": e.name,
-            "start_cond": sorted(e.start_cond or []),
-            "end_cond": sorted(e.end_cond or []),
+            # compress to endpoints for API
+            "start_min_day": (min(e.start_cond) if e.start_cond else None),
+            "end_max_day": (max(e.end_cond) if e.end_cond else None),
             "uses_land": bool(getattr(e, "uses_land", False)),
         }
         for k in (

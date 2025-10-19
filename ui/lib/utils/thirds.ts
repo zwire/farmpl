@@ -12,15 +12,22 @@ export function computeThirdRanges(
     .filter((v): v is DayRange => !!v);
 }
 
-export function paintSpanOnDayCells<T extends {
-  cropId?: string;
-  cropName?: string;
-  cropStart?: boolean;
-  cropEnd?: boolean;
-  events?: unknown[];
-}>(
+export function paintSpanOnDayCells<
+  T extends {
+    cropId?: string;
+    cropName?: string;
+    cropStart?: boolean;
+    cropEnd?: boolean;
+    events?: unknown[];
+  },
+>(
   cells: T[],
-  span: { startIndex: number; endIndex: number; cropId: string; cropName: string },
+  span: {
+    startIndex: number;
+    endIndex: number;
+    cropId: string;
+    cropName: string;
+  },
   thirdRanges: DayRange[],
 ): void {
   const clamp = (v: number) => Math.max(0, Math.min(v, cells.length - 1));
@@ -33,7 +40,8 @@ export function paintSpanOnDayCells<T extends {
     const end = clamp(rng.endDay);
     for (let di = start; di <= end; di += 1) {
       const cell = cells[di];
-      const nextStart = (cell.cropStart ?? false) || (isFirstThird && di === start);
+      const nextStart =
+        (cell.cropStart ?? false) || (isFirstThird && di === start);
       const nextEnd = (cell.cropEnd ?? false) || (isLastThird && di === end);
       cells[di] = {
         ...cell,
@@ -46,8 +54,10 @@ export function paintSpanOnDayCells<T extends {
   }
 }
 
-export function thirdStartDay(thirdRanges: DayRange[], thirdIndex: number): number {
+export function thirdStartDay(
+  thirdRanges: DayRange[],
+  thirdIndex: number,
+): number {
   const r = thirdRanges[thirdIndex];
   return r ? r.startDay : -1;
 }
-

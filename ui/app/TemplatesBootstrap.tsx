@@ -14,4 +14,3 @@ export function TemplatesBootstrap() {
   }, [fetchCropsOnce]);
   return null;
 }
-

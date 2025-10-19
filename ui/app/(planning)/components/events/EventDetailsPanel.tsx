@@ -4,11 +4,11 @@ import { useId, useMemo, useState } from "react";
 
 import type {
   DateRange,
+  IsoDateString,
   PlanUiEvent,
   PlanUiState,
 } from "@/lib/domain/planning-ui-types";
 import { EVENT_CATEGORY_OPTIONS } from "@/lib/domain/planning-ui-types";
-import { PlanningEventDateUtils } from "@/lib/state/planning-store";
 import { formatIdHint } from "@/lib/utils/id";
 import {
   ComboBox,
@@ -79,21 +79,36 @@ export function EventDetailsPanel({
     [],
   );
 
-  const startRanges = useMemo(() => {
-    if (!selectedEvent) return [];
-    return PlanningEventDateUtils.collapseDatesToRanges(
-      selectedEvent.startDates,
-      plan.horizon,
-    );
-  }, [plan.horizon, selectedEvent]);
+  // 単一区間として両端だけを扱う
+  const effectiveRange = useMemo(() => {
+    if (!selectedEvent) return [] as DateRange[];
+    const start = selectedEvent.startDates?.[0] || null;
+    const end = selectedEvent.endDates?.[0] || null;
+    return [
+      {
+        start,
+        end,
+      },
+    ];
+  }, [selectedEvent]);
 
-  const endRanges = useMemo(() => {
-    if (!selectedEvent) return [];
-    return PlanningEventDateUtils.collapseDatesToRanges(
-      selectedEvent.endDates,
-      plan.horizon,
-    );
-  }, [plan.horizon, selectedEvent]);
+  const toEnvelope = (ranges: DateRange[]): DateRange[] => {
+    if (ranges.length <= 1) return ranges;
+    const starts = ranges
+      .map((r) => r.start)
+      .filter(Boolean) as IsoDateString[];
+    const ends = ranges.map((r) => r.end).filter(Boolean) as IsoDateString[];
+    return [
+      {
+        start: (starts.length
+          ? starts.sort()[0]
+          : null) as IsoDateString | null,
+        end: (ends.length
+          ? ends.sort()[ends.length - 1]
+          : null) as IsoDateString | null,
+      },
+    ];
+  };
 
   const resourceOptions = useMemo<ComboBoxOption[]>(
     () =>
@@ -194,25 +209,14 @@ export function EventDetailsPanel({
     });
   };
 
-  const handleStartRangesChange = (ranges: DateRange[]) => {
-    const expanded = PlanningEventDateUtils.expandRangesToDateList(
-      ranges,
-      plan.horizon,
-    );
+  const handleUnifiedRangeChange = (ranges: DateRange[]) => {
+    const r = ranges[0] ?? { start: null, end: null };
+    const start = r.start || undefined;
+    const end = r.end || undefined;
     update((prev) => ({
       ...prev,
-      startDates: expanded,
-    }));
-  };
-
-  const handleEndRangesChange = (ranges: DateRange[]) => {
-    const expanded = PlanningEventDateUtils.expandRangesToDateList(
-      ranges,
-      plan.horizon,
-    );
-    update((prev) => ({
-      ...prev,
-      endDates: expanded,
+      startDates: start ? [start] : undefined,
+      endDates: end ? [end] : undefined,
     }));
   };
 
@@ -313,26 +317,15 @@ export function EventDetailsPanel({
 
         {!selectedEvent.precedingEventId && (
           <div className="flex flex-col gap-3">
-            <Field label="開始可能期間">
+            <Field label="実行可能期間">
               <small className="block text-[11px] text-slate-400">
-                開始可能期間を指定します。未設定の場合は制約なしです。
+                期間は連続区間として扱われます。未設定の場合は制約なしです。
               </small>
               <DateRangeInput
-                ranges={startRanges}
-                onChange={handleStartRangesChange}
+                ranges={toEnvelope(effectiveRange)}
+                onChange={handleUnifiedRangeChange}
                 horizon={plan.horizon}
-                emptyMessage="開始可能な期間が登録されていません"
-              />
-            </Field>
-            <Field label="締切期間">
-              <small className="block text-[11px] text-slate-400">
-                締切期間を指定します。未設定の場合は制約なしです。
-              </small>
-              <DateRangeInput
-                ranges={endRanges}
-                onChange={handleEndRangesChange}
-                horizon={plan.horizon}
-                emptyMessage="締切期間が登録されていません"
+                emptyMessage="実行可能な期間が登録されていません"
               />
             </Field>
           </div>

@@ -155,8 +155,9 @@ class ApiEvent(BaseModel):
     crop_id: str
     name: str
     category: str | None = None
-    start_cond: set[int] | None = None
-    end_cond: set[int] | None = None
+    # Endpoints only (0-based day indices, inclusive)
+    start_min_day: int | None = Field(default=None, ge=0)
+    end_max_day: int | None = Field(default=None, ge=0)
     frequency_days: int | None = Field(default=None, gt=0)
     preceding_event_id: str | None = None
     lag_min_days: int | None = None
@@ -373,6 +374,21 @@ class ApiPlan(BaseModel):
             check_days(f"worker:{w.id}", w.blocked_days)
         for r in self.resources:
             check_days(f"resource:{r.id}", r.blocked_days)
+
+        # Check event endpoints in range
+        for e in self.events:
+            if e.start_min_day is not None and (
+                e.start_min_day < 0 or e.start_min_day > max_day
+            ):
+                raise ValueError(
+                    f"event:{e.id}.start_min_day が範囲外です(0..{max_day}): {e.start_min_day}"
+                )
+            if e.end_max_day is not None and (
+                e.end_max_day < 0 or e.end_max_day > max_day
+            ):
+                raise ValueError(
+                    f"event:{e.id}.end_max_day が範囲外です(0..{max_day}): {e.end_max_day}"
+                )
 
         return self
 

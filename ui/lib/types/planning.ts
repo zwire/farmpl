@@ -39,8 +39,8 @@ export interface ApiEvent {
   crop_id: string;
   name: string;
   category?: string | null;
-  start_cond?: number[] | null;
-  end_cond?: number[] | null;
+  start_min_day?: number | null;
+  end_max_day?: number | null;
   frequency_days?: number | null;
   preceding_event_id?: string | null;
   lag_min_days?: number | null;

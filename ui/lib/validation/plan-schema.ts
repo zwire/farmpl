@@ -461,6 +461,18 @@ export const normalizeArea = (measurement: AreaMeasurement): number =>
 export const normalizePricePerA = (measurement: PriceMeasurement): number =>
   measurement.unit === "a" ? measurement.value : measurement.value / 10;
 
+// Reduce day lists to minimal endpoints for API payload
+const endpointsOnly = {
+  start(cond?: number[] | null): number[] | null {
+    if (!cond || cond.length === 0) return null;
+    return [Math.min(...cond)];
+  },
+  end(cond?: number[] | null): number[] | null {
+    if (!cond || cond.length === 0) return null;
+    return [Math.max(...cond)];
+  },
+};
+
 export const buildApiPlanPayload = (plan: PlanFormState): ApiPlan => {
   const parsed = planFormSchema.parse(plan);
 
@@ -481,8 +493,10 @@ export const buildApiPlanPayload = (plan: PlanFormState): ApiPlan => {
       crop_id: event.cropId,
       name: event.name,
       category: event.category ?? null,
-      start_cond: event.startCond ?? null,
-      end_cond: event.endCond ?? null,
+      // Send only endpoints to match API semantics
+      start_min_day:
+        endpointsOnly.start(event.startCond ?? undefined)?.[0] ?? null,
+      end_max_day: endpointsOnly.end(event.endCond ?? undefined)?.[0] ?? null,
       frequency_days: event.frequencyDays ?? null,
       preceding_event_id: event.precedingEventId ?? null,
       lag_min_days: event.lag?.min ?? null,

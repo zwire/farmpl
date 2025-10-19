@@ -39,12 +39,12 @@ def _to_api_events(
     event_id_map: dict[str, str],
 ) -> Iterable[ApiEvent]:
     for e in tpl.events:
-        start_cond = None
-        end_cond = None
+        start_min = None
+        end_max = None
         if e.start_window_days is not None:
             s, e2 = e.start_window_days
-            start_cond = set(range(s, e2 + 1))
-            end_cond = set(range(s, e2 + 1))
+            start_min = s
+            end_max = e2
 
         lag_min = None
         lag_max = None
@@ -58,8 +58,8 @@ def _to_api_events(
             crop_id=crop_id,
             name=e.name,
             category=e.category,
-            start_cond=start_cond,
-            end_cond=end_cond,
+            start_min_day=start_min,
+            end_max_day=end_max,
             frequency_days=e.frequency_days,
             preceding_event_id=mapped_preceding,
             lag_min_days=lag_min,

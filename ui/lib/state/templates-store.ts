@@ -50,4 +50,3 @@ export const useTemplatesStore = create<TemplatesState>((set, get) => ({
     }
   },
 }));
-

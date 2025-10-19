@@ -35,8 +35,7 @@ const DEFAULT_NODE_STYLE = {
   borderRadius: "0.5rem",
   borderWidth: 2,
   background: "white",
-  boxShadow:
-    "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+  boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
 } as const;
 const SELECTED_BORDER_COLOR = "#0ea5e9";
 const UNSELECTED_BORDER_COLOR = "transparent";
@@ -165,7 +164,9 @@ const generateNodes = (
       selected: isSelected,
       style: {
         ...DEFAULT_NODE_STYLE,
-        borderColor: isSelected ? SELECTED_BORDER_COLOR : UNSELECTED_BORDER_COLOR,
+        borderColor: isSelected
+          ? SELECTED_BORDER_COLOR
+          : UNSELECTED_BORDER_COLOR,
       },
     } satisfies Node;
   });
@@ -248,7 +249,9 @@ const syncNodes = (
       selected: isSelected,
       style: {
         ...DEFAULT_NODE_STYLE,
-        borderColor: isSelected ? SELECTED_BORDER_COLOR : UNSELECTED_BORDER_COLOR,
+        borderColor: isSelected
+          ? SELECTED_BORDER_COLOR
+          : UNSELECTED_BORDER_COLOR,
       },
     } satisfies Node;
   });

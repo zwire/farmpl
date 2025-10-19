@@ -4,7 +4,11 @@ import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { PlanningCalendarService } from "@/lib/domain/planning-calendar";
-import type { PlanUiEvent, PlanUiState } from "@/lib/domain/planning-ui-types";
+import type {
+  IsoDateString,
+  PlanUiEvent,
+  PlanUiState,
+} from "@/lib/domain/planning-ui-types";
 import { createUniqueId, formatIdHint } from "@/lib/utils/id";
 import { SectionCard } from "../request-wizard/SectionElements";
 import { EventDetailsPanel } from "./EventDetailsPanel";
@@ -208,8 +212,8 @@ export function EventPlanningSection({
           crop_id: string;
           name: string;
           category?: string | null;
-          start_cond?: number[] | null;
-          end_cond?: number[] | null;
+          start_min_day?: number | null;
+          end_max_day?: number | null;
           frequency_days?: number | null;
           preceding_event_id?: string | null;
           lag_min_days?: number | null;
@@ -223,10 +227,13 @@ export function EventPlanningSection({
         }[];
       } = await resp.json();
 
-      const toIsoDates = (indices?: number[] | null) =>
-        (indices ?? undefined)?.map((i) =>
-          PlanningCalendarService.dayIndexToDate(plan.horizon.startDate, i),
-        );
+      const toIsoDate = (index: number | null | undefined) =>
+        typeof index === "number"
+          ? PlanningCalendarService.dayIndexToDate(
+              plan.horizon.startDate,
+              index,
+            )
+          : undefined;
 
       const mapped = data.events.map(
         (ev): PlanUiEvent => ({
@@ -234,8 +241,12 @@ export function EventPlanningSection({
           cropId: selectedCropId,
           name: ev.name,
           category: ev.category ?? undefined,
-          startDates: toIsoDates(ev.start_cond),
-          endDates: toIsoDates(ev.end_cond),
+          startDates: toIsoDate(ev.start_min_day)
+            ? [toIsoDate(ev.start_min_day) as IsoDateString]
+            : undefined,
+          endDates: toIsoDate(ev.end_max_day)
+            ? [toIsoDate(ev.end_max_day) as IsoDateString]
+            : undefined,
           frequencyDays: ev.frequency_days ?? undefined,
           precedingEventId: ev.preceding_event_id ?? undefined,
           lag:

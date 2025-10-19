@@ -1,7 +1,11 @@
 import { useMemo } from "react";
 import type { PlanUiState } from "@/lib/domain/planning-ui-types";
 import type { OptimizationTimelineView } from "@/lib/types/planning";
-import { computeThirdRanges, paintSpanOnDayCells, thirdStartDay } from "@/lib/utils/thirds";
+import {
+  computeThirdRanges,
+  paintSpanOnDayCells,
+  thirdStartDay,
+} from "@/lib/utils/thirds";
 
 export interface LandPeriodCell {
   cropId?: string;

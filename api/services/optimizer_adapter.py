@@ -60,15 +60,13 @@ def _compress_api_plan_to_third(api: ApiPlan) -> PlanRequest:
 
     T = len(third_keys)
 
-    # Helper to map a 0-based day set to third indices set (1-based)
-    def map_days_set(days: set[int] | None) -> set[int] | None:
-        if not days:
+    # Helper to map a single 0-based day index to third index set (1-based)
+    def map_day_endpoint(day0: int | None) -> set[int] | None:
+        if day0 is None:
             return None
-        out: set[int] = set()
-        for day0 in days:
-            if 0 <= day0 < num_days:
-                out.add(day_to_third_idx[day0])
-        return out
+        if 0 <= day0 < num_days:
+            return {day_to_third_idx[day0]}
+        return None
 
     # Count days per third and per-third fully-blocked markers per entity
     days_in_third: list[int] = [0] * (T + 1)  # 1..T
@@ -105,8 +103,8 @@ def _compress_api_plan_to_third(api: ApiPlan) -> PlanRequest:
     # Events (map windows and day-based params)
     events = []
     for e in api.events:
-        start_set_th = map_days_set(e.start_cond)
-        end_set_th = map_days_set(e.end_cond)
+        start_set_th = map_day_endpoint(e.start_min_day)
+        end_set_th = map_day_endpoint(e.end_max_day)
         freq_th = None
         if e.frequency_days and e.frequency_days > 0:
             freq_th = int(math.ceil(e.frequency_days / 10.0))

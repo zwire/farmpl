@@ -164,19 +164,6 @@ export const createThirdScale = ({
   };
 };
 
-// Backwards-compatible wrapper used in tests. Only 'third' is supported.
-export function createTimelineScale({
-  type,
-  startDateIso,
-  totalDays,
-}: {
-  type: TimelineScaleType;
-  startDateIso: string;
-  totalDays: number;
-}): TimelineScale {
-  return createThirdScale({ startDateIso, totalDays, minUnitWidth: 28 });
-}
-
 const parseIsoDate = (iso: string): Date => {
   const datePart = iso.split("T")[0];
   const [year, month, day] = datePart.split("-").map(Number);
@@ -185,4 +172,3 @@ const parseIsoDate = (iso: string): Date => {
 
 const addDays = (date: Date, offset: number): Date =>
   new Date(date.getTime() + offset * DAY_IN_MS);
-

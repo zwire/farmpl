@@ -26,10 +26,25 @@ export function DateRangeInput({
   horizon,
   emptyMessage = "まだ利用不可期間がありません。下の「期間を追加」を押してください。",
 }: DateRangeInputProps) {
+  const toEnvelope = (list: DateRange[]): DateRange[] => {
+    if (list.length <= 1) return list;
+    const starts = list.map((r) => r.start).filter(Boolean) as IsoDateString[];
+    const ends = list.map((r) => r.end).filter(Boolean) as IsoDateString[];
+    const env: DateRange = {
+      start: (starts.length ? starts.sort()[0] : null) as IsoDateString | null,
+      end: (ends.length
+        ? ends.sort()[ends.length - 1]
+        : null) as IsoDateString | null,
+    };
+    return [env];
+  };
+
+  // Always normalize to a single envelope
+  const normalized = toEnvelope(ranges);
   const updateRange = (index: number, patch: Partial<DateRange>) => {
-    const next = [...ranges];
+    const next = [...normalized];
     next[index] = { ...next[index], ...patch };
-    onChange(next);
+    onChange(toEnvelope(next));
   };
 
   const handleStartChange = (
@@ -48,24 +63,10 @@ export function DateRangeInput({
     updateRange(index, { end: value ? normalizeDate(value) : null });
   };
 
-  const handleRemove = (index: number) => {
-    onChange(ranges.filter((_, i) => i !== index));
-  };
-
-  const addRange = () => {
-    onChange([
-      ...ranges,
-      {
-        start: horizon.startDate,
-        end: horizon.endDate,
-      },
-    ]);
-  };
-
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-2">
-        {ranges.map((range, index) => (
+        {normalized.map((range, index) => (
           <div
             key={`${range.start ?? "open-start"}-${range.end ?? "open-end"}-${index}`}
             className="flex flex-col gap-2 rounded-md border border-slate-200 p-3 text-xs"
@@ -118,29 +119,15 @@ export function DateRangeInput({
                   未入力の場合は計画終了日({horizon.endDate})までとみなします。
                 </span>
               </label>
-              <div className="flex items-center justify-end">
-                <button
-                  type="button"
-                  onClick={() => handleRemove(index)}
-                  className="text-xs text-red-500 transition hover:underline"
-                >
-                  削除
-                </button>
-              </div>
+              <div className="flex items-center justify-end" />
             </div>
           </div>
         ))}
-        {ranges.length === 0 && (
+        {normalized.length === 0 && (
           <p className="text-xs text-slate-500">{emptyMessage}</p>
         )}
       </div>
-      <button
-        type="button"
-        onClick={addRange}
-        className="inline-flex items-center self-start rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
-      >
-        期間を追加
-      </button>
+      {/* Single-range UI: no add/remove controls */}
     </div>
   );
 }

@@ -9,9 +9,9 @@ from lib.thirds import (
     Third,
     aggregate_day_values,
     period_key,
+    sum_by_third,
     weighted_avg_by_third,
     which_third,
-    sum_by_third,
 )
 
 
@@ -67,4 +67,3 @@ def test_aggregate_day_values_mixed():
     assert any(abs(t[1] - (50.0 / 3.0)) < 1e-9 for t in out.values())
     assert any(abs(t[1] - 30.0) < 1e-9 for t in out.values())
     assert any(abs(t[0] - 4.0) < 1e-9 for t in out.values())
-
