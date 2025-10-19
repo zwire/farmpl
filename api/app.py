@@ -4,7 +4,7 @@ import os
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from core import config as app_config
@@ -91,5 +91,15 @@ def create_app() -> FastAPI:
     @app.get("/healthz")
     def healthz() -> dict[str, Any]:
         return {"status": "ok"}
+
+    @app.get("/warmup", status_code=204)
+    def warmup() -> Response:
+        # Explicitly disable caching to ensure the request reaches the origin
+        headers = {
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        }
+        return Response(status_code=204, headers=headers)
 
     return app
