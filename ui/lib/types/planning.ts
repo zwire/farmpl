@@ -49,7 +49,7 @@ export interface ApiEvent {
   labor_total_per_a?: number | null;
   labor_daily_cap?: number | null;
   required_roles?: string[] | null;
-  required_resources?: string[] | null;
+  required_resource_categories?: string[] | null;
   uses_land: boolean;
 }
 
@@ -87,7 +87,8 @@ export interface ApiCropAreaBound {
 }
 
 export interface ApiFixedArea {
-  land_id: string;
+  land_id?: string | null;
+  land_tag?: string | null;
   crop_id: string;
   area_a?: number | null;
   area_10a?: number | null;
@@ -220,7 +221,7 @@ export interface PlanFormEvent {
     dailyCap?: number;
   };
   requiredRoles?: string[];
-  requiredResources?: string[];
+  requiredResourceCategories?: string[];
   usesLand: boolean;
 }
 
@@ -255,7 +256,7 @@ export interface PlanFormCropAreaBound {
 }
 
 export interface PlanFormFixedArea {
-  landId: string;
+  landTag: string;
   cropId: string;
   area: AreaMeasurement;
 }

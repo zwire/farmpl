@@ -222,7 +222,7 @@ export function EventPlanningSection({
           labor_total_per_a?: number | null;
           labor_daily_cap?: number | null;
           required_roles?: string[] | null;
-          required_resources?: string[] | null;
+          required_resource_categories?: string[] | null;
           uses_land: boolean;
         }[];
       } = await resp.json();
@@ -265,7 +265,7 @@ export function EventPlanningSection({
                 }
               : undefined,
           requiredRoles: ev.required_roles ?? undefined,
-          requiredResources: ev.required_resources ?? undefined,
+          requiredResourceCategories: ev.required_resource_categories ?? undefined,
           usesLand: ev.uses_land,
         }),
       );
@@ -303,7 +303,7 @@ export function EventPlanningSection({
         lag: undefined,
         labor: undefined,
         requiredRoles: undefined,
-        requiredResources: undefined,
+        requiredResourceCategories: undefined,
         usesLand: true,
       };
       return {

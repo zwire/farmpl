@@ -41,12 +41,19 @@ class ResourcesConstraint(Constraint):
         # Link to events' daily work time if the event requires resources.
         # Σ_r u[r,e,t] >= Σ_w h[w,e,t]
         for ev in ctx.request.events:
-            if not ev.required_resources:
+            require_by_cat = set(
+                getattr(ev, "required_resource_categories", set()) or []
+            )
+            if not require_by_cat:
                 continue
             for t in range(1, H + 1):
                 lhs_terms = []
                 for res in ctx.request.resources:
-                    if ev.required_resources and res.id in ev.required_resources:
+                    ok = False
+                    if require_by_cat:
+                        if res.category is not None and res.category in require_by_cat:
+                            ok = True
+                    if ok:
                         key = (res.id, ev.id, t)
                         u = ctx.variables.u_time_by_r_e_t.get(key)
                         if u is not None:

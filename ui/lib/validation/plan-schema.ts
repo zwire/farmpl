@@ -94,8 +94,6 @@ const sanitizePlanForValidation = (value: unknown): unknown => {
   } while (removedInPass);
   sanitized.events = filteredEvents;
 
-  const landIds = new Set(sanitized.lands.map((land) => land.id));
-
   sanitized.cropAreaBounds = sanitized.cropAreaBounds.filter((bound) => {
     if (!cropIds.has(bound.cropId)) {
       logRemoval(
@@ -110,9 +108,6 @@ const sanitizePlanForValidation = (value: unknown): unknown => {
     const missingTargets: string[] = [];
     if (!cropIds.has(fixed.cropId)) {
       missingTargets.push(`作物ID "${fixed.cropId}"`);
-    }
-    if (!landIds.has(fixed.landId)) {
-      missingTargets.push(`土地ID "${fixed.landId}"`);
     }
     if (missingTargets.length > 0) {
       logRemoval(
@@ -208,7 +203,7 @@ const eventSchema = z
       })
       .optional(),
     requiredRoles: z.array(nonEmptyString).optional(),
-    requiredResources: z.array(nonEmptyString).optional(),
+    requiredResourceCategories: z.array(nonEmptyString).optional(),
     usesLand: z.boolean(),
   })
   .strict();
@@ -266,7 +261,7 @@ const cropAreaBoundSchema = z
 
 const fixedAreaSchema = z
   .object({
-    landId: requiredId,
+    landTag: nonEmptyString,
     cropId: requiredId,
     area: areaMeasurementSchema,
   })
@@ -333,8 +328,6 @@ const basePlanFormSchema = z
         path: ["events"],
       });
     }
-
-    const landIds = new Set(plan.lands.map((l) => l.id));
 
     const horizonMax = plan.horizon.numDays - 1;
     const ensureWithinHorizon = (
@@ -424,13 +417,7 @@ const basePlanFormSchema = z
           path: ["fixedAreas", index, "cropId"],
         });
       }
-      if (!landIds.has(fixed.landId)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "fixedAreas で未知の土地IDを参照しています",
-          path: ["fixedAreas", index, "landId"],
-        });
-      }
+      // landTag は自由入力を許容する（存在検証は行わない）
     });
   });
 
@@ -505,7 +492,7 @@ export const buildApiPlanPayload = (plan: PlanFormState): ApiPlan => {
       labor_total_per_a: event.labor?.totalPerA ?? null,
       labor_daily_cap: event.labor?.dailyCap ?? null,
       required_roles: event.requiredRoles ?? null,
-      required_resources: event.requiredResources ?? null,
+      required_resource_categories: event.requiredResourceCategories ?? null,
       uses_land: event.usesLand,
     })),
     lands: parsed.lands.map((land) => ({
@@ -547,7 +534,7 @@ export const buildApiPlanPayload = (plan: PlanFormState): ApiPlan => {
     fixed_areas:
       parsed.fixedAreas.length > 0
         ? parsed.fixedAreas.map((fixed) => ({
-            land_id: fixed.landId,
+            land_tag: fixed.landTag,
             crop_id: fixed.cropId,
             area_a: fixed.area.unit === "a" ? fixed.area.value : null,
             area_10a: fixed.area.unit === "10a" ? fixed.area.value : null,

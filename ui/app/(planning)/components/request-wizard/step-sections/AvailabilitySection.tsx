@@ -209,7 +209,7 @@ export function AvailabilitySection({
                     category: event.target.value || undefined,
                   })
                 }
-                placeholder="例: 機械"
+                placeholder="例: 耕運機"
                 className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
               />
             </Field>

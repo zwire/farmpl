@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 import pytest
@@ -24,7 +25,7 @@ from services.optimizer_adapter import solve_sync, to_domain_plan
 
 def _make_api_plan() -> ApiPlan:
     return ApiPlan(
-        horizon=ApiHorizon(num_days=3),
+        horizon=ApiHorizon(num_days=3, start_date=date(2025, 1, 1)),
         crops=[ApiCrop(id="c1", name="作物", price_per_10a=100000)],
         events=[
             ApiEvent(
@@ -64,7 +65,7 @@ def test_solve_sync_builds_timeline(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_plan(req: PlanRequest, **kwargs: Any) -> PlanResponse:
         domain_req_captured["value"] = req
         assignment = PlanAssignment(
-            crop_area_by_land_day={
+            crop_area_by_land_t={
                 "L1": {
                     0: {"c1": 10.0},
                     1: {"c1": 10.0},
@@ -94,6 +95,10 @@ def test_solve_sync_builds_timeline(monkeypatch: pytest.MonkeyPatch) -> None:
     assert res.timeline is not None
     spans = res.timeline.land_spans
     assert len(spans) == 1
-    assert spans[0].start_day == 0 and spans[0].end_day == 2 and spans[0].area_a == 10.0
+    assert (
+        spans[0].start_index == 0
+        and spans[0].end_index == 2
+        and spans[0].area_a == 10.0
+    )
     assert isinstance(domain_req_captured["value"], PlanRequest)
     assert domain_req_captured["value"].lands[0].area == 10.0

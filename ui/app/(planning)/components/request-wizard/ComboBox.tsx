@@ -276,43 +276,42 @@ export function MultiComboBox({
 
   return (
     <div ref={containerRef} className={clsx("relative w-full", className)}>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => !disabled && setIsOpen((prev) => !prev)}
-        className={clsx(
-          "flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm transition",
-          disabled
-            ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
-            : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
-        )}
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-      >
-        <span
-          className={clsx(
-            "truncate text-left",
-            showPlaceholder && "text-slate-400",
-          )}
-        >
-          {selectedLabels}
-        </span>
-        <div className="flex items-center gap-2">
-          {value.length > 0 && !disabled && (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                clearAll();
-              }}
-              className="rounded border border-transparent px-1 text-xs text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+      <div className="flex w-full items-center gap-1">
+        <div className="relative flex-1">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => !disabled && setIsOpen((prev) => !prev)}
+            className={clsx(
+              "flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm transition",
+              disabled
+                ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
+            )}
+            aria-haspopup="listbox"
+            aria-expanded={isOpen}
+          >
+            <span
+              className={clsx(
+                "truncate text-left",
+                showPlaceholder && "text-slate-400",
+              )}
             >
-              クリア
-            </button>
-          )}
-          <span className="text-xs text-slate-400">▼</span>
+              {selectedLabels}
+            </span>
+            <span className="text-xs text-slate-400">▼</span>
+          </button>
         </div>
-      </button>
+        {value.length > 0 && !disabled && (
+          <button
+            type="button"
+            onClick={() => clearAll()}
+            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-500 transition hover:bg-slate-100"
+          >
+            クリア
+          </button>
+        )}
+      </div>
       {isOpen && !disabled && (
         <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg">
           <div className="flex items-center gap-2 border-b border-slate-200 px-3 py-2">

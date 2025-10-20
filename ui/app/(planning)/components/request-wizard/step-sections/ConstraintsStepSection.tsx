@@ -60,16 +60,15 @@ export function ConstraintsStepSection({
     [plan.crops],
   );
 
-  const landOptions = useMemo<ComboBoxOption[]>(
-    () =>
-      plan.lands.map((land) => ({
-        value: land.id,
-        label: land.name || land.id,
-        description: land.tags?.join(", ") || undefined,
-        hint: formatIdHint(land.id),
-      })),
-    [plan.lands],
-  );
+  const landTagOptions = useMemo<ComboBoxOption[]>(() => {
+    const tags = new Set<string>();
+    plan.lands.forEach((l) => {
+      (l.tags || []).forEach((t) => {
+        tags.add(t);
+      });
+    });
+    return Array.from(tags).map((t) => ({ value: t, label: t }));
+  }, [plan.lands]);
 
   const handleBoundsUpdate = (
     index: number,
@@ -122,7 +121,7 @@ export function ConstraintsStepSection({
       fixedAreas: [
         ...prev.fixedAreas,
         {
-          landId: prev.lands[0]?.id ?? "",
+          landTag: landTagOptions[0]?.value ?? "",
           cropId: prev.crops[0]?.id ?? "",
           area: { unit: "a", value: 0.1 },
         },
@@ -221,24 +220,24 @@ export function ConstraintsStepSection({
       >
         {plan.fixedAreas.map((fixed, index) => (
           <EntityCard
-            key={`${fixed.landId}-${fixed.cropId}-${index}`}
+            key={`${fixed.landTag}-${fixed.cropId}-${index}`}
             title={`固定割当 #${index + 1}`}
-            id={`${fixed.landId}/${fixed.cropId}`}
+            id={`${fixed.landTag}/${fixed.cropId}`}
             onRemove={() => handleRemoveFixedArea(index)}
           >
             <div className="grid gap-3 md:grid-cols-3">
-              <Field label="土地">
+              <Field label="土地タグ">
                 <ComboBox
-                  value={fixed.landId}
+                  value={fixed.landTag}
                   onChange={(next) =>
-                    handleFixedAreaUpdate(index, { landId: next })
+                    handleFixedAreaUpdate(index, { landTag: next })
                   }
-                  options={landOptions}
-                  disabled={landOptions.length === 0}
+                  options={landTagOptions}
+                  disabled={landTagOptions.length === 0}
                   placeholder={
-                    landOptions.length === 0
-                      ? "圃場を追加してください"
-                      : "土地を選択"
+                    landTagOptions.length === 0
+                      ? "圃場のタグを追加してください"
+                      : "タグを選択"
                   }
                 />
               </Field>

@@ -15,7 +15,6 @@ import {
   type ComboBoxOption,
   MultiComboBox,
 } from "../request-wizard/ComboBox";
-import { ChipInput } from "../request-wizard/inputs/ChipInput";
 import { DateRangeInput } from "../request-wizard/inputs/DateRangeInput";
 import { Field } from "../request-wizard/SectionElements";
 
@@ -110,16 +109,31 @@ export function EventDetailsPanel({
     ];
   };
 
-  const resourceOptions = useMemo<ComboBoxOption[]>(
-    () =>
-      plan.resources.map((resource) => ({
-        value: resource.id,
-        label: resource.name || resource.id,
-        description: resource.category ?? undefined,
-        hint: formatIdHint(resource.id),
-      })),
-    [plan.resources],
-  );
+  // リソースはカテゴリで選択（IDではなく）
+  const resourceCategoryOptions = useMemo<ComboBoxOption[]>(() => {
+    const cats = new Set<string>();
+    for (const r of plan.resources) {
+      if (r.category && r.category.trim().length > 0) cats.add(r.category);
+    }
+    return Array.from(cats)
+      .sort()
+      .map((c) => ({ value: c, label: c }));
+  }, [plan.resources]);
+
+  // 役割はワーカーと既存イベントの両方から候補を集約
+  const roleOptions = useMemo<ComboBoxOption[]>(() => {
+    const roles = new Set<string>();
+    for (const w of plan.workers) {
+      for (const r of w.roles || []) roles.add(r);
+    }
+    for (const e of plan.events) {
+      for (const r of e.requiredRoles || []) roles.add(r);
+    }
+    return Array.from(roles)
+      .filter((r) => r && r.trim().length > 0)
+      .sort()
+      .map((r) => ({ value: r, label: r }));
+  }, [plan.workers, plan.events]);
 
   const precedingEventOptions = useMemo<ComboBoxOption[]>(() => {
     if (!selectedEvent) return [];
@@ -449,7 +463,7 @@ export function EventDetailsPanel({
           </Field>
         </div>
         <Field label="必要役割">
-          <ChipInput
+          <MultiComboBox
             value={selectedEvent.requiredRoles ?? []}
             onChange={(next) =>
               update((prev) => ({
@@ -457,24 +471,27 @@ export function EventDetailsPanel({
                 requiredRoles: next.length ? next : undefined,
               }))
             }
-            placeholder="役割を入力"
+            options={roleOptions}
+            placeholder={
+              roleOptions.length === 0 ? "役割を入力" : "役割を選択"
+            }
           />
         </Field>
-        <Field label="必要リソース">
+        <Field label="必要リソース（カテゴリ）">
           <MultiComboBox
-            value={selectedEvent.requiredResources ?? []}
+            value={selectedEvent.requiredResourceCategories ?? []}
             onChange={(next) =>
               update((prev) => ({
                 ...prev,
-                requiredResources: next.length ? next : undefined,
+                requiredResourceCategories: next.length ? next : undefined,
               }))
             }
-            options={resourceOptions}
-            disabled={resourceOptions.length === 0}
+            options={resourceCategoryOptions}
+            disabled={resourceCategoryOptions.length === 0}
             placeholder={
-              resourceOptions.length === 0
+              resourceCategoryOptions.length === 0
                 ? "共有リソースを追加してください"
-                : "リソースを選択"
+                : "カテゴリを選択"
             }
           />
         </Field>

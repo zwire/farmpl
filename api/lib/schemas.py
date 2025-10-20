@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class Crop(BaseModel):
@@ -26,7 +26,7 @@ class Event(BaseModel):
     labor_total_per_area: float | None = Field(None, description="通算労働需要 (h/a)")
     labor_daily_cap: float | None = Field(None, description="日次労働上限 (h/日)")
     required_roles: set[str] | None = None
-    required_resources: set[str] | None = None
+    required_resource_categories: set[str] | None = None
     uses_land: bool = Field(False, description="このイベントが土地を占有する作業か")
 
 
@@ -64,7 +64,7 @@ class CropAreaBound(BaseModel):
 
 
 class FixedArea(BaseModel):
-    land_id: str
+    land_tag: str
     crop_id: str
     area: float
 
@@ -125,6 +125,13 @@ class EventAssignment(BaseModel):
     resource_usage: list[ResourceUsageRef] = Field(default_factory=list)
     crop_area_on_t: float | None = None
     land_ids: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_day_alias(cls, data):
+        if isinstance(data, dict) and "index" not in data and "day" in data:
+            data = {**data, "index": data.get("day")}
+        return data
 
 
 class PlanResponse(BaseModel):

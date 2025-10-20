@@ -351,7 +351,7 @@ const toPlanFormEvents = (
       lag: event.lag,
       labor: event.labor,
       requiredRoles: event.requiredRoles,
-      requiredResources: event.requiredResources,
+      requiredResourceCategories: event.requiredResourceCategories,
       usesLand: event.usesLand,
     };
   });
@@ -557,7 +557,8 @@ export const PlanningCalendarService = {
         lag: event.lag ?? undefined,
         labor: event.labor ?? undefined,
         requiredRoles: event.requiredRoles ?? undefined,
-        requiredResources: event.requiredResources ?? undefined,
+        requiredResourceCategories:
+          event.requiredResourceCategories ?? undefined,
         usesLand: event.usesLand,
       })),
       cropAreaBounds: apiPlan.cropAreaBounds.map((bound) => ({ ...bound })),

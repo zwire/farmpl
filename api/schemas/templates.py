@@ -50,7 +50,7 @@ class TemplateEvent(BaseModel):
     labor_daily_cap: float | None = Field(default=None, ge=0)
     people_required: int | None = Field(default=None, ge=0)
     required_roles: set[str] | None = None
-    required_resources: set[str] | None = None
+    required_resource_categories: set[str] | None = None
 
 
 class CropTemplate(BaseModel):

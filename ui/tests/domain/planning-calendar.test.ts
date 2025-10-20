@@ -99,7 +99,7 @@ describe("PlanningCalendarService", () => {
           lag: { min: 1, max: 3 },
           labor: { peopleRequired: 2, totalPerA: 6 },
           requiredRoles: ["播種"],
-          requiredResources: ["resource-tractor"],
+          requiredResourceCategories: ["tractor"],
           usesLand: true,
         },
       ],

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from datetime import date
 
 from fastapi.testclient import TestClient
 
@@ -20,7 +21,7 @@ from schemas import (
 def make_request_body() -> OptimizationRequest:
     return OptimizationRequest(
         plan=ApiPlan(
-            horizon=ApiHorizon(num_days=2),
+            horizon=ApiHorizon(num_days=2, start_date=date(2025, 1, 1)),
             crops=[ApiCrop(id="c1", name="作物", price_per_a=1000)],
             events=[ApiEvent(id="e1", crop_id="c1", name="播種", uses_land=True)],
             lands=[ApiLand(id="L1", name="畑1", area_a=10)],

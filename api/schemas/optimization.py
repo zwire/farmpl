@@ -166,7 +166,7 @@ class ApiEvent(BaseModel):
     labor_total_per_a: float | None = Field(default=None, ge=0, description="(h/a)")
     labor_daily_cap: float | None = Field(default=None, ge=0, description="(h/日)")
     required_roles: set[str] | None = None
-    required_resources: set[str] | None = None
+    required_resource_categories: set[str] | None = None
     uses_land: bool = False
 
     @model_validator(mode="after")
@@ -265,7 +265,7 @@ class ApiCropAreaBound(BaseModel):
 class ApiFixedArea(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    land_id: str
+    land_tag: str
     crop_id: str
     area_a: float | None = Field(default=None, gt=0)
     area_10a: float | None = Field(default=None, gt=0)

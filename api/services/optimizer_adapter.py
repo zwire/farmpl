@@ -134,7 +134,9 @@ def _compress_api_plan_to_third(api: ApiPlan) -> PlanRequest:
                     else None
                 ),
                 required_roles=e.required_roles,
-                required_resources=e.required_resources,
+                required_resource_categories=getattr(
+                    e, "required_resource_categories", None
+                ),
                 uses_land=e.uses_land,
             )
         )
@@ -196,7 +198,7 @@ def _compress_api_plan_to_third(api: ApiPlan) -> PlanRequest:
     if api.fixed_areas:
         fixed = [
             FixedArea(
-                land_id=f.land_id,
+                land_tag=f.land_tag,
                 crop_id=f.crop_id,
                 area=f.normalized_area_a(),
             )
@@ -230,27 +232,36 @@ def to_domain_plan(api: ApiPlan) -> PlanRequest:
             )
         )
 
-    events = [
-        Event(
-            id=e.id,
-            crop_id=e.crop_id,
-            name=e.name,
-            category=e.category,
-            start_cond=e.start_cond,
-            end_cond=e.end_cond,
-            frequency_days=e.frequency_days,
-            preceding_event_id=e.preceding_event_id,
-            lag_min_days=e.lag_min_days,
-            lag_max_days=e.lag_max_days,
-            people_required=e.people_required,
-            labor_total_per_area=e.labor_total_per_a,
-            labor_daily_cap=e.labor_daily_cap,
-            required_roles=e.required_roles,
-            required_resources=e.required_resources,
-            uses_land=e.uses_land,
+    def _map_day_endpoint(day0: int | None) -> set[int] | None:
+        if day0 is None:
+            return None
+        return {int(day0) + 1}
+
+    events = []
+    for e in api.events:
+        events.append(
+            Event(
+                id=e.id,
+                crop_id=e.crop_id,
+                name=e.name,
+                category=e.category,
+                start_cond=_map_day_endpoint(getattr(e, "start_min_day", None)),
+                end_cond=_map_day_endpoint(getattr(e, "end_max_day", None)),
+                frequency_days=e.frequency_days,
+                preceding_event_id=e.preceding_event_id,
+                lag_min_days=e.lag_min_days,
+                lag_max_days=e.lag_max_days,
+                people_required=e.people_required,
+                labor_total_per_area=e.labor_total_per_a,
+                labor_daily_cap=e.labor_daily_cap,
+                required_roles=e.required_roles,
+                required_resources=None,
+                required_resource_categories=getattr(
+                    e, "required_resource_categories", None
+                ),
+                uses_land=e.uses_land,
+            )
         )
-        for e in api.events
-    ]
 
     lands = [
         Land(
@@ -299,7 +310,7 @@ def to_domain_plan(api: ApiPlan) -> PlanRequest:
     if api.fixed_areas:
         fixed = [
             FixedArea(
-                land_id=f.land_id,
+                land_tag=f.land_tag,
                 crop_id=f.crop_id,
                 area=f.normalized_area_a(),
             )
@@ -322,7 +333,12 @@ def _build_timeline(
     resp: PlanResponse, req: PlanRequest, *, start_date_iso: str | None = None
 ) -> OptimizationTimeline:
     spans: list[GanttLandSpan] = []
-    for land_id, by_t in resp.assignment.crop_area_by_land_t.items():
+    by_land_any = (
+        getattr(resp.assignment, "crop_area_by_land_t", None)
+        or getattr(resp.assignment, "crop_area_by_land_day", {})
+        or {}
+    )
+    for land_id, by_t in by_land_any.items():
         crop_ids: set[str] = set()
         for per_crop in by_t.values():
             crop_ids.update(per_crop.keys())

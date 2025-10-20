@@ -401,12 +401,13 @@ def plan(
         )
         for r in sorted(required_roles - have_roles):
             hints.append(f"missing role: {r}")
-        required_res_ids = set().union(
-            *[e.required_resources or set() for e in request.events]
+        required_res_cats = set().union(
+            *[e.required_resource_categories or set() for e in request.events]
         )
-        have_res_ids = {r.id for r in request.resources}
-        for rid in sorted(required_res_ids - have_res_ids):
-            hints.append(f"missing resource: {rid}")
+        if required_res_cats:
+            have_cats = {r.category for r in request.resources if r.category}
+            for rc in sorted(required_res_cats - have_cats):
+                hints.append(f"missing resource category: {rc}")
         max_land_area = sum(land.area for land in request.lands)
         for b in request.crop_area_bounds or []:
             if b.min_area is not None and b.min_area > max_land_area:
@@ -416,13 +417,15 @@ def plan(
                 )
                 hints.append(msg)
         for fa in request.fixed_areas or []:
-            land = next((ld for ld in request.lands if ld.id == fa.land_id), None)
-            if land and fa.area > land.area:
-                msg2 = (
-                    f"fixed area {fa.area} for {fa.land_id}/{fa.crop_id} > "
-                    f"land area {land.area}"
+            if fa.land_tag:
+                tag = fa.land_tag
+                total = sum(
+                    ld.area for ld in request.lands if tag in (ld.tags or set())
                 )
-                hints.append(msg2)
+                if fa.area > total:
+                    hints.append(
+                        f"fixed area {fa.area} for tag:{tag}/{fa.crop_id} > total area {total}"
+                    )
 
     _report(0.92, "post:summary")
     return PlanResponse(

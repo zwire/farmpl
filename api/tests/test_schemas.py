@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -41,7 +41,7 @@ def test_job_info_progress_bounds() -> None:
 
 
 def test_plan_requires_event_per_crop() -> None:
-    horizon = ApiHorizon(num_days=5)
+    horizon = ApiHorizon(num_days=5, start_date=date(2025, 1, 1))
     crops = [ApiCrop(id="c1", name="ほうれん草", price_per_10a=100000)]
     lands = [ApiLand(id="l1", name="L1", area_10a=2)]
     with pytest.raises(ValidationError) as ei:
@@ -62,7 +62,7 @@ def test_land_area_unit_exclusive() -> None:
 
 
 def test_blocked_days_range() -> None:
-    horizon = ApiHorizon(num_days=3)
+    horizon = ApiHorizon(num_days=3, start_date=date(2025, 1, 1))
     crops = [ApiCrop(id="c1", name="作物", price_per_a=1000)]
     events = [ApiEvent(id="e1", crop_id="c1", name="播種", uses_land=True)]
     lands = [ApiLand(id="l1", name="L1", area_10a=1, blocked_days={5})]
@@ -79,7 +79,7 @@ def test_blocked_days_range() -> None:
 
 
 def test_event_precedence_and_same_crop() -> None:
-    horizon = ApiHorizon(num_days=3)
+    horizon = ApiHorizon(num_days=3, start_date=date(2025, 1, 1))
     crops = [ApiCrop(id="c1", name="作物", price_per_a=1000)]
     e1 = ApiEvent(id="e1", crop_id="c1", name="播種", uses_land=True)
     e2 = ApiEvent(

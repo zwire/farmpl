@@ -68,7 +68,7 @@ def _to_api_events(
             labor_total_per_a=e.labor_total_per_a,
             labor_daily_cap=e.labor_daily_cap,
             required_roles=e.required_roles,
-            required_resources=e.required_resources,
+            required_resource_categories=None,
             uses_land=e.uses_land,
         )
 
