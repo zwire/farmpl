@@ -3,7 +3,7 @@
 import type { PlanUiState } from "@/lib/domain/planning-ui-types";
 import { createUniqueId } from "@/lib/utils/id";
 import { ChipInput } from "../inputs/ChipInput";
-import { DateRangeInput } from "../inputs/DateRangeInput";
+import { DateRangeInput } from "../inputs/DateRangeInput"; // multi-range for availability
 import {
   EntityCard,
   Field,

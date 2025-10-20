@@ -1,6 +1,7 @@
 "use client";
 
 import type { ChangeEvent } from "react";
+import { useRef } from "react";
 
 import type {
   DateRange,
@@ -26,25 +27,39 @@ export function DateRangeInput({
   horizon,
   emptyMessage = "まだ利用不可期間がありません。下の「期間を追加」を押してください。",
 }: DateRangeInputProps) {
-  const toEnvelope = (list: DateRange[]): DateRange[] => {
-    if (list.length <= 1) return list;
-    const starts = list.map((r) => r.start).filter(Boolean) as IsoDateString[];
-    const ends = list.map((r) => r.end).filter(Boolean) as IsoDateString[];
-    const env: DateRange = {
-      start: (starts.length ? starts.sort()[0] : null) as IsoDateString | null,
-      end: (ends.length
-        ? ends.sort()[ends.length - 1]
-        : null) as IsoDateString | null,
-    };
-    return [env];
-  };
+  const normalized = ranges ?? [];
+  const idsRef = useRef<string[]>([]);
+  const opRef = useRef<{ type: "add" | "remove" | null; index?: number }>({
+    type: null,
+  });
+  const seqRef = useRef(0);
 
-  // Always normalize to a single envelope
-  const normalized = toEnvelope(ranges);
+  // Apply queued structural ops first to keep stable keys across value edits
+  if (opRef.current.type === "add") {
+    idsRef.current = [...idsRef.current, `rng_${seqRef.current++}`];
+    opRef.current = { type: null };
+  } else if (
+    opRef.current.type === "remove" &&
+    typeof opRef.current.index === "number"
+  ) {
+    const idx = opRef.current.index as number;
+    idsRef.current = idsRef.current.filter((_, i) => i !== idx);
+    opRef.current = { type: null };
+  }
+  // Fallback sync when external code changes length unexpectedly
+  if (idsRef.current.length < normalized.length) {
+    const toAdd = normalized.length - idsRef.current.length;
+    idsRef.current = idsRef.current.concat(
+      Array.from({ length: toAdd }, () => `rng_${seqRef.current++}`),
+    );
+  } else if (idsRef.current.length > normalized.length) {
+    idsRef.current = idsRef.current.slice(0, normalized.length);
+  }
+
   const updateRange = (index: number, patch: Partial<DateRange>) => {
     const next = [...normalized];
     next[index] = { ...next[index], ...patch };
-    onChange(toEnvelope(next));
+    onChange(next);
   };
 
   const handleStartChange = (
@@ -68,7 +83,7 @@ export function DateRangeInput({
       <div className="flex flex-col gap-2">
         {normalized.map((range, index) => (
           <div
-            key={`${range.start ?? "open-start"}-${range.end ?? "open-end"}-${index}`}
+            key={idsRef.current[index]}
             className="flex flex-col gap-2 rounded-md border border-slate-200 p-3 text-xs"
           >
             <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
@@ -84,7 +99,9 @@ export function DateRangeInput({
                   {range.start !== null && (
                     <button
                       type="button"
-                      onClick={() => updateRange(index, { start: null })}
+                      onClick={() =>
+                        updateRange(normalized.indexOf(range), { start: null })
+                      }
                       className="text-xs text-slate-500 transition hover:text-slate-800"
                     >
                       クリア
@@ -108,7 +125,9 @@ export function DateRangeInput({
                   {range.end !== null && (
                     <button
                       type="button"
-                      onClick={() => updateRange(index, { end: null })}
+                      onClick={() =>
+                        updateRange(normalized.indexOf(range), { end: null })
+                      }
                       className="text-xs text-slate-500 transition hover:text-slate-800"
                     >
                       クリア
@@ -119,7 +138,18 @@ export function DateRangeInput({
                   未入力の場合は計画終了日({horizon.endDate})までとみなします。
                 </span>
               </label>
-              <div className="flex items-center justify-end" />
+              <div className="flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    opRef.current = { type: "remove", index };
+                    onChange(normalized.filter((_, i) => i !== index));
+                  }}
+                  className="rounded border border-slate-200 px-2 py-1 text-xs text-slate-500 transition hover:bg-slate-100"
+                >
+                  期間を削除
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -127,7 +157,18 @@ export function DateRangeInput({
           <p className="text-xs text-slate-500">{emptyMessage}</p>
         )}
       </div>
-      {/* Single-range UI: no add/remove controls */}
+      <div className="flex items-center justify-end">
+        <button
+          type="button"
+          onClick={() => {
+            opRef.current = { type: "add" };
+            onChange([...(normalized ?? []), { start: null, end: null }]);
+          }}
+          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-700 transition hover:bg-slate-50"
+        >
+          期間を追加
+        </button>
+      </div>
     </div>
   );
 }

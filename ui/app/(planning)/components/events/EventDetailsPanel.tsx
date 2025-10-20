@@ -15,7 +15,7 @@ import {
   type ComboBoxOption,
   MultiComboBox,
 } from "../request-wizard/ComboBox";
-import { DateRangeInput } from "../request-wizard/inputs/DateRangeInput";
+import { SingleDateRangeInput } from "../request-wizard/inputs/SingleDateRangeInput";
 import { Field } from "../request-wizard/SectionElements";
 
 interface EventDetailsPanelProps {
@@ -335,7 +335,7 @@ export function EventDetailsPanel({
               <small className="block text-[11px] text-slate-400">
                 期間は連続区間として扱われます。未設定の場合は制約なしです。
               </small>
-              <DateRangeInput
+              <SingleDateRangeInput
                 ranges={toEnvelope(effectiveRange)}
                 onChange={handleUnifiedRangeChange}
                 horizon={plan.horizon}
