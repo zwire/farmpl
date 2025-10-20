@@ -52,6 +52,17 @@ class LaborHoursObjective(Objective):
         ctx.objective_sense = "min"
 
 
+def build_labor_hours_expr(ctx: BuildContext) -> cp_model.LinearExpr:
+    """Total labor time Σ_{w,e,t} h[w,e,t] in scaled time units.
+
+    This mirrors LaborHoursObjective.register but exposes a pure expression
+    builder so the lexicographic planner can use it in intermediate stages
+    and locking constraints.
+    """
+    terms = list(ctx.variables.h_time_by_w_e_t.values())
+    return sum(terms) if terms else 0
+
+
 def build_dispersion_expr(ctx: BuildContext) -> cp_model.LinearExpr:
     terms = list(ctx.variables.z_use_by_l_c.values())
     return sum(terms) if terms else 0

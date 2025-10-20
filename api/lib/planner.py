@@ -23,6 +23,7 @@ from .objectives import (
     build_diversity_expr,
     build_earliness_expr,
     build_event_span_expr,
+    build_labor_hours_expr,
     build_occupancy_span_expr,
     build_profit_expr,
 )
@@ -76,6 +77,7 @@ def plan(
     # Lexicographic stages
     sense_map = {
         "profit": "max",
+        "labor": "min",
         "dispersion": "min",
         "event_span": "min",
         "earliness": "min",
@@ -94,6 +96,7 @@ def plan(
         # Default stages: profit -> dispersion -> event_span -> earliness -> occ_span -> diversity
         stage_defs = [
             ("profit", "max"),
+            ("labor", "min"),
             ("dispersion", "min"),
             ("event_span", "min"),
             ("earliness", "min"),
@@ -120,6 +123,8 @@ def plan(
         for lname, lsense, val in locks:
             if lname == "profit":
                 expr = build_profit_expr(ctx)
+            elif lname == "labor":
+                expr = build_labor_hours_expr(ctx)
             elif lname == "dispersion":
                 expr = build_dispersion_expr(ctx)
             elif lname == "diversity":
@@ -141,6 +146,9 @@ def plan(
         if name == "profit":
             obj_expr = build_profit_expr(ctx)
             ctx.model.Maximize(obj_expr)
+        elif name == "labor":
+            obj_expr = build_labor_hours_expr(ctx)
+            ctx.model.Minimize(obj_expr)
         elif name == "dispersion":
             obj_expr = build_dispersion_expr(ctx)
             ctx.model.Minimize(obj_expr)

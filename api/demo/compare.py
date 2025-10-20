@@ -15,7 +15,11 @@ from lib.constraints import (
     RolesConstraint,
 )
 from lib.model_builder import BuildContext, build_model
-from lib.objectives import build_diversity_expr, build_profit_expr
+from lib.objectives import (
+    build_diversity_expr,
+    build_labor_hours_expr,
+    build_profit_expr,
+)
 from lib.planner import plan
 from lib.schemas import PlanRequest
 from lib.solver import SolveContext, solve
@@ -152,6 +156,7 @@ def compare_objectives(
         order_map = {
             "profit": ("profit", "max", build_profit_expr),
             "dispersion": ("dispersion", "min", _build_dispersion_expr),
+            "labor": ("labor", "min", build_labor_hours_expr),
             "diversity": ("diversity", "max", build_diversity_expr),
         }
         stages: list[Stage] = [order_map[s] for s in stage_order if s in order_map]

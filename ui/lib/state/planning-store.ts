@@ -15,6 +15,7 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const DEFAULT_STAGE_ORDER = [
   "profit",
+  "labor",
   "dispersion",
   "event_span",
   "earliness",
