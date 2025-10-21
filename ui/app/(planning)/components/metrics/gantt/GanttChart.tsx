@@ -1,6 +1,7 @@
 "use client";
 
 import React, { type CSSProperties, useMemo, useState } from "react";
+import { createThirdScale } from "@/lib/metrics/timeline-scale";
 import { usePlanningStore } from "@/lib/state/planning-store";
 import { useViewPreferencesStore } from "@/lib/state/view-preferences";
 import type { OptimizationResultView } from "@/lib/types/planning";
@@ -11,7 +12,6 @@ import { classifyEventCategory } from "./classifyEventCategory";
 import { colorForCategory } from "./colorForCategory";
 import { DetailsPane, type SelectedItem } from "./DetailsPane";
 import { EventBadges } from "./event-badges";
-import { createThirdScale } from "@/lib/metrics/timeline-scale";
 import type { GanttEventMarker } from "./useGanttData";
 import { useGanttData } from "./useGanttData";
 import { useGanttViewModel } from "./useGanttViewModel";
@@ -51,26 +51,32 @@ const hexToRgba = (hex: string, alpha: number) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-// Function to get color based on usage percentage
-const colorForUsage = (percentage: number): string => {
+// Function to get color for the capacity bar based on usage percentage
+const colorForCapacityBar = (percentage: number): string => {
   if (percentage > 1) {
-    // Over-capacity: red
-    const lightness = 1 - Math.min((percentage - 1) / 0.5, 1) * 0.4; // 60% to 20% lightness
-    return `hsl(0, 90%, ${lightness * 100}%)${lightness < 0.7 ? "aa" : ""}`;
+    // Over-capacity: a fixed, strong red
+    return "hsl(0, 84%, 60%)";
   }
-  if (percentage <= 0) {
-    return `hsla(0, 0%, 100%, 1)`;
-  }
-  // 0-100% usage: green to yellow
-  const hue = 120 * (1 - percentage); // 120 (green) -> 0 (red-ish, but we cap at yellow)
-  return `hsla(${hue}, 70%, 50%, ${0.1 + percentage * 0.8})`;
+
+  // Clamp percentage between 0 and 1
+  const p = Math.max(0, Math.min(percentage, 1));
+
+  // Use an exponential curve (p^2.4) to map percentage to hue.
+  // This keeps the color green for longer, then transitions more quickly
+  // through yellow to red, hitting yellow (hue 60) at 75%.
+  // The exponent 2.4 is calculated to solve 1 - (0.75^n) = 0.5
+  const hue = 120 * (1 - p ** 2.4);
+  const saturation = 80;
+  const lightness = 50;
+
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 };
 
 const cellFilter = (item: SelectedItem, rowId: string, index: number) => {
   if (item?.rowId === rowId && item?.index === index) {
-    return `brightness(2)`;
+    return "brightness(1.5)";
   }
-  return `brightness(1)`;
+  return "brightness(1)";
 };
 
 export function GanttChart({
@@ -176,7 +182,7 @@ export function GanttChart({
           return (
             <div
               key={`${rowId}-${tickIndex.toString()}`}
-              className="border border-slate-200 dark:border-slate-700"
+              className="border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
               style={{
                 minHeight: ROW_HEIGHT,
                 filter: cellFilter(selectedItem, rowId, tickIndex),
@@ -188,6 +194,9 @@ export function GanttChart({
         const used = items.reduce((s, i) => s + i.utilization, 0);
         const cap = items.reduce((s, i) => s + i.capacity, 0);
         const usagePct = cap > 0 ? used / cap : 0;
+
+        const barHeight = `${Math.min(usagePct, 1) * 100}%`;
+        const barColor = colorForCapacityBar(usagePct);
 
         return (
           <button
@@ -202,13 +211,22 @@ export function GanttChart({
                 record,
               })
             }
-            className="relative border border-slate-200 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+            className="relative flex items-end justify-center border border-slate-200 bg-white p-0.5 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
             style={{
               minHeight: ROW_HEIGHT,
-              backgroundColor: colorForUsage(usagePct),
               filter: cellFilter(selectedItem, rowId, tickIndex),
             }}
+            title={`Capacity: ${(usagePct * 100).toFixed(0)}% (${used.toFixed(
+              1,
+            )}/${cap.toFixed(1)})`}
           >
+            <div
+              className="w-full origin-bottom rounded-t-sm transition-all"
+              style={{
+                height: barHeight,
+                backgroundColor: barColor,
+              }}
+            />
             <span className="sr-only">
               {mode} capacity: {used.toFixed(1)}/{cap.toFixed(1)}
             </span>
