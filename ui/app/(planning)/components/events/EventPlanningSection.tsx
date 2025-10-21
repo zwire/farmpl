@@ -265,7 +265,8 @@ export function EventPlanningSection({
                 }
               : undefined,
           requiredRoles: ev.required_roles ?? undefined,
-          requiredResourceCategories: ev.required_resource_categories ?? undefined,
+          requiredResourceCategories:
+            ev.required_resource_categories ?? undefined,
           usesLand: ev.uses_land,
         }),
       );

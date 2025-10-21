@@ -102,4 +102,3 @@ export function SingleDateRangeInput({
     </div>
   );
 }
-

@@ -472,9 +472,7 @@ export function EventDetailsPanel({
               }))
             }
             options={roleOptions}
-            placeholder={
-              roleOptions.length === 0 ? "役割を入力" : "役割を選択"
-            }
+            placeholder={roleOptions.length === 0 ? "役割を入力" : "役割を選択"}
           />
         </Field>
         <Field label="必要リソース（カテゴリ）">

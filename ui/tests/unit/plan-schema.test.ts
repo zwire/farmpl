@@ -3,7 +3,7 @@ import type { PlanFormState } from "@/lib/types/planning";
 import { validatePlan } from "@/lib/validation/plan-schema";
 
 const buildValidPlan = (): PlanFormState => ({
-  horizon: { numDays: 30 },
+  horizon: { startDate: "2024-01-01", numDays: 30 },
   crops: [
     {
       id: "crop-1",
