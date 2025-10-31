@@ -1,0 +1,417 @@
+/* モダンでミニマルなデザイン */
+
+:root {
+  --md-primary-fg-color: #6366f1;
+  --md-primary-fg-color--light: #818cf8;
+  --md-primary-fg-color--dark: #4f46e5;
+  --md-accent-fg-color: #f59e0b;
+  
+  /* カスタムカラー */
+  --color-surface: #ffffff;
+  --color-text: #1e293b;
+  --color-text-light: #64748b;
+  --color-text-lighter: #94a3b8;
+  --color-border: #e2e8f0;
+  --color-border-light: #f1f5f9;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* 全体のベース */
+.md-typeset {
+  font-size: 0.8rem;
+  line-height: 1.8;
+  color: var(--color-text);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* 見出しのモダンなスタイル */
+.md-typeset h1 {
+  font-weight: 700;
+  font-size: 2rem;
+  color: #0f172a;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--color-border-light);
+  line-height: 1.3;
+}
+
+.md-typeset h2 {
+  font-weight: 600;
+  font-size: 1.5rem;
+  color: #1e293b;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  padding-left: 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border-light);
+  position: relative;
+}
+
+.md-typeset h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 48px;
+  height: 2px;
+  background: var(--md-primary-fg-color);
+  border-radius: 1px;
+}
+
+.md-typeset h3 {
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: #334155;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.25rem;
+}
+
+.md-typeset h4 {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #475569;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+/* 段落のスタイル */
+.md-typeset p {
+  margin-bottom: 1.2rem;
+  color: var(--color-text);
+}
+
+.md-typeset > p:first-of-type {
+  font-size: 0.95rem;
+  color: var(--color-text-light);
+  line-height: 1.8;
+}
+
+/* 画像のモダンなスタイル */
+.md-typeset img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  margin: 1.5rem auto;
+  display: block;
+  transition: box-shadow 0.2s ease;
+}
+
+.md-typeset img:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+/* リストのスタイル */
+.md-typeset ul,
+.md-typeset ol {
+  margin-bottom: 1.5rem;
+  padding-left: 2rem;
+}
+
+.md-typeset li {
+  margin-bottom: 0.6rem;
+  line-height: 1.8;
+}
+
+.md-typeset ul > li::marker {
+  color: var(--md-primary-fg-color);
+}
+
+.md-typeset ol > li::marker {
+  color: var(--md-primary-fg-color);
+  font-weight: 500;
+}
+
+.md-typeset li > p {
+  margin-bottom: 0.4rem;
+}
+
+/* コードブロックのモダンなスタイル */
+.md-typeset pre {
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  background: #f8fafc;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+}
+
+.md-typeset code {
+  padding: 0.2em 0.4em;
+  background: #f1f5f9;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: 500;
+  color: #1e293b;
+  border: 1px solid var(--color-border);
+}
+
+.md-typeset pre code {
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 0;
+}
+
+/* 数式のスタイル - MathJaxのレンダリングを妨げない */
+.md-typeset .arithmatex {
+  margin: 1rem 0;
+}
+
+/* MathJaxの数式表示を保護 - 余計なスタイルを適用しない */
+.md-typeset .arithmatex mjx-container {
+  display: inline-block;
+}
+
+/* 水平線のミニマルなスタイル */
+.md-typeset hr {
+  border: none;
+  height: 1px;
+  background: var(--color-border);
+  margin: 3rem 0;
+}
+
+/* 引用ブロックのモダンなスタイル */
+.md-typeset blockquote {
+  border-left: 3px solid var(--md-accent-fg-color);
+  background: #fafbfc;
+  padding: 1rem 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 6px 6px 0;
+  color: var(--color-text-light);
+  box-shadow: var(--shadow-sm);
+}
+
+/* テーブルのモダンなスタイル */
+.md-typeset table {
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  margin: 1.5rem 0;
+}
+
+.md-typeset table th {
+  background: #f8fafc;
+  color: var(--color-text);
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.md-typeset table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-surface);
+}
+
+.md-typeset table tr:last-child td {
+  border-bottom: none;
+}
+
+.md-typeset table tr:hover td {
+  background: #f8fafc;
+}
+
+/* 強調テキスト */
+.md-typeset strong {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* リンクのスタイル */
+.md-typeset a {
+  color: var(--md-primary-fg-color);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.md-typeset a:hover {
+  color: var(--md-primary-fg-color--dark);
+  border-bottom-color: var(--md-primary-fg-color);
+}
+
+/* スクロールバーのモダンなスタイル */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ナビゲーションの改善 */
+.md-nav__link--active {
+  font-weight: 600;
+  color: var(--md-primary-fg-color);
+}
+
+/* フッターのスタイル */
+.md-footer {
+  background: #1e293b;
+}
+
+.md-footer__inner {
+  border-top: none;
+}
+
+/* トップに戻るボタン */
+.md-top {
+  background: var(--md-primary-fg-color);
+  border-radius: 50%;
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s ease;
+}
+
+.md-top:hover {
+  background: var(--md-primary-fg-color--dark);
+  box-shadow: var(--shadow-lg);
+}
+
+/* セクション間のスペーシング */
+.md-typeset > * + * {
+  margin-top: 0;
+}
+
+.md-typeset > h2 + p,
+.md-typeset > h3 + p {
+  margin-top: 0.5rem;
+}
+
+/* モバイル対応 */
+@media screen and (max-width: 76.1875em) {
+  .md-typeset {
+    font-size: 0.8rem;
+  }
+
+  .md-typeset h1 {
+    font-size: 1.75rem;
+  }
+
+  .md-typeset h2 {
+    font-size: 1.375rem;
+  }
+
+  .md-typeset h3 {
+    font-size: 1.125rem;
+  }
+
+  .md-typeset img {
+    margin: 1.25rem 0;
+  }
+}
+
+@media screen and (max-width: 44.9375em) {
+  .md-typeset {
+    font-size: 0.8rem;
+  }
+
+  .md-typeset h1 {
+    font-size: 1.5rem;
+  }
+
+  .md-typeset h2 {
+    font-size: 1.25rem;
+  }
+
+  .md-typeset h3 {
+    font-size: 1.1rem;
+  }
+
+  .md-typeset ul,
+  .md-typeset ol {
+    padding-left: 1.5rem;
+  }
+}
+
+/* ダークモード対応 */
+[data-md-color-scheme="slate"] {
+  --color-surface: #1e293b;
+  --color-text: #f1f5f9;
+  --color-text-light: #cbd5e1;
+  --color-text-lighter: #94a3b8;
+  --color-border: #334155;
+  --color-border-light: #475569;
+}
+
+[data-md-color-scheme="slate"] .md-typeset {
+  color: var(--color-text);
+}
+
+[data-md-color-scheme="slate"] .md-typeset h1 {
+  color: #f1f5f9;
+  border-bottom-color: var(--color-border);
+}
+
+[data-md-color-scheme="slate"] .md-typeset h2 {
+  color: #e2e8f0;
+  border-bottom-color: var(--color-border);
+}
+
+[data-md-color-scheme="slate"] .md-typeset h3 {
+  color: #cbd5e1;
+}
+
+[data-md-color-scheme="slate"] .md-typeset code {
+  background: #334155;
+  color: #f1f5f9;
+  border-color: var(--color-border);
+}
+
+[data-md-color-scheme="slate"] .md-typeset pre {
+  background: #0f172a;
+  border-color: var(--color-border);
+}
+
+[data-md-color-scheme="slate"] .md-typeset blockquote {
+  background: #334155;
+  color: var(--color-text-light);
+}
+
+[data-md-color-scheme="slate"] .md-typeset table th {
+  background: #334155;
+  color: var(--color-text);
+  border-bottom-color: var(--color-border);
+}
+
+[data-md-color-scheme="slate"] .md-typeset table td {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-bottom-color: var(--color-border);
+}
+
+[data-md-color-scheme="slate"] .md-typeset table tr:hover td {
+  background: #334155;
+}
+
+[data-md-color-scheme="slate"] ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+[data-md-color-scheme="slate"] ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+[data-md-color-scheme="slate"] ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
