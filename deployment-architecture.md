@@ -88,7 +88,7 @@ flowchart LR
   GA --> Test[API Lint/Test]
   GA --> CDK[CDK deploy: Infra+Ui]
   CDK --> Out[DescribeStacks: Outputs]
-  Out --> BuildUI[UI build/export (API/DOCS URL 注入)]
+  Out --> BuildUI[UI build/export API/DOCS URL注入]
   BuildUI --> SyncS3[S3 sync]
   SyncS3 --> Inval[CloudFront Invalidation]
 ```
@@ -117,7 +117,7 @@ flowchart LR
 
 ## 出力値と確認
 
-- `ApiBaseUrl`（例: https://xxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/prod/）
+- `ApiBaseUrl`（例: https://xxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/prod/ ）
 - `UiDistributionDomainName`（例: dxxxxxx.cloudfront.net）
 - 健康確認: `${ApiBaseUrl}healthz` → `{ "status": "ok" }`
 - CORS: UIドメインからのAPI呼び出しが許可される（許可リストにCDKで自動注入）
@@ -127,4 +127,4 @@ flowchart LR
 ## ドキュメント/アプリ間リンク（相互参照）
 
 - Docs → App: mkdocs-macros で APP_URL を注入（UiStack の CloudFront ドメインを Actions が自動取得）
-- App → Docs: UI ビルド時に NEXT_PUBLIC_DOCS_URL を Actions が注入（https://<owner>.github.io/<repo>/）
+- App → Docs: UI ビルド時に NEXT_PUBLIC_DOCS_URL を Actions が注入
