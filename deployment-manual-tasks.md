@@ -54,6 +54,7 @@ npx cdk deploy CicdStack \
 - Repository variables（Variables）
   - `AWS_REGION` = `ap-northeast-1`
   - `AWS_ROLE_TO_ASSUME` = `arn:aws:iam::111111111111:role/zwire-farmpl-deploy` （CicdStackの出力値）
+  - `PUBLIC_API_KEY` = `PUBLIC_API_KEY` (任意の文字列。ただし後述のSecretsManagerと合わせる。)
 
 Secrets は基本不要（OIDCを利用するためアクセスキーは不要）。
 
@@ -66,7 +67,7 @@ CDKで `ApiKeysSecretArn`（空）が作られます。以下のように値を�
 ```bash
 aws secretsmanager put-secret-value \
   --secret-id ApiKeysSecretArn \
-  --secret-string '{"keys": ["xxxxxxxxxxxx"]}'
+  --secret-string '{"keys": ["PUBLIC_API_KEY"]}'
 ```
 
 Lambda は起動時にこのシークレットを読み取り、`AUTH_MODE=api_key` の場合のみ検証します。
