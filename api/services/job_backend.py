@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from schemas import JobInfo, OptimizationRequest, OptimizationResult
 
-from . import optimizer_adapter as _oa
+_OA = None  # lazy import placeholder
 
 
 class JobCanceled(Exception):
@@ -81,6 +81,10 @@ class InMemoryJobBackend:
             self._jobs[job_id] = st
 
         def _run() -> None:
+            global _OA  # lazy load to avoid heavy deps at import time
+            if _OA is None:
+                from . import optimizer_adapter as _oa  # type: ignore
+                _OA = _oa
             with self._lock:
                 if st.cancel_flag:
                     st.status = "canceled"
@@ -105,7 +109,7 @@ class InMemoryJobBackend:
 
                 # Resolve at call time so test monkeypatching works
                 # Call adapter with progress callback
-                res = _oa.solve_sync(st.req, progress_cb=_progress_cb)
+                res = _OA.solve_sync(st.req, progress_cb=_progress_cb)
                 with self._lock:
                     st.result = res
                     st.status = "succeeded" if res.status == "ok" else res.status  # type: ignore[assignment]
