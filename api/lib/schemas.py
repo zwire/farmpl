@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class Crop(BaseModel):
@@ -15,17 +15,19 @@ class Event(BaseModel):
     crop_id: str
     name: str
     category: str | None = None  # 播種/定植/散水/収穫 等
-    type: str | None = Field(None, description="one-shot | repeat | sustain")
-    window: set[int] | None = None  # for one-shot
-    start_window: set[int] | None = None  # for sustain
-    duration_days: int | None = None  # for sustain
-    start_cond: set[int] | None = None  # for repeat
-    end_cond: set[int] | None = None  # for repeat
-    frequency_days: int | None = None  # for repeat
+    start_cond: set[int] | None = None
+    end_cond: set[int] | None = None
+    frequency_days: int | None = None
+    # Optional dependency: start only Lmin..Lmax days after predecessor
+    preceding_event_id: str | None = None
+    lag_min_days: int | None = None
+    lag_max_days: int | None = None
     people_required: int | None = None
-    labor_per_area_per_day: float | None = None
+    labor_total_per_area: float | None = Field(None, description="通算労働需要 (h/a)")
+    labor_daily_cap: float | None = Field(None, description="日次労働上限 (h/日)")
     required_roles: set[str] | None = None
-    required_resources: set[str] | None = None
+    required_resource_categories: set[str] | None = None
+    uses_land: bool = Field(False, description="このイベントが土地を占有する作業か")
 
 
 class Land(BaseModel):
@@ -34,6 +36,9 @@ class Land(BaseModel):
     area: float  # a
     tags: set[str] | None = None
     blocked_days: set[int] | None = None
+
+    def normalized_area_a(self) -> float:
+        return float(self.area)
 
 
 class Worker(BaseModel):
@@ -59,23 +64,14 @@ class CropAreaBound(BaseModel):
 
 
 class FixedArea(BaseModel):
-    land_id: str
+    land_tag: str
     crop_id: str
     area: float
 
 
-class Preferences(BaseModel):
-    # weights are non-negative; tech.md: stage-wise/hybrid discussed, keep as simple weights for now
-    w_profit: float = 1.0
-    w_labor: float = 1.0
-    w_idle: float = 1.0
-    w_dispersion: float = 1.0
-    w_peak: float = 1.0
-    w_diversity: float = 1.0
-
-
 class Horizon(BaseModel):
-    # Period represented as discrete days (tech: “期間は時間窓 (h)”; we use day index, extendable)
+    # Period is represented as discrete days; see tech.md.
+    # We use day index, extendable.
     num_days: int
 
 
@@ -88,23 +84,64 @@ class PlanRequest(BaseModel):
     resources: list[Resource]
     crop_area_bounds: list[CropAreaBound] | None = None
     fixed_areas: list[FixedArea] | None = None
-    harvest_capacity_per_day: dict[int, float] | None = None
-    preferences: Preferences | None = None
 
 
 class PlanDiagnostics(BaseModel):
     feasible: bool
     reason: str | None = None
     violated_constraints: list[str] | None = None
+    # Optional: lexicographic stages summary
+    stages: list[dict] = Field(default_factory=list)
+    stage_order: list[str] | None = None
+    lock_tolerance_pct: float | None = None
+    lock_tolerance_by: dict[str, float] | None = None
 
 
 class PlanAssignment(BaseModel):
-    # Minimal surface for now; extend later with detailed per-day schedules
-    crop_area_by_land: dict[str, dict[str, float]] = Field(
-        default_factory=dict, description="land_id -> crop_id -> area"
+    # Time-indexed assignment: land -> t -> crop -> area
+    crop_area_by_land_t: dict[str, dict[int, dict[str, float]]] = Field(
+        default_factory=dict, description="land_id -> t -> crop_id -> area"
     )
+
+
+class WorkerRef(BaseModel):
+    id: str
+    name: str
+    roles: list[str] = Field(default_factory=list)
+    # Optional: actual worked hours for this (event, t) assignment
+    used_time_hours: float | None = None
+
+
+class ResourceUsageRef(BaseModel):
+    id: str
+    name: str | None = None
+    used_time_hours: float
+
+
+class EventAssignment(BaseModel):
+    index: int
+    event_id: str
+    assigned_workers: list[WorkerRef] = Field(default_factory=list)
+    resource_usage: list[ResourceUsageRef] = Field(default_factory=list)
+    crop_area_on_t: float | None = None
+    land_ids: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_day_alias(cls, data):
+        if isinstance(data, dict) and "index" not in data and "day" in data:
+            data = {**data, "index": data.get("day")}
+        return data
 
 
 class PlanResponse(BaseModel):
     diagnostics: PlanDiagnostics
     assignment: PlanAssignment
+    # Optional: event-level assignments (t x event -> workers)
+    event_assignments: list[EventAssignment] | None = None
+    # Objective values summary (evaluated on final plan when feasible)
+    objectives: dict[str, float] = Field(default_factory=dict)
+    # Lightweight numeric summaries to help quick inspection
+    summary: dict[str, float] = Field(default_factory=dict)
+    # Simple, human-readable hints when infeasible
+    constraint_hints: list[str] = Field(default_factory=list)

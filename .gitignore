@@ -1,3 +1,7 @@
-.serena
-.venv
 __pycache__
+api_dist
+.venv
+.pytest_cache
+.serena
+.spec-workflow/approvals
+.env

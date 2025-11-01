@@ -1,0 +1,60 @@
+[template]
+id = "edamame_outdoor"
+label = "エダマメ(露地)"
+crop_ref = "edamame"
+variant = "露地"
+price_per_a = 32000.0
+
+[[events]]
+id = "prepare_field"
+name = "圃場準備"
+category = "圃場準備"
+uses_land = true
+start_window_days = [1, 10]
+labor_total_per_a = 0.5
+
+[[events]]
+id = "sow"
+name = "播種"
+category = "播種"
+uses_land = true
+preceding_event_id = "prepare_field"
+lag_days = [0, 5]
+labor_total_per_a = 0.5
+
+[[events]]
+id = "pesticide"
+name = "防除"
+category = "防除"
+uses_land = false
+preceding_event_id = "sow"
+lag_days = [20, 70]
+frequency_days = 15
+labor_total_per_a = 0.5
+
+[[events]]
+id = "harvest"
+name = "収穫"
+category = "収穫"
+uses_land = true
+preceding_event_id = "sow"
+lag_days = [70, 90]
+labor_total_per_a = 3.5
+
+[[events]]
+id = "shipping"
+name = "出荷"
+category = "出荷"
+uses_land = false
+preceding_event_id = "harvest"
+lag_days = [1, 2]
+labor_total_per_a = 0.5
+
+[[events]]
+id = "cleanup"
+name = "片付け"
+category = "片付け"
+uses_land = true
+preceding_event_id = "harvest"
+lag_days = [1, 5]
+labor_total_per_a = 0.5

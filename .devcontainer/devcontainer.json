@@ -16,8 +16,9 @@
       "extensions": [
         "ms-python.python",
         "charliermarsh.ruff",
+        "tamasfe.even-better-toml",
         "biomejs.biome",
-        "anthropic.claude-code"
+        "openai.chatgpt"
       ],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "bash",
@@ -30,14 +31,14 @@
       }
     }
   },
-  "mounts": [
-    "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume"
-  ],
   "forwardPorts": [3000, 8000],
   "remoteEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",
     "POWERLEVEL9K_DISABLE_GITSTATUS": "true"
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+  "mounts": [
+    "source=farmpl-codex-sessions,target=/home/node/.codex/sessions,type=volume"
+  ],
   "workspaceFolder": "/workspace"
 }

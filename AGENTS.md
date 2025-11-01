@@ -1,0 +1,1 @@
+Refer to files under `.cursor` directory.

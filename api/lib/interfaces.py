@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
+
+if TYPE_CHECKING:
+    from .model_builder import BuildContext
+    from .solver import SolveContext
 
 
 @runtime_checkable
@@ -24,26 +28,25 @@ class Constraint(ABC):
     enabled: bool = True
 
     @abstractmethod
-    def apply(self, ctx: BuildContext) -> None:  # noqa: F821
-        ...
+    def apply(self, ctx: BuildContext) -> None: ...
 
 
 class Objective(ABC):
     """An objective contributes a term to the global objective function.
 
-    Weighting is handled by the builder using user preferences.
+    Note: The current planner composes objectives via lexicographic (stage-wise)
+    optimization. Implementations should register a single expression; any
+    weighting/combination is orchestrated by the planner, not by objectives.
     """
 
     enabled: bool = True
 
     @abstractmethod
-    def register(self, ctx: BuildContext) -> None:  # noqa: F821
-        ...
+    def register(self, ctx: BuildContext) -> None: ...
 
 
 class DiagnosticsProvider(ABC):
     """Explainability hooks for infeasibility/quality analysis."""
 
     @abstractmethod
-    def summarize(self, ctx: SolveContext) -> dict:  # noqa: F821
-        ...
+    def summarize(self, ctx: SolveContext) -> dict: ...

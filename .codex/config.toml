@@ -1,0 +1,23 @@
+network_access = true
+model = "gpt-5-codex"
+model_verbosity = "medium"
+model_reasoning_summary = "auto"
+show_raw_agent_reasoning = true
+file_opener = "cursor"
+
+[tools]
+web_search = true
+
+[mcp_servers]
+spec-workflow.command = "npx"
+spec-workflow.args = ["-y", "@pimzino/spec-workflow-mcp@latest", "/workspace"]
+
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp"]
+type = "stdio"
+
+[mcp_servers.serena]
+command = "uvx"
+args = ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server", "--enable-web-dashboard", "false", "--context", "ide-assistant", "--project", "/workspace"]
+type = "stdio"

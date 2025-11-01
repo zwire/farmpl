@@ -1,0 +1,135 @@
+from __future__ import annotations
+
+from lib import PlanRequest
+from lib.schemas import (
+    Crop,
+    CropAreaBound,
+    Event,
+    FixedArea,
+    Horizon,
+    Land,
+    Resource,
+    Worker,
+)
+
+
+def build_sample_request() -> PlanRequest:
+    """Constructs the sample PlanRequest used by demos and CLI."""
+    crops = [
+        Crop(id="C1", name="Tomato", category="vegetable", price_per_area=1000),
+        Crop(id="C2", name="Lettuce", category="vegetable", price_per_area=700),
+        Crop(id="C3", name="Herb", category="herb", price_per_area=400),
+    ]
+    lands = [
+        Land(id="L1", name="Field-1", area=1.0, blocked_days={1}),
+        Land(id="L2", name="Field-2", area=0.5, blocked_days={5}),
+    ]
+    events = [
+        Event(
+            id="E1_seed",
+            crop_id="C1",
+            name="Seeding",
+            uses_land=True,
+            labor_total_per_area=2.0,
+            labor_daily_cap=3.0,
+            people_required=1,
+            required_roles={"admin"},
+            start_cond={1, 2, 3, 4, 5},
+            end_cond={1, 2, 3, 4, 5},
+        ),
+        Event(
+            id="E1_irrig",
+            crop_id="C1",
+            name="Irrigate",
+            labor_total_per_area=0.5,
+            labor_daily_cap=1.0,
+            people_required=1,
+            required_roles={"admin"},
+            start_cond={2, 3, 4, 5, 6},
+            end_cond={2, 3, 4, 5, 6},
+            preceding_event_id="E1_seed",
+            frequency_days=3,
+        ),
+        Event(
+            id="E1_harv",
+            crop_id="C1",
+            name="Harvest",
+            uses_land=True,
+            labor_total_per_area=3.0,
+            labor_daily_cap=3.0,
+            people_required=1,
+            required_roles={"admin", "harvester"},
+            required_resources={"R1"},
+            preceding_event_id="E1_seed",
+            lag_min_days=5,
+        ),
+        # Minimal events for crops C2 and C3 to satisfy API validation
+        Event(
+            id="E2_seed",
+            crop_id="C2",
+            name="Seeding C2",
+            uses_land=True,
+            labor_total_per_area=1.0,
+            people_required=1,
+            start_cond={1, 2, 3},
+            end_cond={1, 2, 3},
+        ),
+        Event(
+            id="E2_harv",
+            crop_id="C2",
+            name="Harvest C2",
+            uses_land=True,
+            labor_total_per_area=1.5,
+            people_required=1,
+            start_cond={3, 4, 5, 6},
+            end_cond={3, 4, 5, 6},
+            preceding_event_id="E2_seed",
+            lag_min_days=2,
+            lag_max_days=4,
+        ),
+        Event(
+            id="E3_seed",
+            crop_id="C3",
+            name="Seeding C3",
+            uses_land=True,
+            labor_total_per_area=0.8,
+            people_required=1,
+            start_cond={1, 2, 3},
+            end_cond={1, 2, 3},
+        ),
+        Event(
+            id="E3_harv",
+            crop_id="C3",
+            name="Harvest C3",
+            uses_land=True,
+            labor_total_per_area=1.2,
+            people_required=1,
+            start_cond={3, 4, 5, 6},
+            end_cond={3, 4, 5, 6},
+            preceding_event_id="E3_seed",
+            lag_min_days=2,
+            lag_max_days=5,
+        ),
+    ]
+
+    return PlanRequest(
+        horizon=Horizon(num_days=10),
+        crops=crops,
+        events=events,
+        lands=lands,
+        workers=[
+            Worker(
+                id="W1",
+                name="Alice",
+                capacity_per_day=8.0,
+                roles={"admin"},
+                blocked_days={3},
+            ),
+            Worker(id="W2", name="Bob", capacity_per_day=8.0, roles={"harvester"}),
+        ],
+        resources=[
+            Resource(id="R1", name="Harvester", capacity_per_day=8.0, blocked_days={5})
+        ],
+        fixed_areas=[FixedArea(land_id="L1", crop_id="C1", area=0.3)],
+        crop_area_bounds=[CropAreaBound(crop_id="C1", min_area=0.2, max_area=0.4)],
+    )

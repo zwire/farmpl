@@ -1,0 +1,35 @@
+{
+  "agents": [
+    "cursor",
+    "codex-cli",
+    "gemini-cli"
+  ],
+  "mcpServers": {
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "env": {}
+    },
+    "serena": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--enable-web-dashboard",
+        "false",
+        "--context",
+        "ide-assistant",
+        "--project",
+        "/workspace"
+      ],
+      "env": {}
+    }
+  }
+}

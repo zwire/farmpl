@@ -1,9 +1,41 @@
 from __future__ import annotations
 
-from .diagnostics import BasicDiagnostics
+import math
+import time
+from collections.abc import Callable
+
+from .constraints import (
+    AreaBoundsConstraint,
+    EventsWindowConstraint,
+    FixedAreaConstraint,
+    HoldAreaConstConstraint,
+    LaborConstraint,
+    LandCapacityConstraint,
+    LinkAreaUseConstraint,
+    OccEqualizeConstraint,
+    ResourcesConstraint,
+    RolesConstraint,
+)
 from .interfaces import Constraint, Objective
 from .model_builder import build_model
-from .schemas import PlanAssignment, PlanDiagnostics, PlanRequest, PlanResponse
+from .objectives import (
+    build_dispersion_expr,
+    build_diversity_expr,
+    build_earliness_expr,
+    build_event_span_expr,
+    build_labor_hours_expr,
+    build_occupancy_span_expr,
+    build_profit_expr,
+)
+from .schemas import (
+    EventAssignment,
+    PlanAssignment,
+    PlanDiagnostics,
+    PlanRequest,
+    PlanResponse,
+    ResourceUsageRef,
+    WorkerRef,
+)
 from .solver import solve
 
 
@@ -11,20 +43,396 @@ def plan(
     request: PlanRequest,
     constraints: list[Constraint] | None = None,
     objectives: list[Objective] | None = None,
+    *,
+    extra_stages: list[str] | None = None,
+    stage_order: list[str] | None = None,
+    lock_tolerance_pct: float | None = None,
+    lock_tolerance_by: dict[str, float] | None = None,
+    progress_cb: Callable[[float, str], None] | None = None,
 ) -> PlanResponse:
-    constraints = constraints or []
-    objectives = objectives or []
+    def _report(p: float, phase: str) -> None:
+        if progress_cb is None:
+            return
+        # Allow raising to bubble up for cancellation
+        progress_cb(max(0.0, min(1.0, float(p))), phase)
 
-    build_ctx = build_model(request, constraints, objectives)
-    solve_ctx = solve(build_ctx)
+    # Default constraints (partial time-axis introduced)
+    base_constraints: list[Constraint] = [
+        LandCapacityConstraint(),
+        LinkAreaUseConstraint(),
+        EventsWindowConstraint(),
+        # Equalize land occupancy with crop occupancy when land uses the crop.
+        # This removes mid-season gaps and prevents inconsistent land switches.
+        OccEqualizeConstraint(),
+        LaborConstraint(),
+        ResourcesConstraint(),
+        HoldAreaConstConstraint(),
+        FixedAreaConstraint(),
+        AreaBoundsConstraint(),
+        RolesConstraint(),
+    ]
+    if constraints:
+        base_constraints.extend(constraints)
 
-    diag = BasicDiagnostics().summarize(solve_ctx)
+    # Lexicographic stages
+    sense_map = {
+        "profit": "max",
+        "labor": "min",
+        "dispersion": "min",
+        "event_span": "min",
+        "earliness": "min",
+        "occ_span": "min",
+        "diversity": "max",
+    }
+    if stage_order:
+        stage_defs: list[tuple[str, str]] = [
+            (name, sense_map.get(name, "min"))
+            for name in stage_order
+            if name in sense_map
+        ]
+        if not stage_defs:
+            stage_defs = [("profit", "max"), ("dispersion", "min")]
+    else:
+        # Default stages: profit -> dispersion -> event_span -> earliness -> occ_span -> diversity
+        stage_defs = [
+            ("profit", "max"),
+            ("labor", "min"),
+            ("dispersion", "min"),
+            ("event_span", "min"),
+            ("earliness", "min"),
+            ("occ_span", "min"),
+            ("diversity", "max"),
+        ]
+        if extra_stages:
+            for k in extra_stages:
+                if k not in {name for name, _ in stage_defs}:
+                    stage_defs.append((k, sense_map.get(k, "min")))
+
+    locks: list[tuple[str, str, int]] = []
+    stage_summaries: list[dict] = []
+    last_ctx = None
+    last_res = None
+    reason = None
+    tol = float(lock_tolerance_pct or 0.0)
+    n_stages = max(1, len(stage_defs))
+    for i, (name, sense) in enumerate(stage_defs):
+        t_build0 = time.perf_counter()
+        ctx = build_model(request, base_constraints, [])
+        t_build1 = time.perf_counter()
+        # Apply previous locks
+        for lname, lsense, val in locks:
+            if lname == "profit":
+                expr = build_profit_expr(ctx)
+            elif lname == "labor":
+                expr = build_labor_hours_expr(ctx)
+            elif lname == "dispersion":
+                expr = build_dispersion_expr(ctx)
+            elif lname == "diversity":
+                expr = build_diversity_expr(ctx)
+            else:
+                continue
+            # Apply tolerance (per-stage override > global > 0)
+            stage_tol = tol
+            if lock_tolerance_by and lname in lock_tolerance_by:
+                stage_tol = float(lock_tolerance_by[lname] or 0.0)
+            if lsense == "max":
+                bound = int(math.floor(val * (1.0 - stage_tol)))
+                ctx.model.Add(expr >= bound)
+            else:
+                bound = int(math.ceil(val * (1.0 + stage_tol)))
+                ctx.model.Add(expr <= bound)
+
+        # Register current objective
+        if name == "profit":
+            obj_expr = build_profit_expr(ctx)
+            ctx.model.Maximize(obj_expr)
+        elif name == "labor":
+            obj_expr = build_labor_hours_expr(ctx)
+            ctx.model.Minimize(obj_expr)
+        elif name == "dispersion":
+            obj_expr = build_dispersion_expr(ctx)
+            ctx.model.Minimize(obj_expr)
+        elif name == "event_span":
+            obj_expr = build_event_span_expr(ctx)
+            ctx.model.Minimize(obj_expr)
+        elif name == "earliness":
+            obj_expr = build_earliness_expr(ctx)
+            ctx.model.Minimize(obj_expr)
+        elif name == "occ_span":
+            obj_expr = build_occupancy_span_expr(ctx)
+            ctx.model.Minimize(obj_expr)
+        elif name == "diversity":
+            obj_expr = build_diversity_expr(ctx)
+            ctx.model.Maximize(obj_expr)
+        else:
+            # Unknown extra stage; skip
+            continue
+
+        res = solve(ctx, prev=last_res)
+        last_ctx = ctx
+        last_res = res
+        if res.status not in ("FEASIBLE", "OPTIMAL"):
+            reason = f"stage '{name}' status={res.status}"
+            break
+        # lock value and record summary
+        val = int(res.objective_value or 0)
+        locks.append((name, sense, val))
+        # quick variable counts
+        vars_count = {
+            "x_lct": len(ctx.variables.x_area_by_l_c_t),
+            "x_lc": len(ctx.variables.x_area_by_l_c),
+            "z_lc": len(ctx.variables.z_use_by_l_c),
+            "r_et": len(ctx.variables.r_event_by_e_t),
+            "h_wet": len(ctx.variables.h_time_by_w_e_t),
+            "assign_wet": len(ctx.variables.assign_by_w_e_t),
+            "u_ret": len(ctx.variables.u_time_by_r_e_t),
+            "occ_ct": len(ctx.variables.occ_by_c_t),
+            "occ_lct": len(ctx.variables.occ_by_l_c_t),
+        }
+        stage_summaries.append(
+            {
+                "name": name,
+                "sense": sense,
+                "value": val,
+                "vars": vars_count,
+                "build_ms": (t_build1 - t_build0) * 1000.0,
+                "solve_ms": res.solve_ms,
+            }
+        )
+        # Report stage progress up to 80%
+        _report(0.8 * (i + 1) / n_stages, f"stage:{name}")
+
+    feasible = bool(last_res and last_res.status in ("FEASIBLE", "OPTIMAL"))
     diagnostics = PlanDiagnostics(
-        feasible=False,  # skeleton: not solved yet
-        reason="solver not executed",
+        feasible=feasible,
+        reason=None if feasible else reason,
         violated_constraints=[],
+        stages=stage_summaries,
+        stage_order=[name for name, _ in stage_defs],
+        lock_tolerance_pct=float(lock_tolerance_pct or 0.0),
+        lock_tolerance_by={k: float(v) for k, v in (lock_tolerance_by or {}).items()}
+        if lock_tolerance_by
+        else None,
     )
 
-    # skeleton: empty assignment
-    assignment = PlanAssignment(crop_area_by_land={})
-    return PlanResponse(diagnostics=diagnostics, assignment=assignment)
+    # Build time-indexed assignment from the last stage values
+    crop_area_by_land_t: dict[str, dict[int, dict[str, float]]] = {}
+    if (
+        feasible
+        and last_res
+        and last_res.x_area_by_l_c_t_values is not None
+        and last_ctx
+    ):
+        scale = last_ctx.scale_area
+        for (land_id, crop_id, t), units in last_res.x_area_by_l_c_t_values.items():
+            if units <= 0:
+                continue
+            area = units / scale
+            crop_area_by_land_t.setdefault(land_id, {}).setdefault(t, {})[crop_id] = (
+                area
+            )
+
+    assignment = PlanAssignment(crop_area_by_land_t=crop_area_by_land_t)
+    _report(0.86, "post:assignment")
+
+    # Build event assignments with workers, resources, and areas
+    event_assignments: list[EventAssignment] = []
+    sc = last_res
+    if sc is not None and sc.r_event_by_e_t_values is not None and last_ctx is not None:
+        # Build worker lookup for names/roles
+        worker_info = {
+            w.id: WorkerRef(id=w.id, name=w.name, roles=sorted(w.roles or set()))
+            for w in request.workers
+        }
+        # Build resource lookup
+        res_info = {r.id: r.name for r in request.resources}
+
+        # Lookup tables for event metadata and per-t land usage
+        event_lookup = {event.id: event for event in request.events}
+
+        # Precompute crop area by (crop_id, t)
+        crop_area_by_t: dict[tuple[str, int], float] = {}
+        land_ids_by_crop_t: dict[tuple[str, int], set[str]] = {}
+        if sc.x_area_by_l_c_t_values is not None:
+            scale = last_ctx.scale_area
+            for (land_id, crop_id, t), units in sc.x_area_by_l_c_t_values.items():
+                crop_area_by_t[(crop_id, t)] = crop_area_by_t.get((crop_id, t), 0.0) + (
+                    units / scale
+                )
+                if units > 0:
+                    land_ids_by_crop_t.setdefault((crop_id, t), set()).add(land_id)
+
+        pairs = sorted(sc.r_event_by_e_t_values.keys(), key=lambda k: (k[1], k[0]))
+        for e_id, t in pairs:
+            if sc.r_event_by_e_t_values[(e_id, t)] <= 0:
+                continue
+            ev_meta = event_lookup.get(e_id)
+            # Workers
+            assigned: list[WorkerRef] = []
+            if sc.assign_by_w_e_t_values is not None:
+                for (w_id, ev_id, tt), av in sc.assign_by_w_e_t_values.items():
+                    if ev_id == e_id and tt == t and av > 0:
+                        wr = worker_info.get(w_id)
+                        if wr is not None:
+                            # Attach actual used_time_hours when available
+                            hours = 0.0
+                            if sc.h_time_by_w_e_t_values is not None:
+                                from .constants import (
+                                    TIME_SCALE_UNITS_PER_HOUR as _TS,
+                                )
+
+                                raw = (
+                                    sc.h_time_by_w_e_t_values.get((w_id, e_id, t), 0)
+                                    or 0
+                                )
+                                hours = float(raw) / float(_TS)
+                            assigned.append(
+                                WorkerRef(
+                                    id=wr.id,
+                                    name=wr.name,
+                                    roles=wr.roles,
+                                    used_time_hours=hours,
+                                )
+                            )
+            # Resources
+            resources_used: list[ResourceUsageRef] = []
+            if sc.u_time_by_r_e_t_values is not None:
+                per_res: dict[str, int] = {}
+                for (r_id, ev_id, tt), val in sc.u_time_by_r_e_t_values.items():
+                    if ev_id == e_id and tt == t and val > 0:
+                        per_res[r_id] = per_res.get(r_id, 0) + val
+                from .constants import TIME_SCALE_UNITS_PER_HOUR as _TS
+
+                for r_id, units in per_res.items():
+                    resources_used.append(
+                        ResourceUsageRef(
+                            id=r_id,
+                            name=res_info.get(r_id),
+                            used_time_hours=float(units) / float(_TS),
+                        )
+                    )
+            # Planted area
+            crop_area = None
+            ev_crop = ev_meta.crop_id if ev_meta is not None else None
+            if ev_crop is not None:
+                crop_area = crop_area_by_t.get((ev_crop, t))
+
+            # Land allocation (only for events that occupy land)
+            land_ids: list[str] = []
+            if ev_meta is not None and getattr(ev_meta, "uses_land", False):
+                land_ids = sorted(land_ids_by_crop_t.get((ev_meta.crop_id, t), set()))
+
+            event_assignments.append(
+                EventAssignment(
+                    index=t,
+                    event_id=e_id,
+                    assigned_workers=assigned,
+                    resource_usage=resources_used,
+                    crop_area_on_t=crop_area,
+                    land_ids=land_ids,
+                )
+            )
+        _report(0.9, "post:event_assignments")
+
+    # Build objective summaries and simple hints
+    objectives: dict[str, float] = {}
+    summary: dict[str, float] = {}
+    hints: list[str] = []
+
+    if feasible and last_res is not None and last_ctx is not None:
+        # Profit from per-t areas (max over t per land/crop)
+        price_map = {c.id: float(c.price_per_area or 0.0) for c in request.crops}
+        scale = last_ctx.scale_area
+        max_by_lc: dict[tuple[str, str], int] = {}
+        for (land_id, c, _t), units in (last_res.x_area_by_l_c_t_values or {}).items():
+            key = (land_id, c)
+            if units > max_by_lc.get(key, 0):
+                max_by_lc[key] = units
+        profit_val = 0.0
+        for (_land_id, c), units in max_by_lc.items():
+            profit_val += price_map.get(c, 0.0) * (units / scale)
+        objectives["profit"] = round(profit_val, 3)
+        # Dispersion
+        objectives["dispersion"] = float(
+            sum((last_res.z_use_by_l_c_values or {}).values())
+        )
+        # Labor
+        from .constants import TIME_SCALE_UNITS_PER_HOUR as _TS
+
+        labor_total_units = float(sum((last_res.h_time_by_w_e_t_values or {}).values()))
+        labor_total = labor_total_units / float(_TS)
+        objectives["labor"] = labor_total
+        # Diversity (#crops used)
+        used_crops = {
+            c
+            for (_land_id, c), z in (last_res.z_use_by_l_c_values or {}).items()
+            if z > 0
+        }
+        objectives["diversity"] = float(len(used_crops))
+
+        # Numeric summaries
+        total_worker_capacity = (
+            sum(float(w.capacity_per_day or 0.0) for w in request.workers)
+            * request.horizon.num_days
+        )
+        assigned_res_units = float(
+            sum((last_res.u_time_by_r_e_t_values or {}).values())
+        )
+        assigned_res = assigned_res_units / float(_TS)
+        total_res_capacity = (
+            sum(float(r.capacity_per_day or 0.0) for r in request.resources)
+            * request.horizon.num_days
+        )
+        summary = {
+            "workers.capacity_total_h": round(total_worker_capacity, 3),
+            "workers.assigned_total_h": labor_total,
+            "resources.capacity_total_h": round(total_res_capacity, 3),
+            "resources.assigned_total_h": assigned_res,
+        }
+    else:
+        # Heuristic hints on infeasibility
+        required_roles = set().union(
+            *[e.required_roles or set() for e in request.events]
+        )
+        have_roles = (
+            set().union(*[w.roles or set() for w in request.workers])
+            if request.workers
+            else set()
+        )
+        for r in sorted(required_roles - have_roles):
+            hints.append(f"missing role: {r}")
+        required_res_cats = set().union(
+            *[e.required_resource_categories or set() for e in request.events]
+        )
+        if required_res_cats:
+            have_cats = {r.category for r in request.resources if r.category}
+            for rc in sorted(required_res_cats - have_cats):
+                hints.append(f"missing resource category: {rc}")
+        max_land_area = sum(land.area for land in request.lands)
+        for b in request.crop_area_bounds or []:
+            if b.min_area is not None and b.min_area > max_land_area:
+                msg = (
+                    f"crop {b.crop_id} min_area {b.min_area} > "
+                    f"total_land {max_land_area}"
+                )
+                hints.append(msg)
+        for fa in request.fixed_areas or []:
+            if fa.land_tag:
+                tag = fa.land_tag
+                total = sum(
+                    ld.area for ld in request.lands if tag in (ld.tags or set())
+                )
+                if fa.area > total:
+                    hints.append(
+                        f"fixed area {fa.area} for tag:{tag}/{fa.crop_id} > total area {total}"
+                    )
+
+    _report(0.92, "post:summary")
+    return PlanResponse(
+        diagnostics=diagnostics,
+        assignment=assignment,
+        event_assignments=event_assignments,
+        objectives=objectives,
+        summary=summary,
+        constraint_hints=hints,
+    )
