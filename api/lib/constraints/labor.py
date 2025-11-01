@@ -44,7 +44,9 @@ class LaborConstraint(Constraint):
             from fractions import Fraction
 
             L = ev.labor_total_per_area or 0.0
-            labor_per_unit_frac = Fraction(str(L)) * TIME_SCALE_UNITS_PER_HOUR / AREA_SCALE_UNITS_PER_A
+            labor_per_unit_frac = (
+                Fraction(str(L)) * TIME_SCALE_UNITS_PER_HOUR / AREA_SCALE_UNITS_PER_A
+            )
             p = labor_per_unit_frac.numerator
             q = labor_per_unit_frac.denominator
 
@@ -69,7 +71,9 @@ class LaborConstraint(Constraint):
                     if w.blocked_days and t in w.blocked_days:
                         continue
                     key = (w.id, ev.id, t)
-                    cap_w = int(round((w.capacity_per_day or 0.0) * TIME_SCALE_UNITS_PER_HOUR))
+                    cap_w = int(
+                        round((w.capacity_per_day or 0.0) * TIME_SCALE_UNITS_PER_HOUR)
+                    )
                     if key not in ctx.variables.h_time_by_w_e_t:
                         ctx.variables.h_time_by_w_e_t[key] = model.NewIntVar(
                             0, cap_w, f"h_{w.id}_{ev.id}_{t}"
@@ -103,7 +107,9 @@ class LaborConstraint(Constraint):
 
                 # Daily cap per event when r=1 (hours scale)
                 if ev.labor_daily_cap is not None:
-                    cap_scaled = int(round(ev.labor_daily_cap * TIME_SCALE_UNITS_PER_HOUR))
+                    cap_scaled = int(
+                        round(ev.labor_daily_cap * TIME_SCALE_UNITS_PER_HOUR)
+                    )
                     model.Add(daily_sum <= cap_scaled * r)
 
             # People requirement per active day: sum(assign) >= people_required

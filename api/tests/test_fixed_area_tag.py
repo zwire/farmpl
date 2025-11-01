@@ -83,4 +83,3 @@ def test_fixed_area_by_tag_infeasible_when_exceeds_total_area() -> None:
     )
     res = solve(ctx)
     assert res.status in ("INFEASIBLE", "MODEL_INVALID")
-
