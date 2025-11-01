@@ -382,7 +382,7 @@ FarmPLは次のような計画を自動で提案します。
 
 ご意見や不具合のご連絡は、以下のいずれかでお願いします。
 
-- **GitHub**: Issuesからお知らせください
+- **GitHub**: <a href="https://github.com/zwire/farmpl/issues" target="_blank" rel="noopener">Issues</a> からお知らせください
 - **メール**: zwire.v1@gmail.com
 
 ※ 返信には数日いただく場合があります。操作がわからないときは、できれば画面のスクリーンショットを添付してください。
