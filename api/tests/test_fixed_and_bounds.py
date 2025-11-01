@@ -68,7 +68,8 @@ def test_fixed_area_constraint_feasible() -> None:
         [ProfitObjective()],
     )
     res = solve(ctx)
-    # 実装仕様変更により、固定面積は基礎変数で満たされるが、日別展開の形は状況に依存する。
+    # 実装仕様変更により、固定面積は基礎変数で満たされるが、
+    # 日別展開の形は状況に依存する。
     # 可行であることのみを確認する。
     assert res.status in ("FEASIBLE", "OPTIMAL")
 

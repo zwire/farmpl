@@ -33,7 +33,8 @@ class LoadedTemplate:
 def _load_crop_catalog() -> dict[str, dict[str, object]]:
     """Load crop masters from catalog file.
 
-    Returns a mapping: crop_id -> {"name": str, "category": str|None, "aliases": list[str]}
+    Returns a mapping: crop_id -> {"name": str, "category": str|None,
+     "aliases": list[str]}
     """
     if not CROP_CATALOG_FILE.exists():
         return {}

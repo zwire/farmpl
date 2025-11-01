@@ -18,7 +18,8 @@ def _build_two_crop_request(
     - Both events use land and can run on any day in [1..days].
     - One worker has enough capacity to satisfy either choice.
     - Without labor stage, profit pushes to the higher effective price crop.
-    - With labor stage (and profit being tied or relaxed), the lower-labor crop is preferred.
+    - With labor stage (and profit being tied or relaxed),
+      the lower-labor crop is preferred.
     """
 
     crops = [

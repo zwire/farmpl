@@ -40,7 +40,8 @@ def _compress_api_plan_to_third(api: ApiPlan) -> PlanRequest:
     - Workers/Resources capacity_per_day: scaled by 10x (average days/third).
       Blocked thirds: if all days of the third are blocked, mark that third blocked.
     - Lands: area unchanged; blocked thirds only when fully blocked in original.
-    - Events: start/end windows mapped to third indices; frequency/lag days -> ceil(/10).
+    - Events: start/end windows mapped to third indices;
+      frequency/lag days -> ceil(/10).
       labor_total_per_area unchanged; labor_daily_cap scaled by 10x.
     """
 
@@ -380,7 +381,7 @@ def _build_timeline(
 
     crop_by_event = {e.id: e.crop_id for e in req.events}
     event_meta_by_id = {e.id: e for e in req.events}
-    land_by_id = {l.id: l for l in req.lands}
+    land_by_id = {land.id: land for land in req.lands}
     event_names = {e.id: e.name for e in req.events}
     items: list[GanttEventItem] = []
     if resp.event_assignments:
@@ -410,7 +411,8 @@ def _build_timeline(
             occ_cnt = max(1, occ_count_by_event.get(ea.event_id, 1))
             labor_for_day = total_need / float(occ_cnt)
 
-            # Prefer actual per-worker hours if provided by planner; otherwise equal split
+            # Prefer actual per-worker hours if provided by planner;
+            # otherwise equal split
             worker_usages: list[WorkerUsage] = []
             assigned = list(ea.assigned_workers or [])
             if assigned:

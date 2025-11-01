@@ -23,7 +23,8 @@ def _third_sequence_with_counts(
     """Return ordered (period_key, day_count) sequence covering the horizon days.
 
     Example: starting 2025-01-08 for 25 days ->
-    [ ("2025-01:上旬", 3), ("2025-01:中旬", 10), ("2025-01:下旬", 10), ("2025-02:上旬", 2) ]
+    [ ("2025-01:上旬", 3), ("2025-01:中旬", 10), ("2025-01:下旬", 10),
+      ("2025-02:上旬", 2) ]
     """
     seq: list[tuple[str, int]] = []
     cur_key: str | None = None
