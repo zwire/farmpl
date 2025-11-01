@@ -163,12 +163,12 @@ def _process_job(job_id: str) -> None:
         LOGGER.info("Job %s not found, skipping", job_id)
         return
 
-    status = item.get("status", "queued")
+    status = item.get("status", "running")
     if status in _FINAL_STATUSES:
         LOGGER.info("Job %s already finalized with status %s", job_id, status)
         return
 
-    if item.get("cancel_flag") is True and status in {"queued", "pending"}:
+    if item.get("cancel_flag") is True and status in {"pending", "running"}:
         _mark_canceled(job_id)
         return
 

@@ -16,8 +16,11 @@
       "extensions": [
         "ms-python.python",
         "charliermarsh.ruff",
-        "tamasfe.even-better-toml",
         "biomejs.biome",
+        "tamasfe.even-better-toml",
+        "bierner.markdown-mermaid",
+        "bpruitt-goddard.mermaid-markdown-syntax-highlighting",
+        "corschenzi.mermaid-graphical-editor",
         "openai.chatgpt"
       ],
       "settings": {

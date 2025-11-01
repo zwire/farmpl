@@ -65,10 +65,26 @@ jobs:
         run: |
           set -euxo pipefail
           npx cdk deploy InfraStack UiStack --require-approval never
-          echo "API_URL=$(npx cdk output InfraStack.ApiBaseUrl)" >> "$GITHUB_ENV"
-          echo "UI_BUCKET=$(npx cdk output UiStack.UiBucketName)" >> "$GITHUB_ENV"
-          echo "UI_DIST_ID=$(npx cdk output UiStack.UiDistributionId)" >> "$GITHUB_ENV"
-          echo "UI_DOMAIN=$(npx cdk output UiStack.UiDistributionDomainName)" >> "$GITHUB_ENV"
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name InfraStack \
+            --query "Stacks[0].Outputs[?OutputKey=='ApiBaseUrl'].OutputValue" \
+            --output text)
+          UI_BUCKET=$(aws cloudformation describe-stacks \
+            --stack-name UiStack \
+            --query "Stacks[0].Outputs[?OutputKey=='UiBucketName'].OutputValue" \
+            --output text)
+          UI_DIST_ID=$(aws cloudformation describe-stacks \
+            --stack-name UiStack \
+            --query "Stacks[0].Outputs[?OutputKey=='UiDistributionId'].OutputValue" \
+            --output text)
+          UI_DOMAIN=$(aws cloudformation describe-stacks \
+            --stack-name UiStack \
+            --query "Stacks[0].Outputs[?OutputKey=='UiDistributionDomainName'].OutputValue" \
+            --output text)
+          test -n "$API_URL" && echo "API_URL=$API_URL" >> "$GITHUB_ENV"
+          test -n "$UI_BUCKET" && echo "UI_BUCKET=$UI_BUCKET" >> "$GITHUB_ENV"
+          test -n "$UI_DIST_ID" && echo "UI_DIST_ID=$UI_DIST_ID" >> "$GITHUB_ENV"
+          test -n "$UI_DOMAIN" && echo "UI_DOMAIN=$UI_DOMAIN" >> "$GITHUB_ENV"
 
       - name: Install UI dependencies
         working-directory: ui
@@ -77,11 +93,14 @@ jobs:
       - name: Build UI
         working-directory: ui
         env:
-          NEXT_PUBLIC_API_BASE_URL: ${{ env.API_URL }}
+          NEXT_PUBLIC_FARMPL_API_BASE: ${{ env.API_URL }}
+          NEXT_PUBLIC_DOCS_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+          # Optional: set a public API key if you want the browser to call protected endpoints
+          # Configure this in repo Variables as PUBLIC_API_KEY if you accept exposing the key client-side.
+          NEXT_PUBLIC_FARMPL_API_KEY: ${{ vars.PUBLIC_API_KEY }}
         run: |
           set -euxo pipefail
           npm run build
-          npx next export
 
       - name: Upload static assets
         working-directory: ui
@@ -89,6 +108,7 @@ jobs:
           UI_BUCKET: ${{ env.UI_BUCKET }}
         run: |
           set -euxo pipefail
+          test -n "$UI_BUCKET" || { echo 'UI_BUCKET is empty. Check CloudFormation outputs.'; exit 1; }
           aws s3 sync out/ "s3://$UI_BUCKET" --delete
 
       - name: Invalidate CloudFront cache

@@ -8,7 +8,6 @@ from core.auth import require_auth
 from core.config import Settings
 from schemas import JobInfo, OptimizationRequest, OptimizationResult
 from services import job_runner
-from services.optimizer_adapter import solve_sync_with_timeout
 
 router = APIRouter(
     prefix="/v1",
@@ -35,7 +34,23 @@ def optimize_sync(
 
     settings: Settings = request.app.state.settings
     timeout_ms = _resolve_timeout(settings, request_model.timeout_ms)
-    return solve_sync_with_timeout(request_model, timeout_ms)
+    try:
+        from services.optimizer_adapter import (
+            solve_sync_with_timeout as _solve_sync_with_timeout,
+        )
+    except Exception as exc:  # pragma: no cover - deployment without solver stack
+        # APIコンテナからは重い依存を外しているため、同期解は提供しない。
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "message": (
+                    "sync optimize is unavailable on this deployment; "
+                    "use /v1/optimize/async"
+                ),
+                "reason": str(getattr(exc, "__class__", type(exc)).__name__),
+            },
+        ) from exc
+    return _solve_sync_with_timeout(request_model, timeout_ms)
 
 
 @router.post(

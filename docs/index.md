@@ -1,5 +1,5 @@
 ---
-title: ユーザーマニュアル
+title: ユーザーガイド
 ---
 
 ## FarmPLとは
@@ -7,6 +7,13 @@ title: ユーザーマニュアル
 様々な制約事項を加味した作付けスケジュールと労働計画を自動で作成するツールです。
 
 ![アプリのイメージ](images/home.gif)
+
+<div class="admonition tip">
+<p class="admonition-title">アプリへ</p>
+<p>
+<a class="md-button md-button--primary" href="{{ (environment.get('APP_URL') if environment else None) or (config.extra.app_url if config.extra and config.extra.app_url else '#') }}" target="_blank" rel="noopener">アプリを開く</a>
+</p>
+</div>
 
 **試用版（プレビュー）**
 
@@ -375,7 +382,7 @@ FarmPLは次のような計画を自動で提案します。
 
 ご意見や不具合のご連絡は、以下のいずれかでお願いします。
 
-- **GitHub**: Issuesからお知らせください
+- **GitHub**: <a href="https://github.com/zwire/farmpl/issues" target="_blank" rel="noopener">Issues</a> からお知らせください
 - **メール**: zwire.v1@gmail.com
 
 ※ 返信には数日いただく場合があります。操作がわからないときは、できれば画面のスクリーンショットを添付してください。

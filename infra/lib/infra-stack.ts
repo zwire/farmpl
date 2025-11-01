@@ -39,46 +39,9 @@ export class InfraStack extends Stack {
       ? props.allowedOrigins
       : apigateway.Cors.ALL_ORIGINS;
 
-    const usePrebuilt = (this.node.tryGetContext('usePrebuilt') as string | undefined) === '1'
-      || process.env.USE_PREBUILT === '1';
-    const prebuiltPath = path.join(__dirname, '..', '..', 'api_dist');
-    const apiSourcePath = path.join(__dirname, '..', '..', 'api');
-
-    const lambdaAsset = usePrebuilt
-      ? lambda.Code.fromAsset(prebuiltPath)
-      : lambda.Code.fromAsset(apiSourcePath, {
-          exclude: [
-            '.pytest_cache',
-            '.ruff_cache',
-            '.venv',
-            'demo',
-            'demo_api.py',
-            'demo_lib.py',
-            'docs',
-            'tests',
-            '*__pycache__*',
-            '*.pyc',
-            'uv.lock',
-            'README.md',
-          ],
-          bundling: {
-            image: lambda.Runtime.PYTHON_3_12.bundlingImage,
-            command: [
-              'bash',
-              '-lc',
-              [
-                'set -euxo pipefail',
-                'pip install -r requirements-lambda.txt -t /asset-output',
-                'cp -r . /asset-output',
-                'find /asset-output -name "*.pyc" -delete',
-              ].join(' && '),
-            ],
-            environment: {
-              PIP_NO_CACHE_DIR: '1',
-              PIP_DISABLE_PIP_VERSION_CHECK: '1',
-            },
-          },
-        });
+    const apiDir = path.join(__dirname, '..', '..', 'api');
+    const apiDockerCode = lambda.DockerImageCode.fromImageAsset(apiDir, { file: 'Dockerfile.lambda.api' });
+    const workerDockerCode = lambda.DockerImageCode.fromImageAsset(apiDir, { file: 'Dockerfile.lambda.worker' });
 
     this.jobBucket = new s3.Bucket(this, 'JobPayloadBucket', {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -133,19 +96,21 @@ export class InfraStack extends Stack {
       JOB_QUEUE_ARN: this.jobQueue.queueArn,
       JOBS_TTL_DAYS: String(jobsTtlDays),
       API_KEYS_SECRET_ARN: this.apiKeysSecret.secretArn,
+      // API Gatewayの統合上限（約29秒）に合わせ、同期APIの自前タイムアウトも調整
+      SYNC_TIMEOUT_MS: '29000',
       CORS_ALLOW_ORIGINS: Array.isArray(allowedOrigins)
         ? allowedOrigins.join(',')
         : '*',
     };
 
-    this.apiFunction = new lambda.Function(this, 'ApiFunction', {
-      runtime: lambda.Runtime.PYTHON_3_12,
-      handler: 'lambda_handler.handler',
-      code: lambdaAsset,
-      timeout: Duration.seconds(30),
+    this.apiFunction = new lambda.DockerImageFunction(this, 'ApiFunction', {
+      code: apiDockerCode,
+      // API Gateway 側の上限に合わせて29秒
+      timeout: Duration.seconds(29),
+      // 軽量化したため標準メモリで十分（必要なら調整）
       memorySize: 512,
       environment: apiEnvironment,
-      description: 'Farm optimization API (FastAPI via Mangum).',
+      description: 'Farm optimization API (FastAPI via Mangum) - container image (lean).',
     });
 
     const workerEnvironment: Record<string, string> = {
@@ -157,14 +122,12 @@ export class InfraStack extends Stack {
       JOBS_TTL_DAYS: String(jobsTtlDays),
     };
 
-    this.workerFunction = new lambda.Function(this, 'WorkerFunction', {
-      runtime: lambda.Runtime.PYTHON_3_12,
-      handler: 'worker_handler.handler',
-      code: lambdaAsset,
+    this.workerFunction = new lambda.DockerImageFunction(this, 'WorkerFunction', {
+      code: workerDockerCode,
       timeout: Duration.minutes(15),
-      memorySize: 1024,
+      memorySize: 1536,
       environment: workerEnvironment,
-      description: 'Background job processor for optimization tasks.',
+      description: 'Background job processor (container image).',
     });
 
     this.workerFunction.addEventSource(
@@ -202,6 +165,25 @@ export class InfraStack extends Stack {
           ? allowedOrigins
           : apigateway.Cors.ALL_ORIGINS,
       },
+    });
+
+    // Ensure CORS headers are also returned on API Gateway default 4XX/5XX responses
+    // (e.g., when Lambda is not invoked or errors occur before integration).
+    const corsOriginHeader = Array.isArray(allowedOrigins) && allowedOrigins.length > 0
+      ? `'${allowedOrigins[0]}'`
+      : "'*'";
+    const corsHeaders: { [header: string]: string } = {
+      'Access-Control-Allow-Origin': corsOriginHeader,
+      'Access-Control-Allow-Headers': "'*'",
+      'Access-Control-Allow-Methods': "'*'",
+    };
+    this.restApi.addGatewayResponse('Default4xxWithCors', {
+      type: apigateway.ResponseType.DEFAULT_4XX,
+      responseHeaders: corsHeaders,
+    });
+    this.restApi.addGatewayResponse('Default5xxWithCors', {
+      type: apigateway.ResponseType.DEFAULT_5XX,
+      responseHeaders: corsHeaders,
     });
 
     new CfnOutput(this, 'ApiBaseUrl', {

@@ -89,7 +89,7 @@ class DynamoJobBackend(JobBackend):
 
         item: dict[str, Any] = {
             "job_id": job_id,
-            "status": "queued",
+            "status": "running",
             "progress": _as_decimal(0.0),
             "submitted_at": submitted_at.isoformat(),
             "cancel_flag": False,
@@ -115,7 +115,7 @@ class DynamoJobBackend(JobBackend):
 
         return JobInfo(
             job_id=job_id,
-            status="queued",
+            status="running",
             progress=0.0,
             result=None,
             submitted_at=submitted_at,
@@ -132,12 +132,12 @@ class DynamoJobBackend(JobBackend):
         except KeyError:
             return False
 
-        status = item.get("status", "queued")
+        status = item.get("status", "running")
         if status in _FINAL_STATUSES:
             return False
 
         now_iso = datetime.now(UTC).isoformat()
-        if status in {"queued", "pending"}:
+        if status in {"pending", "running"}:
             self._table.update_item(
                 Key={"job_id": job_id},
                 UpdateExpression=(
@@ -228,7 +228,7 @@ class DynamoJobBackend(JobBackend):
 
         job = JobInfo(
             job_id=item["job_id"],
-            status=item.get("status", "queued"),
+            status=item.get("status", "running"),
             progress=max(0.0, min(1.0, progress)),
             result=result,
             submitted_at=submitted_at,

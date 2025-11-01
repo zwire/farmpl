@@ -54,46 +54,27 @@ npx cdk deploy CicdStack \
 - Repository variables（Variables）
   - `AWS_REGION` = `ap-northeast-1`
   - `AWS_ROLE_TO_ASSUME` = `arn:aws:iam::111111111111:role/zwire-farmpl-deploy` （CicdStackの出力値）
+  - `PUBLIC_API_KEY` = `PUBLIC_API_KEY` (任意の文字列。ただし後述のSecretsManagerと合わせる。)
 
 Secrets は基本不要（OIDCを利用するためアクセスキーは不要）。
 
 ---
 
-## 5) 初回インフラデプロイ（手動 or Actions）
-
-最初はinfraのみデプロイし、Outputsを確認します。
-
-ローカルに Docker が無い場合は、先にローカルでLambda資材を事前ビルドしてから `usePrebuilt=1` でCDKを実行します。
-
-```bash
-# 1) 事前ビルド（依存を vendor し、ソースを api_dist/ に出力）
-./scripts/build-lambda.sh
-
-# 2) 事前ビルド資材を使用してデプロイ（Docker不要）
-cd infra
-npx cdk deploy InfraStack UiStack -c usePrebuilt=1 --require-approval never
-# ApiBaseUrl, UiDistributionDomainName などを控える
-```
-
-Docker が利用可能な環境（例: GitHub Actions）では、`-c usePrebuilt=1` なしでそのまま実行して問題ありません。
-
----
-
-## 6) API鍵（本番認可）の投入（Secrets Manager）
+## 5) API鍵（本番認可）の投入（Secrets Manager）
 
 CDKで `ApiKeysSecretArn`（空）が作られます。以下のように値を設定します（複数可）。
 
 ```bash
 aws secretsmanager put-secret-value \
   --secret-id ApiKeysSecretArn \
-  --secret-string '{"keys": ["xxxxxxxxxxxx"]}'
+  --secret-string '{"keys": ["PUBLIC_API_KEY"]}'
 ```
 
 Lambda は起動時にこのシークレットを読み取り、`AUTH_MODE=api_key` の場合のみ検証します。
 
 ---
 
-## 7) GitHub Actions での自動デプロイ
+## 6) GitHub Actions での自動デプロイ
 
 `main` へ push すると以下の流れで動きます（ワークフローは実装側で追加）。
 
@@ -102,46 +83,9 @@ Lambda は起動時にこのシークレットを読み取り、`AUTH_MODE=api_k
 3. `cdk output` から `ApiBaseUrl` を取得し、`NEXT_PUBLIC_API_BASE_URL` として `ui/` をビルド
 4. `aws s3 sync ui/out s3://<UiBucket>` し、`cloudfront create-invalidation --paths '/*'`
 
-ワークフロー例（抜粋）:
-
-```yaml
-permissions:
-  id-token: write
-  contents: read
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ vars.AWS_REGION }}
-      - name: CDK Deploy
-        run: |
-          cd infra
-          npm ci
-          npx cdk deploy InfraStack UiStack --require-approval never
-          API_URL=$(npx cdk output --quiet InfraStack.ApiBaseUrl)
-          echo "API_URL=$API_URL" >> $GITHUB_ENV
-      - name: Build UI
-        run: |
-          cd ui
-          npm ci
-          NEXT_PUBLIC_API_BASE_URL=$API_URL npm run build
-          npx next export
-      - name: Upload UI
-        run: |
-          UI_BUCKET=$(npx cdk output --quiet InfraStack.UiBucketName)
-          DIST_DOMAIN=$(npx cdk output --quiet UiStack.UiDistributionDomainName)
-          aws s3 sync ui/out s3://$UI_BUCKET --delete
-          aws cloudfront create-invalidation --distribution-id $(npx cdk output --quiet UiStack.UiDistributionId) --paths '/*'
-```
-
 ---
 
-## 8) 運用タスク
+## 7) 運用タスク
 
 - API鍵ローテーション
   - 新鍵を Secrets Manager に追加 → 古い鍵をしばらく併用 → ローテ完了後に削除
@@ -151,18 +95,3 @@ jobs:
 - 監視
   - SQS DLQ メッセージ数 > 0 で通知
   - Lambda エラー/タイムアウト増加の監視
-
----
-
-## 9) トラブルシュートのヒント
-
--- UIがAPIに接続できない
-  - `NEXT_PUBLIC_API_BASE_URL` が正しいか（`cdk output`のURL一致）
-  - CORSのAllow OriginにCloudFrontドメインが含まれるか
-
--- ジョブが`queued`のまま
-  - SQS → Worker Lambda のトリガーが有効か
-  - Workerの実行ロールにDDB/S3の権限があるか
-
--- DDBサイズ上限エラー
-  - `req_ref/result_ref` が S3 を指しているか（実体をDDBに入れていないか）
