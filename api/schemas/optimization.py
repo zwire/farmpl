@@ -381,13 +381,15 @@ class ApiPlan(BaseModel):
                 e.start_min_day < 0 or e.start_min_day > max_day
             ):
                 raise ValueError(
-                    f"event:{e.id}.start_min_day が範囲外です(0..{max_day}): {e.start_min_day}"
+                    f"event:{e.id}.start_min_day が範囲外です"
+                    f"(0..{max_day}): {e.start_min_day}"
                 )
             if e.end_max_day is not None and (
                 e.end_max_day < 0 or e.end_max_day > max_day
             ):
                 raise ValueError(
-                    f"event:{e.id}.end_max_day が範囲外です(0..{max_day}): {e.end_max_day}"
+                    f"event:{e.id}.end_max_day が範囲外です"
+                    f"(0..{max_day}): {e.end_max_day}"
                 )
 
         return self
