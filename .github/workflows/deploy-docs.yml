@@ -3,6 +3,9 @@ name: Deploy MkDocs to GitHub Pages
 on:
   push:
     branches: [ "main" ]
+  workflow_run:
+    workflows: ["Deploy Application"]
+    types: ["completed"]
   workflow_dispatch:
 
 permissions:
@@ -31,19 +34,46 @@ jobs:
         id: discover
         shell: bash
         run: |
-          set -euxo pipefail
-          DOMAIN=$(aws cloudformation describe-stacks \
-            --stack-name UiStack \
-            --query "Stacks[0].Outputs[?OutputKey=='UiDistributionDomainName'].OutputValue" \
-            --output text)
+          set -euo pipefail
+          for i in $(seq 1 10); do
+            DOMAIN=$(aws cloudformation describe-stacks \
+              --stack-name UiStack \
+              --query "Stacks[0].Outputs[?OutputKey=='UiDistributionDomainName'].OutputValue" \
+              --output text || true)
+            if [ -n "$DOMAIN" ] && [ "$DOMAIN" != "None" ]; then
+              break
+            fi
+            echo "UiStack output not ready (attempt $i/10). Sleeping 30s..."
+            sleep 30
+          done
+          if [ -z "$DOMAIN" ] || [ "$DOMAIN" = "None" ]; then
+            if [ -n "${{ vars.DOCS_APP_URL }}" ]; then
+              echo "Using fallback DOCS_APP_URL"
+              FALLBACK_URL="${{ vars.DOCS_APP_URL }}"
+              echo "app_url=$FALLBACK_URL" >> $GITHUB_OUTPUT
+              echo "APP_URL=$FALLBACK_URL" >> $GITHUB_ENV
+              exit 0
+            fi
+            echo "Failed to resolve UiDistributionDomainName and no fallback provided" >&2
+            exit 1
+          fi
           echo "app_url=https://$DOMAIN" >> $GITHUB_OUTPUT
+          echo "APP_URL=https://$DOMAIN" >> $GITHUB_ENV
       - name: Install MkDocs
         run: |
           pip install -r docs/requirements.txt
       - name: Build
-        env:
-          APP_URL: ${{ steps.discover.outputs.app_url }}
-        run: mkdocs build --strict
+        run: |
+          # Use APP_URL from environment (set in previous step)
+          APP_URL_VALUE="${APP_URL:-http://localhost:3000}"
+          if [ "$APP_URL_VALUE" = "None" ]; then
+            APP_URL_VALUE="http://localhost:3000"
+          fi
+          echo "Using APP_URL=$APP_URL_VALUE"
+          # Replace extra.app_url in mkdocs.yml
+          sed -i "s|app_url:.*|app_url: $APP_URL_VALUE|" mkdocs.yml
+          echo "Updated mkdocs.yml with app_url=$APP_URL_VALUE"
+          mkdocs build --strict
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
