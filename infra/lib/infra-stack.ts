@@ -40,12 +40,8 @@ export class InfraStack extends Stack {
       : apigateway.Cors.ALL_ORIGINS;
 
     const apiDir = path.join(__dirname, '..', '..', 'api');
-    const apiDockerCode = lambda.DockerImageCode.fromImageAsset(apiDir, {
-      file: 'Dockerfile.lambda.api',
-    });
-    const workerDockerCode = lambda.DockerImageCode.fromImageAsset(apiDir, {
-      file: 'Dockerfile.lambda.worker',
-    });
+    const apiDockerCode = lambda.DockerImageCode.fromImageAsset(apiDir, { file: 'Dockerfile.lambda.api' });
+    const workerDockerCode = lambda.DockerImageCode.fromImageAsset(apiDir, { file: 'Dockerfile.lambda.worker' });
 
     this.jobBucket = new s3.Bucket(this, 'JobPayloadBucket', {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -111,10 +107,10 @@ export class InfraStack extends Stack {
       code: apiDockerCode,
       // API Gateway 側の上限に合わせて29秒
       timeout: Duration.seconds(29),
-      // 少し余裕を持たせてCPUを増強
-      memorySize: 1024,
+      // 軽量化したため標準メモリで十分（必要なら調整）
+      memorySize: 512,
       environment: apiEnvironment,
-      description: 'Farm optimization API (FastAPI via Mangum) - container image.',
+      description: 'Farm optimization API (FastAPI via Mangum) - container image (lean).',
     });
 
     const workerEnvironment: Record<string, string> = {
