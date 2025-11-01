@@ -82,7 +82,6 @@ jobs:
         run: |
           set -euxo pipefail
           npm run build
-          npx next export
 
       - name: Upload static assets
         working-directory: ui

@@ -130,7 +130,6 @@ jobs:
           cd ui
           npm ci
           NEXT_PUBLIC_API_BASE_URL=$API_URL npm run build
-          npx next export
       - name: Upload UI
         run: |
           UI_BUCKET=$(npx cdk output --quiet InfraStack.UiBucketName)
