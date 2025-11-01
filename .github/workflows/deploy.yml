@@ -1,0 +1,96 @@
+name: Deploy Application
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            infra/package-lock.json
+            ui/package-lock.json
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          python-version: '3.12'
+
+      - name: Lint API
+        working-directory: api
+        run: uv run ruff check
+
+      - name: Test API
+        working-directory: api
+        run: uv run pytest
+
+      - name: Install infra dependencies
+        working-directory: infra
+        run: npm ci
+
+      - name: Build infra TypeScript
+        working-directory: infra
+        run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Deploy CDK stacks
+        working-directory: infra
+        run: |
+          set -euxo pipefail
+          npx cdk deploy InfraStack UiStack --require-approval never
+          echo "API_URL=$(npx cdk output InfraStack.ApiBaseUrl)" >> "$GITHUB_ENV"
+          echo "UI_BUCKET=$(npx cdk output UiStack.UiBucketName)" >> "$GITHUB_ENV"
+          echo "UI_DIST_ID=$(npx cdk output UiStack.UiDistributionId)" >> "$GITHUB_ENV"
+          echo "UI_DOMAIN=$(npx cdk output UiStack.UiDistributionDomainName)" >> "$GITHUB_ENV"
+
+      - name: Install UI dependencies
+        working-directory: ui
+        run: npm ci
+
+      - name: Build UI
+        working-directory: ui
+        env:
+          NEXT_PUBLIC_API_BASE_URL: ${{ env.API_URL }}
+        run: |
+          set -euxo pipefail
+          npm run build
+          npx next export
+
+      - name: Upload static assets
+        working-directory: ui
+        env:
+          UI_BUCKET: ${{ env.UI_BUCKET }}
+        run: |
+          set -euxo pipefail
+          aws s3 sync out/ "s3://$UI_BUCKET" --delete
+
+      - name: Invalidate CloudFront cache
+        env:
+          UI_DIST_ID: ${{ env.UI_DIST_ID }}
+          UI_DOMAIN: ${{ env.UI_DOMAIN }}
+        run: |
+          set -euxo pipefail
+          aws cloudfront create-invalidation --distribution-id "$UI_DIST_ID" --paths '/*'
+          printf 'Deployed UI: https://%s\n' "$UI_DOMAIN"

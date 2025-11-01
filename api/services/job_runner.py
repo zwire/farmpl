@@ -4,14 +4,31 @@ from core.config import Settings
 from schemas import JobInfo, OptimizationRequest
 
 from .job_backend import InMemoryJobBackend, JobBackend, JobSnapshot
+from .job_backend_dynamo import DynamoJobBackend
 
 _BACKEND: JobBackend | None = None
 
 
+def _require(name: str, value: str | None) -> str:
+    if value:
+        return value
+    raise RuntimeError(f"{name} must be configured when using Dynamo job backend")
+
+
 def create_backend(settings: Settings) -> JobBackend:
-    if settings.job_backend == "inmemory":
+    backend = settings.job_backend
+    if backend == "inmemory":
         return InMemoryJobBackend()
-    # Future backends (e.g., redis) can be added here
+    if backend == "dynamo":
+        table_name = _require("JOBS_TABLE_NAME", settings.jobs_table_name)
+        bucket_name = _require("JOB_PAYLOAD_BUCKET", settings.job_payload_bucket)
+        queue_url = _require("JOB_QUEUE_URL", settings.job_queue_url)
+        return DynamoJobBackend(
+            table_name=table_name,
+            bucket_name=bucket_name,
+            queue_url=queue_url,
+            jobs_ttl_days=settings.jobs_ttl_days,
+        )
     return InMemoryJobBackend()
 
 
