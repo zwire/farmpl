@@ -100,6 +100,8 @@ export class InfraStack extends Stack {
       JOB_QUEUE_ARN: this.jobQueue.queueArn,
       JOBS_TTL_DAYS: String(jobsTtlDays),
       API_KEYS_SECRET_ARN: this.apiKeysSecret.secretArn,
+      // API Gatewayの統合上限（約29秒）に合わせ、同期APIの自前タイムアウトも調整
+      SYNC_TIMEOUT_MS: '29000',
       CORS_ALLOW_ORIGINS: Array.isArray(allowedOrigins)
         ? allowedOrigins.join(',')
         : '*',
@@ -107,8 +109,10 @@ export class InfraStack extends Stack {
 
     this.apiFunction = new lambda.DockerImageFunction(this, 'ApiFunction', {
       code: apiDockerCode,
-      timeout: Duration.seconds(30),
-      memorySize: 512,
+      // API Gateway 側の上限に合わせて29秒
+      timeout: Duration.seconds(29),
+      // 少し余裕を持たせてCPUを増強
+      memorySize: 1024,
       environment: apiEnvironment,
       description: 'Farm optimization API (FastAPI via Mangum) - container image.',
     });
@@ -125,7 +129,7 @@ export class InfraStack extends Stack {
     this.workerFunction = new lambda.DockerImageFunction(this, 'WorkerFunction', {
       code: workerDockerCode,
       timeout: Duration.minutes(15),
-      memorySize: 1024,
+      memorySize: 1536,
       environment: workerEnvironment,
       description: 'Background job processor (container image).',
     });
@@ -165,6 +169,25 @@ export class InfraStack extends Stack {
           ? allowedOrigins
           : apigateway.Cors.ALL_ORIGINS,
       },
+    });
+
+    // Ensure CORS headers are also returned on API Gateway default 4XX/5XX responses
+    // (e.g., when Lambda is not invoked or errors occur before integration).
+    const corsOriginHeader = Array.isArray(allowedOrigins) && allowedOrigins.length > 0
+      ? `'${allowedOrigins[0]}'`
+      : "'*'";
+    const corsHeaders: { [header: string]: string } = {
+      'Access-Control-Allow-Origin': corsOriginHeader,
+      'Access-Control-Allow-Headers': "'*'",
+      'Access-Control-Allow-Methods': "'*'",
+    };
+    this.restApi.addGatewayResponse('Default4xxWithCors', {
+      type: apigateway.ResponseType.DEFAULT_4XX,
+      responseHeaders: corsHeaders,
+    });
+    this.restApi.addGatewayResponse('Default5xxWithCors', {
+      type: apigateway.ResponseType.DEFAULT_5XX,
+      responseHeaders: corsHeaders,
     });
 
     new CfnOutput(this, 'ApiBaseUrl', {
