@@ -39,46 +39,13 @@ export class InfraStack extends Stack {
       ? props.allowedOrigins
       : apigateway.Cors.ALL_ORIGINS;
 
-    const usePrebuilt = (this.node.tryGetContext('usePrebuilt') as string | undefined) === '1'
-      || process.env.USE_PREBUILT === '1';
-    const prebuiltPath = path.join(__dirname, '..', '..', 'api_dist');
-    const apiSourcePath = path.join(__dirname, '..', '..', 'api');
-
-    const lambdaAsset = usePrebuilt
-      ? lambda.Code.fromAsset(prebuiltPath)
-      : lambda.Code.fromAsset(apiSourcePath, {
-          exclude: [
-            '.pytest_cache',
-            '.ruff_cache',
-            '.venv',
-            'demo',
-            'demo_api.py',
-            'demo_lib.py',
-            'docs',
-            'tests',
-            '*__pycache__*',
-            '*.pyc',
-            'uv.lock',
-            'README.md',
-          ],
-          bundling: {
-            image: lambda.Runtime.PYTHON_3_12.bundlingImage,
-            command: [
-              'bash',
-              '-lc',
-              [
-                'set -euxo pipefail',
-                'pip install -r requirements-lambda.txt -t /asset-output',
-                'cp -r . /asset-output',
-                'find /asset-output -name "*.pyc" -delete',
-              ].join(' && '),
-            ],
-            environment: {
-              PIP_NO_CACHE_DIR: '1',
-              PIP_DISABLE_PIP_VERSION_CHECK: '1',
-            },
-          },
-        });
+    const apiDir = path.join(__dirname, '..', '..', 'api');
+    const apiDockerCode = lambda.DockerImageCode.fromImageAsset(apiDir, {
+      file: 'Dockerfile.lambda.api',
+    });
+    const workerDockerCode = lambda.DockerImageCode.fromImageAsset(apiDir, {
+      file: 'Dockerfile.lambda.worker',
+    });
 
     this.jobBucket = new s3.Bucket(this, 'JobPayloadBucket', {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -138,14 +105,12 @@ export class InfraStack extends Stack {
         : '*',
     };
 
-    this.apiFunction = new lambda.Function(this, 'ApiFunction', {
-      runtime: lambda.Runtime.PYTHON_3_12,
-      handler: 'lambda_handler.handler',
-      code: lambdaAsset,
+    this.apiFunction = new lambda.DockerImageFunction(this, 'ApiFunction', {
+      code: apiDockerCode,
       timeout: Duration.seconds(30),
       memorySize: 512,
       environment: apiEnvironment,
-      description: 'Farm optimization API (FastAPI via Mangum).',
+      description: 'Farm optimization API (FastAPI via Mangum) - container image.',
     });
 
     const workerEnvironment: Record<string, string> = {
@@ -157,14 +122,12 @@ export class InfraStack extends Stack {
       JOBS_TTL_DAYS: String(jobsTtlDays),
     };
 
-    this.workerFunction = new lambda.Function(this, 'WorkerFunction', {
-      runtime: lambda.Runtime.PYTHON_3_12,
-      handler: 'worker_handler.handler',
-      code: lambdaAsset,
+    this.workerFunction = new lambda.DockerImageFunction(this, 'WorkerFunction', {
+      code: workerDockerCode,
       timeout: Duration.minutes(15),
       memorySize: 1024,
       environment: workerEnvironment,
-      description: 'Background job processor for optimization tasks.',
+      description: 'Background job processor (container image).',
     });
 
     this.workerFunction.addEventSource(

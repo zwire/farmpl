@@ -1,0 +1,11 @@
+FROM public.ecr.aws/lambda/python:3.13
+
+# Copy source
+COPY . ${LAMBDA_TASK_ROOT}
+
+# Install runtime dependencies into task root
+RUN pip install --no-cache-dir -r ${LAMBDA_TASK_ROOT}/requirements-lambda.txt -t ${LAMBDA_TASK_ROOT}
+
+# Set handler for API function
+CMD ["lambda_handler.handler"]
+
