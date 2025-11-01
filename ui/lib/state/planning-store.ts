@@ -87,8 +87,9 @@ const addDays = (date: Date, offset: number): Date =>
 
 const toTodayIsoDate = (): IsoDateString => {
   const now = new Date();
+  // Use UTC getters so SSR (server) and client compute the same calendar day
   const truncated = new Date(
-    Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()),
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
   );
   return formatIsoDate(truncated);
 };

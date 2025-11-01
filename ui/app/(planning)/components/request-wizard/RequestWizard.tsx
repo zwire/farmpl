@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ZodIssue } from "zod";
 import { PlanningCalendarService } from "@/lib/domain/planning-calendar";
 import {
@@ -19,12 +19,17 @@ import { useValidationSummary } from "./useValidationSummary";
 import { WizardStepper } from "./WizardStepper";
 
 export function RequestWizard() {
+  const [isMounted, setIsMounted] = useState(false);
   const plan = usePlanningStore((state) => state.plan);
   const currentStep = usePlanningStore((state) => state.currentStep);
   const isDirty = usePlanningStore((state) => state.isDirty);
   const lastSavedAt = usePlanningStore((state) => state.lastSavedAt);
   const isSubmitting = usePlanningStore((state) => state.isSubmitting);
   const submissionError = usePlanningStore((state) => state.submissionError);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const updatePlan = usePlanningStore((state) => state.updatePlan);
   const setCurrentStep = usePlanningStore((state) => state.setCurrentStep);
@@ -182,7 +187,7 @@ export function RequestWizard() {
                 {WIZARD_STEPS.find((s) => s.id === currentStep)?.title}
               </span>
             </span>
-            {lastSavedAt && (
+            {lastSavedAt && isMounted && (
               <span>最終保存: {new Date(lastSavedAt).toLocaleString()}</span>
             )}
             {isDirty && (

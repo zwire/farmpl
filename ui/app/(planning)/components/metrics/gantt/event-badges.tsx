@@ -36,7 +36,10 @@ export const EventBadges = ({ events }: EventBadgesProps) => {
         color: colorForCategory(category),
       }),
     );
-    result.sort((a, b) => a.category.localeCompare(b.category));
+    // Use code point comparison to avoid locale-dependent sorting differences
+    result.sort((a, b) =>
+      a.category < b.category ? -1 : a.category > b.category ? 1 : 0,
+    );
     return result;
   }, [events]);
 

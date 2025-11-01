@@ -134,20 +134,18 @@ export const createThirdScale = ({
     return (endThirdIndex - startThirdIndex + 1) * unitWidth;
   };
 
-  const tooltipFormatter = new Intl.DateTimeFormat("ja-JP", {
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-    weekday: "short",
-    timeZone: "UTC",
-  });
-
   const formatTooltip = (index: number): string => {
     const third = thirds[index];
     if (!third) return "";
     const startDate = addDays(baseDate, third.startDay);
     const endDate = addDays(baseDate, third.endDay);
-    return `${tooltipFormatter.format(startDate)}〜${tooltipFormatter.format(endDate)}`;
+    const fmt = (d: Date) => {
+      const y = d.getUTCFullYear();
+      const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(d.getUTCDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    };
+    return `${fmt(startDate)}〜${fmt(endDate)}`;
   };
 
   return {
