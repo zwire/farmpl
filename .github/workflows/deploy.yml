@@ -28,18 +28,23 @@ jobs:
             infra/package-lock.json
             ui/package-lock.json
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
       - name: Setup uv
         uses: astral-sh/setup-uv@v3
         with:
-          python-version: '3.12'
+          version: 'latest'
 
       - name: Lint API
         working-directory: api
-        run: uv run ruff check
+        run: uv run --extra dev ruff check
 
       - name: Test API
         working-directory: api
-        run: uv run pytest
+        run: uv run --extra dev pytest
 
       - name: Install infra dependencies
         working-directory: infra
