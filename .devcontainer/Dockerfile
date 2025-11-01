@@ -5,26 +5,27 @@ ENV TZ="$TZ"
 
 # Install basic development tools and iptables/ipset
 RUN apt update && apt install -y \
-  wget \
-  less \
-  git \
-  procps \
-  sudo \
-  fzf \
-  man-db \
-  unzip \
-  gnupg2 \
-  gh \
-  iptables \
-  ipset \
-  iproute2 \
-  dnsutils \
-  aggregate \
-  jq
+    curl \
+    wget \
+    less \
+    git \
+    procps \
+    sudo \
+    fzf \
+    man-db \
+    unzip \
+    gnupg2 \
+    gh \
+    iptables \
+    ipset \
+    iproute2 \
+    dnsutils \
+    aggregate \
+    jq
 
 # Ensure default node user has access to /usr/local/share
 RUN mkdir -p /usr/local/share/npm-global && \
-  chown -R node:node /usr/local/share
+    chown -R node:node /usr/local/share
 
 ARG USERNAME=node
 
@@ -33,14 +34,14 @@ ENV DEVCONTAINER=true
 
 # Create workspace and config directories and set permissions
 RUN mkdir -p /workspace && \
-  chown -R node:node /workspace
+    chown -R node:node /workspace
 
 WORKDIR /workspace
 
 RUN ARCH=$(dpkg --print-architecture) && \
-  wget "https://github.com/dandavison/delta/releases/download/0.18.2/git-delta_0.18.2_${ARCH}.deb" && \
-  sudo dpkg -i "git-delta_0.18.2_${ARCH}.deb" && \
-  rm "git-delta_0.18.2_${ARCH}.deb"
+    wget "https://github.com/dandavison/delta/releases/download/0.18.2/git-delta_0.18.2_${ARCH}.deb" && \
+    sudo dpkg -i "git-delta_0.18.2_${ARCH}.deb" && \
+    rm "git-delta_0.18.2_${ARCH}.deb"
 
 # Install Python
 RUN apt update && apt install -y \
@@ -54,6 +55,13 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 # Install uv and uvx
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
+# Install AWS CLI
+RUN cd /tmp && \
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+    unzip awscliv2.zip && \
+    ./aws/install && \
+    rm -rf awscliv2.zip aws
+
 # Set up non-root user
 USER node
 RUN pipx ensurepath
@@ -64,6 +72,9 @@ ENV PATH=$PATH:/usr/local/share/npm-global/bin
 
 # Set the default shell to bash rather than sh
 ENV SHELL=/bin/bash
+
+# Install AWS CDK
+RUN npm install -g aws-cdk
 
 # Install Codex CLI
 RUN npm install -g @openai/codex
