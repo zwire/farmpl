@@ -60,17 +60,13 @@ class DynamoJobBackend(JobBackend):
         sqs_client: Any | None = None,
     ) -> None:
         if not table_name:
-            raise RuntimeError(
-                "JOBS_TABLE_NAME must be configured for Dynamo backend"
-            )
+            raise RuntimeError("JOBS_TABLE_NAME must be configured for Dynamo backend")
         if not bucket_name:
             raise RuntimeError(
                 "JOB_PAYLOAD_BUCKET must be configured for Dynamo backend"
             )
         if not queue_url:
-            raise RuntimeError(
-                "JOB_QUEUE_URL must be configured for Dynamo backend"
-            )
+            raise RuntimeError("JOB_QUEUE_URL must be configured for Dynamo backend")
 
         self._ddb = dynamodb_resource or boto3.resource("dynamodb")
         self._table = self._ddb.Table(table_name)

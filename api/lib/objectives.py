@@ -155,7 +155,7 @@ def build_earliness_expr(ctx: BuildContext) -> cp_model.LinearExpr:
     """
     H = ctx.request.horizon.num_days
     terms: list[cp_model.LinearExpr] = []
-    for (e_id, t), r in ctx.variables.r_event_by_e_t.items():
+    for (_e_id, t), r in ctx.variables.r_event_by_e_t.items():
         if 1 <= t <= H:
             terms.append(t * r)
     return sum(terms) if terms else 0

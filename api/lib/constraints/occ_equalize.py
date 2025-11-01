@@ -54,4 +54,3 @@ class OccEqualizeConstraint(Constraint):
                     # If z[l,c]==1, enforce occ_land == occ_crop
                     model.Add(occ_land >= occ_crop).OnlyEnforceIf(z)
                     model.Add(occ_land <= occ_crop).OnlyEnforceIf(z)
-

@@ -93,7 +93,9 @@ def plan(
         if not stage_defs:
             stage_defs = [("profit", "max"), ("dispersion", "min")]
     else:
-        # Default stages: profit -> dispersion -> event_span -> earliness -> occ_span -> diversity
+        # Default stages: profit -> dispersion -> event_span ->
+        # earliness -> occ_span -> diversity
+        # (listed in order)
         stage_defs = [
             ("profit", "max"),
             ("labor", "min"),
@@ -424,7 +426,8 @@ def plan(
                 )
                 if fa.area > total:
                     hints.append(
-                        f"fixed area {fa.area} for tag:{tag}/{fa.crop_id} > total area {total}"
+                        f"fixed area {fa.area} for tag:{tag}/{fa.crop_id} "
+                        f"> total area {total}"
                     )
 
     _report(0.92, "post:summary")
