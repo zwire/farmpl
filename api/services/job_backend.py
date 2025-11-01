@@ -84,6 +84,7 @@ class InMemoryJobBackend:
             global _OA  # lazy load to avoid heavy deps at import time
             if _OA is None:
                 from . import optimizer_adapter as _oa  # type: ignore
+
                 _OA = _oa
             with self._lock:
                 if st.cancel_flag:
