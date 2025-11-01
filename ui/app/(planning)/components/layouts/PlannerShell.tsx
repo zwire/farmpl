@@ -98,12 +98,35 @@ export function PlannerShell({ children }: PlannerShellProps) {
         </div>
       )}
       <header className="border-b border-slate-300/80 pb-6 dark:border-slate-700/80">
-        <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
-          営農計画プランナー
-        </h1>
-        <p className="mt-2 text-base text-slate-600 dark:text-slate-400">
-          FarmPLエンジンを使って、最適な営農計画を作成します。
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+              営農計画プランナー
+            </h1>
+            <p className="mt-2 text-base text-slate-600 dark:text-slate-400">
+              FarmPLエンジンを使って、最適な営農計画を作成します。
+            </p>
+          </div>
+          {process.env.NEXT_PUBLIC_DOCS_URL ? (
+            <a
+              href={process.env.NEXT_PUBLIC_DOCS_URL}
+              target="_blank"
+              rel="noopener"
+              className="inline-flex shrink-0 items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="size-5"
+              >
+                <title>ユーザーマニュアル</title>
+                <path d="M10.75 16.82A7.462 7.462 0 0 1 15 15.5c.71 0 1.396.098 2.046.282A.75.75 0 0 0 18 15.06v-11a.75.75 0 0 0-.546-.721A9.006 9.006 0 0 0 15 3a8.963 8.963 0 0 0-4.25 1.065V16.82ZM9.25 4.065A8.963 8.963 0 0 0 5 3c-.85 0-1.673.118-2.454.339A.75.75 0 0 0 2 4.06v11a.75.75 0 0 0 .954.721A7.506 7.506 0 0 1 5 15.5c1.579 0 3.042.487 4.25 1.32V4.065Z" />
+              </svg>
+              <span>ユーザーマニュアル</span>
+            </a>
+          ) : null}
+        </div>
       </header>
       <div className="flex flex-col gap-10">{children}</div>
     </main>

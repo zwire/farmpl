@@ -77,7 +77,8 @@ jobs:
       - name: Build UI
         working-directory: ui
         env:
-          NEXT_PUBLIC_API_BASE_URL: ${{ env.API_URL }}
+          NEXT_PUBLIC_FARMPL_API_BASE: ${{ env.API_URL }}
+          NEXT_PUBLIC_DOCS_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
         run: |
           set -euxo pipefail
           npm run build

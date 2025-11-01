@@ -14,7 +14,6 @@ dependencies = [
     "prometheus-client>=0.22.1",
     "boto3>=1.35.0",
     "mangum>=0.17.0",
-    "pytest>=8.4.1",
 ]
 
 [project.optional-dependencies]
@@ -41,7 +40,6 @@ select = [
 
 [dependency-groups]
 dev = [
-    "mkdocs-material>=9.6.22",
     "ruff>=0.12.10",
     "types-requests>=2.32.4.20250809",
 ]

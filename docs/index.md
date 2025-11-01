@@ -8,6 +8,13 @@ title: ユーザーマニュアル
 
 ![アプリのイメージ](images/home.gif)
 
+<div class="admonition tip">
+<p class="admonition-title">アプリへ</p>
+<p>
+<a class="md-button md-button--primary" href="{{ (environment.get('APP_URL') if environment else None) or (config.extra.app_url if config.extra and config.extra.app_url else '#') }}" target="_blank" rel="noopener">アプリを開く</a>
+</p>
+</div>
+
 **試用版（プレビュー）**
 
 ※現時点では実験的な公開状態という位置づけです。このアプリを利用した結果に関する責任は負いかねます。

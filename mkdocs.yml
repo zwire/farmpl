@@ -61,7 +61,10 @@ extra_javascript:
 plugins:
   - search:
       lang: ja
+  - macros
+
+extra:
+  # ローカル開発時のデフォルト（環境変数 APP_URL が優先）
+  app_url: http://localhost:3000
 
 dev_addr: 0.0.0.0:9000
-
-
