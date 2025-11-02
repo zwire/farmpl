@@ -4,7 +4,11 @@ on:
   push:
     branches:
       - main
-
+    paths:
+      - 'api/**'
+      - 'ui/**'
+      - 'infra/**'
+      - '.github/workflows/deploy.yml'
 permissions:
   id-token: write
   contents: read
