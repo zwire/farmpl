@@ -1,0 +1,78 @@
+[template]
+id = "soybean_outdoor"
+label = "ダイズ(露地)"
+crop_ref = "soybean"
+variant = "露地"
+price_per_a = 20000.0
+
+[[events]]
+id = "prepare_field"
+name = "圃場準備"
+category = "圃場準備"
+uses_land = true
+start_window_days = [1, 10]
+labor_total_per_a = 2.0
+
+[[events]]
+id = "sow"
+name = "播種"
+category = "播種"
+uses_land = true
+preceding_event_id = "prepare_field"
+lag_days = [0, 7]
+labor_total_per_a = 1.0
+
+[[events]]
+id = "thinning"
+name = "間引き"
+category = "間引き"
+uses_land = true
+preceding_event_id = "sow"
+lag_days = [15, 20]
+labor_total_per_a = 1.0
+
+[[events]]
+id = "hilling"
+name = "土寄せ"
+category = "その他"
+uses_land = true
+preceding_event_id = "thinning"
+lag_days = [10, 20]
+labor_total_per_a = 1.5
+
+[[events]]
+id = "pesticide"
+name = "防除"
+category = "防除"
+uses_land = true
+preceding_event_id = "sow"
+lag_days = [30, 90]
+frequency_days = 20
+labor_total_per_a = 1.5
+
+[[events]]
+id = "harvest"
+name = "収穫"
+category = "収穫"
+uses_land = true
+preceding_event_id = "sow"
+lag_days = [100, 120]
+labor_total_per_a = 5.0
+
+[[events]]
+id = "processing"
+name = "乾燥・脱穀・選別"
+category = "出荷"
+uses_land = true
+preceding_event_id = "harvest"
+lag_days = [1, 15]
+labor_total_per_a = 8.0
+
+[[events]]
+id = "cleanup"
+name = "片付け"
+category = "片付け"
+uses_land = true
+preceding_event_id = "harvest"
+lag_days = [10, 20]
+labor_total_per_a = 1.5

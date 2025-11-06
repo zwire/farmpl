@@ -1,0 +1,79 @@
+[template]
+id = "arugula_outdoor"
+label = "ルッコラ(露地)"
+crop_ref = "arugula"
+variant = "露地"
+price_per_a = 60000.0
+
+[[events]]
+id = "prepare_field"
+name = "圃場準備"
+category = "圃場準備"
+uses_land = true
+start_window_days = [1, 10]
+labor_total_per_a = 1.5
+
+[[events]]
+id = "sow"
+name = "播種"
+category = "播種"
+uses_land = true
+preceding_event_id = "prepare_field"
+lag_days = [0, 7]
+labor_total_per_a = 0.8
+
+[[events]]
+id = "thinning"
+name = "間引き"
+category = "間引き"
+uses_land = true
+preceding_event_id = "sow"
+lag_days = [10, 15]
+labor_total_per_a = 0.8
+
+[[events]]
+id = "irrigation"
+name = "潅水"
+category = "潅水"
+uses_land = true
+preceding_event_id = "sow"
+lag_days = [10, 40]
+frequency_days = 3
+labor_total_per_a = 3.0
+
+[[events]]
+id = "fertilize"
+name = "追肥"
+category = "施肥"
+uses_land = true
+preceding_event_id = "sow"
+lag_days = [20, 30]
+labor_total_per_a = 0.5
+
+[[events]]
+id = "harvest"
+name = "収穫（随時）"
+category = "収穫"
+uses_land = true
+preceding_event_id = "sow"
+lag_days = [25, 50]
+frequency_days = 7
+labor_total_per_a = 10.0
+
+[[events]]
+id = "shipping"
+name = "出荷"
+category = "出荷"
+uses_land = false
+preceding_event_id = "harvest"
+lag_days = [0, 1]
+labor_total_per_a = 3.0
+
+[[events]]
+id = "cleanup"
+name = "片付け"
+category = "片付け"
+uses_land = true
+preceding_event_id = "harvest"
+lag_days = [5, 10]
+labor_total_per_a = 1.0

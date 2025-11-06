@@ -1,0 +1,79 @@
+[template]
+id = "rice_outdoor"
+label = "コメ(露地・水稲)"
+crop_ref = "rice"
+variant = "露地・水稲"
+price_per_a = 15000.0
+
+[[events]]
+id = "prepare_field"
+name = "圃場準備（代かき・畦整備）"
+category = "圃場準備"
+uses_land = true
+start_window_days = [1, 15]
+labor_total_per_a = 5.0
+
+[[events]]
+id = "nurse_sow"
+name = "播種（育苗）"
+category = "播種"
+uses_land = false
+start_window_days = [1, 7]
+labor_total_per_a = 1.0
+
+[[events]]
+id = "transplant"
+name = "定植（移植）"
+category = "定植"
+uses_land = true
+preceding_event_id = "nurse_sow"
+lag_days = [25, 40]
+labor_total_per_a = 6.0
+
+[[events]]
+id = "irrigation"
+name = "潅水（入水・水管理）"
+category = "潅水"
+uses_land = true
+preceding_event_id = "transplant"
+lag_days = [1, 120]
+frequency_days = 7
+labor_total_per_a = 3.0
+
+[[events]]
+id = "pesticide"
+name = "防除"
+category = "防除"
+uses_land = true
+preceding_event_id = "transplant"
+lag_days = [20, 120]
+frequency_days = 14
+labor_total_per_a = 3.0
+
+[[events]]
+id = "harvest"
+name = "収穫（稲刈り）"
+category = "収穫"
+uses_land = true
+preceding_event_id = "transplant"
+lag_days = [110, 160]
+labor_total_per_a = 8.0
+
+[[events]]
+id = "shipping"
+name = "出荷（乾燥・調製含む）"
+category = "出荷"
+uses_land = false
+preceding_event_id = "harvest"
+lag_days = [1, 10]
+labor_total_per_a = 5.0
+
+[[events]]
+id = "cleanup"
+name = "片付け"
+category = "片付け"
+uses_land = true
+preceding_event_id = "harvest"
+lag_days = [1, 10]
+labor_total_per_a = 1.5
+

@@ -1,0 +1,61 @@
+[template]
+id = "wasabi_field_cultivation"
+label = "ワサビ(畑わさび)"
+crop_ref = "wasabi"
+variant = "畑わさび"
+price_per_a = 120000.0
+
+[[events]]
+id = "prepare_field"
+name = "圃場準備"
+category = "圃場準備"
+uses_land = true
+start_window_days = [1, 20]
+labor_total_per_a = 4.0
+
+[[events]]
+id = "planting"
+name = "植え付け（苗）"
+category = "播種"
+uses_land = true
+preceding_event_id = "prepare_field"
+lag_days = [0, 10]
+labor_total_per_a = 2.0
+
+[[events]]
+id = "irrigation"
+name = "潅水"
+category = "潅水"
+uses_land = true
+preceding_event_id = "planting"
+lag_days = [1, 450]
+frequency_days = 7
+labor_total_per_a = 8.0
+
+[[events]]
+id = "harvest"
+name = "収穫（根茎）"
+category = "収穫"
+uses_land = true
+preceding_event_id = "planting"
+lag_days = [360, 540]
+labor_total_per_a = 10.0
+
+[[events]]
+id = "shipping"
+name = "出荷"
+category = "出荷"
+uses_land = false
+preceding_event_id = "harvest"
+lag_days = [0, 7]
+labor_total_per_a = 6.0
+
+[[events]]
+id = "cleanup"
+name = "片付け"
+category = "片付け"
+uses_land = true
+preceding_event_id = "harvest"
+lag_days = [3, 10]
+labor_total_per_a = 2.0
+

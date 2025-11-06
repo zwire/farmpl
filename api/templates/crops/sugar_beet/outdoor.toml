@@ -1,0 +1,87 @@
+[template]
+id = "sugar_beet_outdoor"
+label = "テンサイ(露地)"
+crop_ref = "sugar_beet"
+variant = "露地"
+price_per_a = 15000.0
+
+[[events]]
+id = "prepare_field"
+name = "圃場準備"
+category = "圃場準備"
+uses_land = true
+start_window_days = [1, 10]
+labor_total_per_a = 4.0
+
+[[events]]
+id = "sow"
+name = "播種（ペーパーポット）"
+category = "播種"
+uses_land = false
+start_window_days = [1, 10]
+labor_total_per_a = 3.0
+
+[[events]]
+id = "transplant"
+name = "定植"
+category = "定植"
+uses_land = true
+preceding_event_id = "sow"
+lag_days = [40, 50]
+labor_total_per_a = 6.0
+
+[[events]]
+id = "weeding"
+name = "除草"
+category = "除草"
+uses_land = true
+preceding_event_id = "transplant"
+lag_days = [15, 60]
+frequency_days = 20
+labor_total_per_a = 4.0
+
+[[events]]
+id = "fertilize"
+name = "追肥"
+category = "施肥"
+uses_land = true
+preceding_event_id = "transplant"
+lag_days = [30, 40]
+labor_total_per_a = 1.5
+
+[[events]]
+id = "pesticide"
+name = "防除"
+category = "防除"
+uses_land = true
+preceding_event_id = "transplant"
+lag_days = [40, 120]
+frequency_days = 25
+labor_total_per_a = 2.0
+
+[[events]]
+id = "harvest"
+name = "収穫"
+category = "収穫"
+uses_land = true
+preceding_event_id = "transplant"
+lag_days = [150, 180]
+labor_total_per_a = 8.0
+
+[[events]]
+id = "shipping"
+name = "工場へ出荷"
+category = "出荷"
+uses_land = true
+preceding_event_id = "harvest"
+lag_days = [0, 5]
+labor_total_per_a = 4.0
+
+[[events]]
+id = "cleanup"
+name = "片付け"
+category = "片付け"
+uses_land = true
+preceding_event_id = "harvest"
+lag_days = [5, 10]
+labor_total_per_a = 2.0

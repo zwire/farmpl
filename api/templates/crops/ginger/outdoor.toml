@@ -1,0 +1,79 @@
+[template]
+id = "ginger_outdoor"
+label = "ショウガ(露地)"
+crop_ref = "ginger"
+variant = "露地"
+price_per_a = 120000.0
+
+[[events]]
+id = "prepare_field"
+name = "圃場準備"
+category = "圃場準備"
+uses_land = true
+start_window_days = [1, 10]
+labor_total_per_a = 3.0
+
+[[events]]
+id = "planting"
+name = "植え付け"
+category = "定植"
+uses_land = true
+preceding_event_id = "prepare_field"
+lag_days = [0, 10]
+labor_total_per_a = 4.0
+
+[[events]]
+id = "irrigation"
+name = "潅水"
+category = "潅水"
+uses_land = true
+preceding_event_id = "planting"
+lag_days = [10, 150]
+frequency_days = 7
+labor_total_per_a = 8.0
+
+[[events]]
+id = "fertilize"
+name = "追肥"
+category = "施肥"
+uses_land = true
+preceding_event_id = "planting"
+lag_days = [30, 120]
+frequency_days = 30
+labor_total_per_a = 3.0
+
+[[events]]
+id = "hilling"
+name = "土寄せ"
+category = "その他"
+uses_land = true
+preceding_event_id = "fertilize"
+lag_days = [0, 5]
+labor_total_per_a = 2.0
+
+[[events]]
+id = "harvest"
+name = "収穫"
+category = "収穫"
+uses_land = true
+preceding_event_id = "planting"
+lag_days = [150, 180]
+labor_total_per_a = 10.0
+
+[[events]]
+id = "shipping"
+name = "洗浄・出荷"
+category = "出荷"
+uses_land = true
+preceding_event_id = "harvest"
+lag_days = [0, 2]
+labor_total_per_a = 6.0
+
+[[events]]
+id = "cleanup"
+name = "片付け"
+category = "片付け"
+uses_land = true
+preceding_event_id = "harvest"
+lag_days = [5, 10]
+labor_total_per_a = 2.0

@@ -1,0 +1,61 @@
+[template]
+id = "yacon_outdoor"
+label = "ヤーコン(露地)"
+crop_ref = "yacon"
+variant = "露地"
+price_per_a = 40000.0
+
+[[events]]
+id = "prepare_field"
+name = "圃場準備"
+category = "圃場準備"
+uses_land = true
+start_window_days = [1, 15]
+labor_total_per_a = 1.2
+
+[[events]]
+id = "planting"
+name = "植え付け（塊茎）"
+category = "播種"
+uses_land = true
+preceding_event_id = "prepare_field"
+lag_days = [0, 7]
+labor_total_per_a = 1.0
+
+[[events]]
+id = "weeding"
+name = "除草"
+category = "除草"
+uses_land = true
+preceding_event_id = "planting"
+lag_days = [20, 160]
+frequency_days = 20
+labor_total_per_a = 2.0
+
+[[events]]
+id = "harvest"
+name = "収穫（掘り取り）"
+category = "収穫"
+uses_land = true
+preceding_event_id = "planting"
+lag_days = [150, 210]
+labor_total_per_a = 6.0
+
+[[events]]
+id = "shipping"
+name = "出荷"
+category = "出荷"
+uses_land = false
+preceding_event_id = "harvest"
+lag_days = [0, 3]
+labor_total_per_a = 3.0
+
+[[events]]
+id = "cleanup"
+name = "片付け"
+category = "片付け"
+uses_land = true
+preceding_event_id = "harvest"
+lag_days = [3, 7]
+labor_total_per_a = 0.8
+

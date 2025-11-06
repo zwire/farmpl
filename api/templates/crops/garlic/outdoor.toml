@@ -1,0 +1,80 @@
+[template]
+id = "garlic_outdoor"
+label = "ニンニク(露地)"
+crop_ref = "garlic"
+variant = "露地"
+price_per_a = 120000.0
+
+[[events]]
+id = "prepare_field"
+name = "圃場準備"
+category = "圃場準備"
+uses_land = true
+start_window_days = [1, 15]
+labor_total_per_a = 2.0
+
+[[events]]
+id = "planting"
+name = "播種（植え付け）"
+category = "播種"
+uses_land = true
+preceding_event_id = "prepare_field"
+lag_days = [0, 10]
+labor_total_per_a = 2.0
+
+[[events]]
+id = "weeding"
+name = "除草"
+category = "除草"
+uses_land = true
+preceding_event_id = "planting"
+lag_days = [30, 210]
+frequency_days = 30
+labor_total_per_a = 2.0
+
+[[events]]
+id = "scape_removal"
+name = "整枝（花茎摘み）"
+category = "整枝"
+uses_land = true
+preceding_event_id = "planting"
+lag_days = [200, 240]
+labor_total_per_a = 1.0
+
+[[events]]
+id = "pesticide"
+name = "防除"
+category = "防除"
+uses_land = true
+preceding_event_id = "planting"
+lag_days = [60, 240]
+frequency_days = 20
+labor_total_per_a = 2.0
+
+[[events]]
+id = "harvest"
+name = "収穫"
+category = "収穫"
+uses_land = true
+preceding_event_id = "planting"
+lag_days = [240, 300]
+labor_total_per_a = 6.0
+
+[[events]]
+id = "shipping"
+name = "出荷"
+category = "出荷"
+uses_land = false
+preceding_event_id = "harvest"
+lag_days = [1, 10]
+labor_total_per_a = 4.0
+
+[[events]]
+id = "cleanup"
+name = "片付け"
+category = "片付け"
+uses_land = true
+preceding_event_id = "harvest"
+lag_days = [1, 10]
+labor_total_per_a = 1.0
+
