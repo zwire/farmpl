@@ -129,14 +129,12 @@ export function GanttChart({
   if (!baseViewModel || !scale || !result?.timeline) {
     return (
       <div
-        className={`flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 ${
+        className={`flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ${
           className ?? ""
         }`}
       >
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
-          タイムライン
-        </h3>
-        <p className="text-sm text-slate-600 dark:text-slate-400">
+        <h3 className="text-lg font-semibold text-slate-900">タイムライン</h3>
+        <p className="text-sm text-slate-600">
           タイムラインデータがまだありません。最適化を実行すると表示されます。
         </p>
       </div>
@@ -151,7 +149,7 @@ export function GanttChart({
   const headerCells = [
     <div
       key="header-label"
-      className="sticky left-0 z-30 flex items-center justify-center border-b border-r border-slate-200 bg-slate-100/80 text-sm font-semibold text-slate-600 backdrop-blur-sm dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300"
+      className="sticky left-0 z-30 flex items-center justify-center border-b border-r border-slate-200 bg-slate-100/80 text-sm font-semibold text-slate-600 backdrop-blur-sm"
       style={{ height: HEADER_HEIGHT }}
     >
       {viewPrefs.mode === "land" ? "土地" : "作物"} / 日付
@@ -159,10 +157,10 @@ export function GanttChart({
     ...scale.ticks.map((tick, _) => (
       <span
         key={`header-${tick.index}`}
-        className={`flex w-full flex-col items-center justify-center border border-slate-200 text-[11px] disabled:cursor-default dark:border-slate-700 ${
+        className={`flex w-full flex-col items-center justify-center border border-slate-200 text-[11px] disabled:cursor-default ${
           tick.isMajor
-            ? "bg-slate-100 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200"
-            : "bg-white text-slate-500 dark:bg-slate-900 dark:text-slate-400"
+            ? "bg-slate-100 font-semibold text-slate-700"
+            : "bg-white text-slate-500"
         }`}
         style={{ height: HEADER_HEIGHT }}
         title={scale.formatTooltip(tick.index)}
@@ -182,7 +180,7 @@ export function GanttChart({
           return (
             <div
               key={`${rowId}-${tickIndex.toString()}`}
-              className="border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
+              className="border border-slate-200 bg-white"
               style={{
                 minHeight: ROW_HEIGHT,
                 filter: cellFilter(selectedItem, rowId, tickIndex),
@@ -211,7 +209,7 @@ export function GanttChart({
                 record,
               })
             }
-            className="relative flex items-end justify-center border border-slate-200 bg-white p-0.5 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+            className="relative flex items-end justify-center border border-slate-200 bg-white p-0.5 transition-colors hover:bg-slate-100"
             style={{
               minHeight: ROW_HEIGHT,
               filter: cellFilter(selectedItem, rowId, tickIndex),
@@ -238,7 +236,7 @@ export function GanttChart({
         <React.Fragment key={rowId}>
           <div
             key={`${rowId}-label`}
-            className="sticky left-0 z-20 flex items-center border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+            className="sticky left-0 z-20 flex items-center border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700"
             style={{ minHeight: ROW_HEIGHT }}
           >
             {viewModel.rowLabelById[rowId] ?? rowId}
@@ -256,7 +254,7 @@ export function GanttChart({
         return (
           <div
             key={`${rowId}-${tickIndex.toString()}`}
-            className="relative border border-slate-200 dark:border-slate-700"
+            className="relative border border-slate-200"
             style={{
               minHeight: ROW_HEIGHT,
               filter: cellFilter(selectedItem, rowId, tickIndex),
@@ -295,7 +293,7 @@ export function GanttChart({
         <button
           type="button"
           key={`${rowId}-${tickIndex.toString()}`}
-          className="relative border border-slate-200 px-1 py-1 text-left dark:border-slate-700"
+          className="relative border border-slate-200 px-1 py-1 text-left"
           style={{
             minHeight: ROW_HEIGHT,
             backgroundColor: background,
@@ -320,7 +318,7 @@ export function GanttChart({
       <React.Fragment key={rowId}>
         <div
           key={`${rowId}-label`}
-          className="sticky left-0 z-20 flex items-center border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+          className="sticky left-0 z-20 flex items-center border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700"
           style={{ minHeight: ROW_HEIGHT }}
         >
           {viewModel.rowLabelById[rowId] ?? rowId}
@@ -337,13 +335,11 @@ export function GanttChart({
     <div className={`flex flex-col gap-6 ${className ?? ""}`}>
       <div className={`flex flex-col gap-4 ${className ?? ""}`}>
         <header className="flex flex-col gap-3">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
-            タイムライン
-          </h3>
+          <h3 className="text-lg font-semibold text-slate-900">タイムライン</h3>
           <ViewControls isLoading={isLoading} error={error} />
           <CategoryLegend items={allCategories} />
         </header>
-        <div className="relative overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+        <div className="relative overflow-x-auto rounded-lg border border-slate-200">
           <div className="grid text-xs" style={gridStyle}>
             {headerCells}
             {rowCells}

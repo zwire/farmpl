@@ -97,13 +97,13 @@ export function PlannerShell({ children }: PlannerShellProps) {
           </button>
         </div>
       )}
-      <header className="border-b border-slate-300/80 pb-6 dark:border-slate-700/80">
+      <header className="border-b border-slate-300/80 pb-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+            <h1 className="text-4xl font-bold tracking-tight text-slate-900">
               営農計画プランナー
             </h1>
-            <p className="mt-2 text-base text-slate-600 dark:text-slate-400">
+            <p className="mt-2 text-base text-slate-600">
               FarmPLエンジンを使って、最適な営農計画を作成します。
             </p>
           </div>
@@ -112,7 +112,7 @@ export function PlannerShell({ children }: PlannerShellProps) {
               href={process.env.NEXT_PUBLIC_DOCS_URL}
               target="_blank"
               rel="noopener"
-              className="inline-flex shrink-0 items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="inline-flex shrink-0 items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

@@ -121,7 +121,7 @@ export function EventGraphEditor({
   );
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900/20">
+    <div className="rounded-xl border border-slate-200 bg-slate-50/50">
       <div ref={containerRef} className="h-[320px] w-full rounded-xl">
         <ReactFlow
           nodes={nodes}

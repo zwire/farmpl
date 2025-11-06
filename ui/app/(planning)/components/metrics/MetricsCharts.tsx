@@ -28,18 +28,18 @@ export function MetricsCharts({ result, jobId }: MetricsChartsProps) {
   }
 
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <section className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <header className="flex flex-col gap-2">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+        <h3 className="text-lg font-semibold text-slate-900">
           メトリクス可視化
         </h3>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-xs text-slate-500">
           最適化の結果やジョブ進捗に応じて主要なメトリクスを確認できます。
         </p>
       </header>
 
       {jobId ? (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
           <TimelineGanttChart jobId={jobId} jobResult={result} />
         </div>
       ) : null}
@@ -53,7 +53,7 @@ export function MetricsCharts({ result, jobId }: MetricsChartsProps) {
           />
         ))}
         {datasets.length === 0 && !jobId ? (
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-slate-500">
             表示できるメトリクスがありません。
           </p>
         ) : null}
@@ -118,20 +118,18 @@ const MetricsBarChart = ({ title, data }: MetricsBarChartProps) => {
   const domain = Math.max(Math.abs(min ?? 0), Math.abs(max ?? 0), 1);
 
   return (
-    <article className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white/70 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-      <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-        {title}
-      </h4>
+    <article className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white/70 p-4 shadow-sm">
+      <h4 className="text-sm font-semibold text-slate-800">{title}</h4>
       <dl className="flex flex-col gap-3">
         {data.map((datum) => {
           const width = `${Math.min(Math.abs(datum.value) / domain, 1) * 100}%`;
           return (
             <div key={datum.id} className="flex flex-col gap-1">
-              <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-slate-400">
                 <dt>{datum.label}</dt>
                 <dd>{datum.value.toFixed(3)}</dd>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+              <div className="h-2 overflow-hidden rounded-full bg-slate-200">
                 <div
                   className="h-full rounded-full bg-sky-500 transition-all"
                   style={{ width }}

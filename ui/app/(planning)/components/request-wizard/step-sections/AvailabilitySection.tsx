@@ -69,7 +69,7 @@ export function AvailabilitySection({
                       name: event.target.value,
                     })
                   }
-                  className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                  className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                 />
               </Field>
               <Field label="タグ">
@@ -135,7 +135,7 @@ export function AvailabilitySection({
                       name: event.target.value,
                     })
                   }
-                  className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                  className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                 />
               </Field>
               <Field label="役割">
@@ -154,7 +154,7 @@ export function AvailabilitySection({
                   onChange={(event) =>
                     updateWorkerCapacity(index, Number(event.target.value || 0))
                   }
-                  className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                  className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                 />
               </Field>
             </div>
@@ -198,7 +198,7 @@ export function AvailabilitySection({
                 onChange={(event) =>
                   updateResource(index, { name: event.target.value })
                 }
-                className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               />
             </Field>
             <Field label="カテゴリ">
@@ -210,7 +210,7 @@ export function AvailabilitySection({
                   })
                 }
                 placeholder="例: 耕運機"
-                className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               />
             </Field>
             <Field label="日あたり使用可能時間 (h)">
@@ -227,7 +227,7 @@ export function AvailabilitySection({
                       : Number(event.target.value || 0),
                   )
                 }
-                className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               />
             </Field>
           </div>

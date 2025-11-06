@@ -19,7 +19,7 @@ export function WizardStepper({
     >
       <div
         aria-hidden
-        className="absolute left-5 top-2.5 h-[calc(100%-1.75rem)] w-px bg-slate-300 dark:bg-slate-700"
+        className="absolute left-5 top-2.5 h-[calc(100%-1.75rem)] w-px bg-slate-300"
       />
       {WIZARD_STEPS.map((step, index) => {
         const isActive = step.id === currentStep;
@@ -30,9 +30,7 @@ export function WizardStepper({
             onClick={() => onStepSelect?.(step.id)}
             className={clsx(
               "group relative flex w-full items-start gap-4 rounded-lg p-2 text-left transition-colors",
-              isActive
-                ? "bg-sky-50 dark:bg-sky-900/30"
-                : "hover:bg-slate-200/50 dark:hover:bg-slate-800/50",
+              isActive ? "bg-sky-50" : "hover:bg-slate-200/50",
             )}
           >
             <div
@@ -40,7 +38,7 @@ export function WizardStepper({
                 "relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
                 isActive
                   ? "bg-sky-500 text-white"
-                  : "border-2 border-slate-300 bg-slate-50 text-slate-500 group-hover:border-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:border-slate-600",
+                  : "border-2 border-slate-300 bg-slate-50 text-slate-500 group-hover:border-slate-400",
               )}
             >
               {isActive ? (
@@ -64,16 +62,12 @@ export function WizardStepper({
               <span
                 className={clsx(
                   "text-base font-semibold",
-                  isActive
-                    ? "text-sky-800 dark:text-sky-200"
-                    : "text-slate-800 dark:text-slate-200",
+                  isActive ? "text-sky-800" : "text-slate-800",
                 )}
               >
                 {step.title}
               </span>
-              <span className="text-xs text-slate-500 dark:text-slate-400">
-                {step.description}
-              </span>
+              <span className="text-xs text-slate-500">{step.description}</span>
             </div>
           </button>
         );
