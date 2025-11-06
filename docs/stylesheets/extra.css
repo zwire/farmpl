@@ -1,6 +1,8 @@
 /* モダンでミニマルなデザイン */
 
 :root {
+  /* ブラウザの自動ダーク化を抑止 */
+  color-scheme: light;
   --md-primary-fg-color: #6366f1;
   --md-primary-fg-color--light: #818cf8;
   --md-primary-fg-color--dark: #4f46e5;
@@ -344,74 +346,4 @@
   }
 }
 
-/* ダークモード対応 */
-[data-md-color-scheme="slate"] {
-  --color-surface: #1e293b;
-  --color-text: #f1f5f9;
-  --color-text-light: #cbd5e1;
-  --color-text-lighter: #94a3b8;
-  --color-border: #334155;
-  --color-border-light: #475569;
-}
-
-[data-md-color-scheme="slate"] .md-typeset {
-  color: var(--color-text);
-}
-
-[data-md-color-scheme="slate"] .md-typeset h1 {
-  color: #f1f5f9;
-  border-bottom-color: var(--color-border);
-}
-
-[data-md-color-scheme="slate"] .md-typeset h2 {
-  color: #e2e8f0;
-  border-bottom-color: var(--color-border);
-}
-
-[data-md-color-scheme="slate"] .md-typeset h3 {
-  color: #cbd5e1;
-}
-
-[data-md-color-scheme="slate"] .md-typeset code {
-  background: #334155;
-  color: #f1f5f9;
-  border-color: var(--color-border);
-}
-
-[data-md-color-scheme="slate"] .md-typeset pre {
-  background: #0f172a;
-  border-color: var(--color-border);
-}
-
-[data-md-color-scheme="slate"] .md-typeset blockquote {
-  background: #334155;
-  color: var(--color-text-light);
-}
-
-[data-md-color-scheme="slate"] .md-typeset table th {
-  background: #334155;
-  color: var(--color-text);
-  border-bottom-color: var(--color-border);
-}
-
-[data-md-color-scheme="slate"] .md-typeset table td {
-  background: var(--color-surface);
-  color: var(--color-text);
-  border-bottom-color: var(--color-border);
-}
-
-[data-md-color-scheme="slate"] .md-typeset table tr:hover td {
-  background: #334155;
-}
-
-[data-md-color-scheme="slate"] ::-webkit-scrollbar-track {
-  background: #1e293b;
-}
-
-[data-md-color-scheme="slate"] ::-webkit-scrollbar-thumb {
-  background: #475569;
-}
-
-[data-md-color-scheme="slate"] ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
-}
+/* ダークモード関連CSSは削除し、ライトに統一 */

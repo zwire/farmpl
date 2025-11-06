@@ -13,6 +13,9 @@ theme:
     - search.suggest
     - search.highlight
     - toc.follow
+  # 固定のライトテーマに統一（自動/ダーク切替なし）
+  palette:
+    - scheme: default
   font:
     text: Noto Sans JP
     code: Roboto Mono
