@@ -1,0 +1,58 @@
+[template]
+id = "strawberry_outdoor"
+label = "イチゴ(露地栽培)"
+crop_ref = "strawberry"
+variant = "露地栽培"
+price_per_a = 200000.0
+
+[[events]]
+id = "prepare_field"
+name = "圃場準備"
+category = "圃場準備"
+uses_land = true
+start_window_days = [240, 250]
+labor_total_per_a = 8.0
+
+[[events]]
+id = "sow"
+name = "育苗"
+category = "播種"
+uses_land = false
+start_window_days = [150, 180]
+labor_total_per_a = 4.0
+
+[[events]]
+id = "transplant"
+name = "定植"
+category = "定植"
+uses_land = true
+preceding_event_id = "sow"
+lag_days = [30, 40]
+labor_total_per_a = 8.0
+
+[[events]]
+id = "harvest"
+name = "収穫"
+category = "収穫"
+uses_land = true
+preceding_event_id = "transplant"
+lag_days = [210, 270]
+labor_total_per_a = 80.0
+
+[[events]]
+id = "shipping"
+name = "出荷"
+category = "出荷"
+uses_land = false
+preceding_event_id = "harvest"
+lag_days = [1, 2]
+labor_total_per_a = 15.0
+
+[[events]]
+id = "cleanup"
+name = "片付け"
+category = "片付け"
+uses_land = true
+preceding_event_id = "harvest"
+lag_days = [10, 20]
+labor_total_per_a = 8.0

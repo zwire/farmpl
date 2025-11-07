@@ -375,3 +375,9 @@ id = "water_spinach"
 name = "クウシンサイ"
 category = "葉茎菜類"
 aliases = ["くうしんさい", "空心菜", "ヨウサイ"]
+
+[[crops]]
+id = "strawberry"
+name = "イチゴ"
+category = "果菜類"
+aliases = ["いちご", "苺"]
