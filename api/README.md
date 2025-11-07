@@ -30,6 +30,7 @@ uv run uvicorn main:app --reload
 - `GET /v1/jobs/{job_id}`（状態/結果）
 - `DELETE /v1/jobs/{job_id}`（キャンセル）
 - `GET /healthz`（ヘルス） / `GET /readyz`（依存チェック） / `GET /metrics`（Prometheus 互換）
+- `POST /v1/exports/summary`（収支内訳＋簡易ガントのエクスポート）
 
 ## 環境変数（主要）
 - 認可（既定: API Key 必須）
@@ -101,6 +102,17 @@ API_BASE_URL=http://127.0.0.1:8000 API_KEY=devkey1 uv run python demo_api.py asy
 
 # 4) JSON 出力
 uv run python demo_api.py sync --json
+
+# 5) 収支内訳のエクスポート（例: ZIP/CSV）
+# 非同期実行→結果が OK になった job_id を使って出力
+# （ここでは curl の例。ボディは ExportRequest）
+# curl -H 'Content-Type: application/json' -H 'X-API-Key: devkey1' \
+#   -XPOST http://127.0.0.1:8000/v1/exports/summary \
+#   -d '{
+#         "format": "zip_csv",
+#         "source": {"job_id": "<JOB_ID>"},
+#         "assumptions": {"wage_rate_per_hour": 1200}
+#       }' --output plan-summary.zip
 ```
 
 ## curl の例

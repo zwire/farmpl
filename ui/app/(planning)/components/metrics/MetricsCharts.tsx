@@ -4,7 +4,7 @@ import { extent } from "d3-array";
 import { useMemo } from "react";
 
 import type { OptimizationResultView } from "@/lib/types/planning";
-
+import { ExportButtons } from "../export/ExportButtons";
 import { GanttChart as TimelineGanttChart } from "./gantt/GanttChart";
 
 interface MetricsChartsProps {
@@ -29,13 +29,16 @@ export function MetricsCharts({ result, jobId }: MetricsChartsProps) {
 
   return (
     <section className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <header className="flex flex-col gap-2">
-        <h3 className="text-lg font-semibold text-slate-900">
-          メトリクス可視化
-        </h3>
-        <p className="text-xs text-slate-500">
-          最適化の結果やジョブ進捗に応じて主要なメトリクスを確認できます。
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <h3 className="text-lg font-semibold text-slate-900">
+            メトリクス可視化
+          </h3>
+          <p className="text-xs text-slate-500">
+            最適化の結果やジョブ進捗に応じて主要なメトリクスを確認できます。
+          </p>
+        </div>
+        <ExportButtons />
       </header>
 
       {jobId ? (
