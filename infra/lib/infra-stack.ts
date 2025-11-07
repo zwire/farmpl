@@ -154,6 +154,13 @@ export class InfraStack extends Stack {
     this.restApi = new apigateway.LambdaRestApi(this, 'HttpApi', {
       handler: this.apiFunction,
       proxy: true,
+      binaryMediaTypes: [
+        // 明示的にバイナリ扱いにするコンテンツタイプ
+        'application/zip',
+        // 将来のDOCX出力にも備えておく
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/octet-stream',
+      ],
       deployOptions: {
         stageName: 'prod',
       },

@@ -11,7 +11,7 @@ name = "圃場準備"
 category = "圃場準備"
 uses_land = true
 start_window_days = [1, 10]
-labor_total_per_a = 8.0
+labor_total_per_a = 10.0
 
 [[events]]
 id = "sow"
@@ -27,19 +27,61 @@ name = "定植"
 category = "定植"
 uses_land = true
 preceding_event_id = "sow"
-lag_days = [25, 35]
+lag_days = [40, 50]
 labor_total_per_a = 6.0
 
 [[events]]
+id = "irrigation"
+name = "潅水"
+category = "潅水"
+uses_land = true
+preceding_event_id = "transplant"
+lag_days = [10, 120]
+frequency_days = 7
+labor_total_per_a = 5.0
+labor_daily_cap = 2.0
+
+[[events]]
+id = "fertilize"
+name = "追肥"
+category = "施肥"
+uses_land = true
+preceding_event_id = "transplant"
+lag_days = [20, 110]
+frequency_days = 21
+labor_total_per_a = 6.0
+labor_daily_cap = 2.0
+
+[[events]]
+id = "weeding"
+name = "除草"
+category = "除草"
+uses_land = true
+preceding_event_id = "transplant"
+lag_days = [15, 120]
+frequency_days = 14
+labor_total_per_a = 8.0
+labor_daily_cap = 2.0
+
+[[events]]
 id = "prune"
-name = "整枝"
+name = "整枝・誘引"
 category = "整枝"
 uses_land = true
 preceding_event_id = "transplant"
-lag_days = [10, 70]
+lag_days = [15, 100]
 frequency_days = 7
-labor_total_per_a = 25.0
+labor_total_per_a = 30.0
 labor_daily_cap = 4.0
+
+[[events]]
+id = "topping"
+name = "摘心"
+category = "摘心"
+uses_land = true
+preceding_event_id = "transplant"
+lag_days = [80, 100]
+labor_total_per_a = 2.0
 
 [[events]]
 id = "pesticide"
@@ -58,8 +100,9 @@ name = "収穫"
 category = "収穫"
 uses_land = true
 preceding_event_id = "transplant"
-lag_days = [45, 80]
-labor_total_per_a = 25.0
+lag_days = [60, 90]
+labor_total_per_a = 40.0
+labor_daily_cap = 8.0
 
 [[events]]
 id = "shipping"
@@ -68,8 +111,9 @@ category = "出荷"
 uses_land = false
 preceding_event_id = "harvest"
 lag_days = [1, 2]
-labor_total_per_a = 6.0
-labor_daily_cap = 3.0
+frequency_days = 1
+labor_total_per_a = 10.0
+labor_daily_cap = 4.0
 
 [[events]]
 id = "cleanup"
@@ -77,6 +121,6 @@ name = "片付け"
 category = "片付け"
 uses_land = true
 preceding_event_id = "harvest"
-lag_days = [10, 20]
-labor_total_per_a = 4.0
-labor_daily_cap = 3.0
+lag_days = [30, 50]
+labor_total_per_a = 6.0
+labor_daily_cap = 4.0

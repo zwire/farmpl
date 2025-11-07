@@ -1,0 +1,82 @@
+[template]
+id = "largetomato_greenhouse_forcing"
+label = "大玉トマト(ハウス促成栽培)"
+crop_ref = "large_tomato"
+variant = "ハウス促成栽培"
+price_per_a = 450000.0
+
+[[events]]
+id = "prepare_field"
+name = "圃場準備"
+category = "圃場準備"
+uses_land = true
+start_window_days = [1, 10]
+labor_total_per_a = 8.0
+
+[[events]]
+id = "sow"
+name = "播種"
+category = "播種"
+uses_land = false
+start_window_days = [240, 250]
+labor_total_per_a = 2.0
+
+[[events]]
+id = "transplant"
+name = "定植"
+category = "定植"
+uses_land = true
+preceding_event_id = "sow"
+lag_days = [50, 60]
+labor_total_per_a = 8.0
+
+[[events]]
+id = "prune"
+name = "整枝"
+category = "整枝"
+uses_land = true
+preceding_event_id = "transplant"
+lag_days = [7, 180]
+frequency_days = 7
+labor_total_per_a = 50.0
+labor_daily_cap = 4.0
+
+[[events]]
+id = "pesticide"
+name = "防除"
+category = "防除"
+uses_land = true
+preceding_event_id = "transplant"
+lag_days = [10, 210]
+frequency_days = 14
+labor_total_per_a = 6.0
+labor_daily_cap = 3.0
+
+[[events]]
+id = "harvest"
+name = "収穫"
+category = "収穫"
+uses_land = true
+preceding_event_id = "transplant"
+lag_days = [60, 210]
+labor_total_per_a = 60.0
+
+[[events]]
+id = "shipping"
+name = "出荷"
+category = "出荷"
+uses_land = false
+preceding_event_id = "harvest"
+lag_days = [1, 2]
+labor_total_per_a = 10.0
+labor_daily_cap = 3.0
+
+[[events]]
+id = "cleanup"
+name = "片付け"
+category = "片付け"
+uses_land = true
+preceding_event_id = "harvest"
+lag_days = [10, 20]
+labor_total_per_a = 5.0
+labor_daily_cap = 3.0

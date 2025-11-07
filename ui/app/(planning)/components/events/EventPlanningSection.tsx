@@ -386,9 +386,7 @@ export function EventPlanningSection({
       <div className="flex flex-wrap items-center gap-3">
         <label className="flex flex-col gap-2 text-sm text-slate-600">
           <div className="flex flex-row items-center gap-2">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              対象作物
-            </h3>
+            <h3 className="text-lg font-semibold text-slate-900">対象作物</h3>
             <p className="text-xs text-slate-500">
               作物を選んでから作業間の依存関係と詳細を編集します。
             </p>
@@ -414,12 +412,12 @@ export function EventPlanningSection({
       >
         <div className="flex flex-row items-end justify-between">
           <div className="flex flex-wrap items-end gap-4">
-            <label className="flex flex-col gap-1.5 text-sm text-slate-600 dark:text-slate-300">
+            <label className="flex flex-col gap-1.5 text-sm text-slate-600">
               <span className="font-medium">作型（選択中の作物に関連）</span>
               <select
                 value={selectedTemplateId}
                 onChange={(e) => setSelectedTemplateId(e.target.value)}
-                className="min-w-[260px] rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                className="min-w-[260px] rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               >
                 {variants.map((v) => (
                   <option key={v.template_id} value={v.template_id}>
@@ -428,19 +426,19 @@ export function EventPlanningSection({
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1.5 text-sm text-slate-600 dark:text-slate-300">
+            <label className="flex flex-col gap-1.5 text-sm text-slate-600">
               <span className="font-medium">開始日</span>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               />
             </label>
             <button
               type="button"
               onClick={refreshSuggestions}
-              className="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              className="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
             >
               候補更新
             </button>
@@ -455,7 +453,7 @@ export function EventPlanningSection({
             <button
               type="button"
               onClick={initializeFromTemplate}
-              className="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              className="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
             >
               テンプレートから作成
             </button>

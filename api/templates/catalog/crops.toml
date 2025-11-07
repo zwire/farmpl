@@ -129,3 +129,255 @@ id = "nanohana"
 name = "菜の花"
 category = "葉茎菜類"
 aliases = ["なのはな"]
+
+[[crops]]
+id = "rice"
+name = "コメ"
+category = "穀類"
+aliases = ["こめ", "米", "稲", "水稲"]
+
+[[crops]]
+id = "komatsuna"
+name = "コマツナ"
+category = "葉茎菜類"
+aliases = ["こまつな", "小松菜"]
+
+[[crops]]
+id = "turnip"
+name = "カブ"
+category = "根菜類"
+aliases = ["かぶ", "蕪"]
+
+[[crops]]
+id = "burdock"
+name = "ゴボウ"
+category = "根菜類"
+aliases = ["ごぼう", "牛蒡"]
+
+[[crops]]
+id = "garlic"
+name = "ニンニク"
+category = "根菜類"
+aliases = ["にんにく", "大蒜"]
+
+[[crops]]
+id = "eggplant"
+name = "ナス"
+category = "果菜類"
+aliases = ["なす", "茄子"]
+
+[[crops]]
+id = "zucchini"
+name = "ズッキーニ"
+category = "果菜類"
+aliases = ["ずっきーに"]
+
+[[crops]]
+id = "green_pepper"
+name = "ピーマン"
+category = "果菜類"
+aliases = ["ぴーまん", "パプリカ（青）", "青果ピーマン"]
+
+[[crops]]
+id = "paprika"
+name = "パプリカ"
+category = "果菜類"
+aliases = ["ぱぷりか", "カラーピーマン", "ベルペッパー"]
+
+[[crops]]
+id = "garlic_chive"
+name = "ニラ"
+category = "葉茎菜類"
+aliases = ["にら", "韮"]
+
+[[crops]]
+id = "molokhia"
+name = "モロヘイヤ"
+category = "葉茎菜類"
+aliases = ["もろへいや"]
+
+[[crops]]
+id = "chinese_cabbage"
+name = "ハクサイ"
+category = "葉茎菜類"
+aliases = ["はくさい", "白菜", "シロナ"]
+
+[[crops]]
+id = "chili_pepper"
+name = "トウガラシ"
+category = "果菜類"
+aliases = ["とうがらし", "唐辛子", "鷹の爪"]
+
+[[crops]]
+id = "shishito"
+name = "シシトウ"
+category = "果菜類"
+aliases = ["ししとう", "獅子唐"]
+
+[[crops]]
+id = "lotus_root"
+name = "レンコン"
+category = "根菜類"
+aliases = ["れんこん", "蓮根"]
+
+[[crops]]
+id = "yacon"
+name = "ヤーコン"
+category = "根菜類"
+aliases = ["やーこん"]
+
+[[crops]]
+id = "mizuna"
+name = "水菜"
+category = "葉茎菜類"
+aliases = ["みずな", "ミズナ"]
+
+[[crops]]
+id = "shungiku"
+name = "春菊"
+category = "葉茎菜類"
+aliases = ["しゅんぎく", "キクナ", "菊菜"]
+
+[[crops]]
+id = "lily_bulb"
+name = "ゆり根"
+category = "根菜類"
+aliases = ["ゆりね", "百合根"]
+
+[[crops]]
+id = "brussels_sprout"
+name = "芽キャベツ"
+category = "葉茎菜類"
+aliases = ["めきゃべつ", "子持ち甘藍"]
+
+[[crops]]
+id = "peanut"
+name = "ラッカセイ"
+category = "豆類"
+aliases = ["らっかせい", "落花生"]
+
+[[crops]]
+id = "beet"
+name = "ビーツ"
+category = "根菜類"
+aliases = ["びーつ", "テーブルビート", "甜菜"]
+
+[[crops]]
+id = "melon"
+name = "メロン"
+category = "果菜類"
+aliases = ["めろん"]
+
+[[crops]]
+id = "myoga"
+name = "ミョウガ"
+category = "葉茎菜類"
+aliases = ["みょうが", "茗荷"]
+
+[[crops]]
+id = "wasabi"
+name = "ワサビ"
+category = "葉茎菜類"
+aliases = ["わさび", "山葵"]
+
+[[crops]]
+id = "okahijiki"
+name = "オカヒジキ"
+category = "葉茎菜類"
+aliases = ["おかひじき"]
+
+[[crops]]
+id = "ice_plant"
+name = "アイスプラント"
+category = "葉茎菜類"
+aliases = ["あいすぷらんと", "ソルトリーフ"]
+
+[[crops]]
+id = "mountain_wasabi"
+name = "山ワサビ"
+category = "根菜類"
+aliases = ["やまわさび", "西洋わさび", "ホースラディッシュ"]
+
+[[crops]]
+id = "pea"
+name = "エンドウ"
+category = "豆類"
+aliases = ["えんどう", "えんどう豆", "スナップエンドウ", "キヌサヤエンドウ"]
+
+[[crops]]
+id = "bean"
+name = "インゲン"
+category = "豆類"
+aliases = ["いんげん", "いんげん豆", "サヤインゲン"]
+
+[[crops]]
+id = "soybean"
+name = "ダイズ"
+category = "豆類"
+aliases = ["だいず", "大豆"]
+
+[[crops]]
+id = "azuki_bean"
+name = "アズキ"
+category = "豆類"
+aliases = ["あずき", "小豆"]
+
+[[crops]]
+id = "fava_bean"
+name = "ソラマメ"
+category = "豆類"
+aliases = ["そらまめ", "空豆", "蚕豆"]
+
+[[crops]]
+id = "celery"
+name = "セロリ"
+category = "葉茎菜類"
+aliases = ["せろり"]
+
+[[crops]]
+id = "ginger"
+name = "ショウガ"
+category = "根菜類"
+aliases = ["しょうが", "生姜"]
+
+[[crops]]
+id = "sugar_beet"
+name = "テンサイ"
+category = "根菜類"
+aliases = ["てんさい", "甜菜", "ビート"]
+
+[[crops]]
+id = "parsley"
+name = "パセリ"
+category = "葉茎菜類"
+aliases = ["ぱせり"]
+
+[[crops]]
+id = "basil"
+name = "バジル"
+category = "葉茎菜類"
+aliases = ["ばじる"]
+
+[[crops]]
+id = "shiso"
+name = "シソ"
+category = "葉茎菜類"
+aliases = ["しそ", "紫蘇", "大葉"]
+
+[[crops]]
+id = "arugula"
+name = "ルッコラ"
+category = "葉茎菜類"
+aliases = ["るっこら"]
+
+[[crops]]
+id = "water_spinach"
+name = "クウシンサイ"
+category = "葉茎菜類"
+aliases = ["くうしんさい", "空心菜", "ヨウサイ"]
+
+[[crops]]
+id = "strawberry"
+name = "イチゴ"
+category = "果菜類"
+aliases = ["いちご", "苺"]
